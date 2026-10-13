@@ -60,6 +60,7 @@ function researchPrompt(b) {
 3. For EVERY account in the batch, research it on the web and score BOTH legs exactly per the rubric. Confirm what the storefront really runs on (the brand's own shop pages, "<brand> shopify", press about replatforms). Find scale (revenue, stores, headcount), business model, ownership/parent, distress, and timing signals. 3–5 evidence items with URLs per account that could matter; 1–2 for obvious non-fits. Write the story / shopify_angle / anatta_angle as a pitch, not a description.
 4. Return {accounts:[...]} through StructuredOutput with one entry per account — all ${b.names.length} names, spelled exactly as in the batch file: ${JSON.stringify(b.names)}.
 5. ALSO write the identical object as JSON to ${out_dir}/results/${b.id}.json with the Write tool before you finish.
+${b.note || ''}
 ${TOOLING}`
 }
 

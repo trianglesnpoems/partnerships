@@ -59,6 +59,13 @@ GATE_TEXT = {
     "restricted": "Category Shopify cannot host",
 }
 clamp = lambda v, lo, hi: max(lo, min(hi, v))
+# National-scale retailers running proprietary commerce platforms with in-house engineering: a Shopify replatform is a
+# multi-year enterprise pursuit, not whitespace Shopify can convert in a quarter. Documented cap, shown on the record.
+PROPRIETARY_SCALE = {
+    "Loblaws": "Canada's largest grocer runs PC Express / in-house commerce with its own engineering org; a long-cycle enterprise pursuit at best.",
+    "Co-op": "Federated Co-operatives (FCL) is a $14B+ wholesaler for 160 independent retail co-ops on an in-house/SAP stack; procurement is federated and slow.",
+    "Mark's": "Owned by Canadian Tire Corporation, which runs all banners on its own enterprise platform; a Shopify move would be a CTC-level decision.",
+}
 
 out = []
 for name, a in inputs.items():
@@ -68,7 +75,10 @@ for name, a in inputs.items():
         out.append({"name": name, "domain": a["domain"], "missing": True, "tier": "NA", "shopify_fit": None, "anatta_fit": None, "triangle": None,
                     "gate": "", "gate_reason": "", "contacts": a["contacts"]["count"], "in_accounts_export": a["in_accounts_export"]})
         continue
-    s, an = r["shopify"], r["anatta"]
+    s, an = dict(r["shopify"]), r["anatta"]
+    adj_notes = []
+    if name in PROPRIETARY_SCALE and s["whitespace"] > 15:
+        adj_notes.append(f"Platform whitespace capped {s['whitespace']}→15: {PROPRIETARY_SCALE[name]}"); s["whitespace"] = 15
     sf_raw = s["whitespace"] + s["scale"] + s["model_fit"] + s["unified"] + s["timing"] + s["ecosystem"]
     sf = clamp(sf_raw + s["penalties"], 0, 100)
     intent_pts = fire_intent(f)
@@ -77,15 +87,16 @@ for name, a in inputs.items():
     gate_reason = r.get("gate_reason", "")
     # ---------- apply verifier verdicts ----------
     vs = verdicts.get(name, [])
-    adj_notes = []
     sf_sugg = [v["shopify_fit_suggested"] for v in vs if v["verdict"] in ("adjust", "refute") and v.get("shopify_fit_suggested") is not None]
     af_sugg = [v["anatta_fit_suggested"] for v in vs if v["verdict"] in ("adjust", "refute") and v.get("anatta_fit_suggested") is not None]
     if sf_sugg:
         new = round((sf + sum(sf_sugg) / len(sf_sugg)) / 2)  # conservative: average of research and verifier views
-        adj_notes.append(f"Shopify fit {sf}→{new} after verification"); sf = new
+        if new != sf: adj_notes.append(f"Shopify fit {sf}→{new} after verification")
+        sf = new
     if af_sugg:
         new = round((af + sum(af_sugg) / len(af_sugg)) / 2)
-        adj_notes.append(f"Anatta fit {af}→{new} after verification"); af = new
+        if new != af: adj_notes.append(f"Anatta fit {af}→{new} after verification")
+        af = new
     gate_sugg = [v["gate_suggested"] for v in vs if v["verdict"] == "refute" and v.get("gate_suggested") not in (None, "keep")]
     if gate_sugg:
         # a refuting verifier can add or remove a gate; take the first and record why
@@ -110,6 +121,7 @@ for name, a in inputs.items():
         "category": r["category"], "model": r["model"], "size_est": r["size_est"], "platform": r["platform_confirmed"],
         "hq": r["hq"], "ownership": r["ownership"],
         "shopify_sub": {k: s[k] for k in ["whitespace", "scale", "model_fit", "unified", "timing", "ecosystem", "penalties"]},
+        "shopify_fit_raw": clamp(r["shopify"]["whitespace"] + r["shopify"]["scale"] + r["shopify"]["model_fit"] + r["shopify"]["unified"] + r["shopify"]["timing"] + r["shopify"]["ecosystem"] + r["shopify"]["penalties"], 0, 100),
         "penalty_reason": s["penalty_reason"],
         "anatta_sub": {"brand_surface": an["brand_surface"], "modernization": an["modernization"], "scale": an["scale"], "ltv": an["ltv"], "intent": intent_pts},
         "shopify_fit": sf, "anatta_fit": af, "bonus": bonus(f), "triangle": tri, "tier": tier,
@@ -128,7 +140,9 @@ summary = {"accounts": len(out), "scored": sum(1 for x in out if not x["missing"
            "tiers": dict(tiers), "verified": sum(1 for x in out if x.get("verification")), "adjusted": sum(1 for x in out if x.get("adjustments")),
            "confidence": dict(collections.Counter(x.get("confidence", "n/a") for x in out)),
            "not_in_accounts_export": [x["name"] for x in out if not x["in_accounts_export"]],
-           "zero_contact_accounts": sum(1 for x in out if x["contacts"] == 0)}
+           "zero_contact_accounts": sum(1 for x in out if x["contacts"] == 0),
+           "triaged": sum(1 for x in out if x.get("source") == "triage.json"),
+           "reworked": sum(1 for x in out if (x.get("source") or "").startswith("rework_"))}
 json.dump({"summary": summary, "accounts": out}, open(OUT, "w"), indent=0, ensure_ascii=False)
 print(json.dumps(summary, indent=1))
 print("\nTOP 30:")
