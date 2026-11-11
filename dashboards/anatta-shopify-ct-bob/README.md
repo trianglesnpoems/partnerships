@@ -6,9 +6,15 @@ and gates as the October 2026 Anatta × Shopify build (`dashboards/anatta-shopif
 compare directly.
 
 The deliverable is a single self-contained HTML file with two views (Overview, Account Dashboard) in two variants:
-an internal copy and a copy that is safe to share with Shopify. No contacts export was in scope, so there is no hub
-map. Data files and the generated HTML are **not** committed here; everything needed to regenerate them is in
-`pipeline/`.
+an internal copy and a copy that is safe to share with Shopify, each with a CSV of the scored book. No contacts
+export was in scope, so there is no hub map. Data files, the book config and the generated HTML are **not**
+committed here; the code needed to regenerate them is in `pipeline/`.
+
+## Result (11 Nov 2026)
+
+79 accounts, 73 companies once shared rows are grouped: 8 golden-triangle rows across 5 companies (T1), 13 strong
+(T2), 13 develop (T3), 31 watch (T4), 14 disqualified (X), none already on Shopify Plus. 27 accounts got a second
+look and 9 records carry a documented adjustment.
 
 ## Inputs
 
@@ -28,7 +34,7 @@ map. Data files and the generated HTML are **not** committed here; everything ne
 | 4 | research agents + `validate_batch.py` | One agent per batch scores both legs per `rubric.md` with sourced web evidence and writes `results/batch_NN.json`; the validator enforces names, schema and ranges. |
 | 5 | `make_verify.py`, verifier agents + `validate_verify.py` | Provisional T1 accounts get two adversarial lenses (platform & scale; business model & gates), T2 gets the platform lens, and every judgment-call gate (distress, gov, already_plus) gets the model lens. |
 | 6 | `score.py` | **Single source of truth** for every number: merges research, triage and verifier verdicts; computes Shopify fit, Anatta fit (with the deterministic FIRE intent subscore), triangle, gates and tiers; asserts subscore sums, source-exact FIRE values, a written play for every T1 and that no Salesforce ID is present. |
-| 7 | `assemble.py` | Embeds the scored book into `dashboard.html`. Writes the internal and shareable copies, each as a standalone file and as a page fragment for publishing; asserts the shareable copy carries no internal-only field or CRM note. |
+| 7 | `assemble.py` | Embeds the scored book into `dashboard.html`. Writes the internal and shareable copies, each as a standalone file, as a page fragment for publishing and as a CSV; removes the internal-only section from the shareable copy and asserts it carries no internal-only field, CRM note or record ID. |
 
 ```bash
 # book.json (see pipeline/book.example.json) holds everything that names an account; it lives with the data
@@ -63,5 +69,14 @@ government, distress, no commerce surface (only when Shopify fit < 20), bad reco
   it; the 20-point intent subscore is still computed from the export exactly as written.
 - **CRuX is unreliable here.** Several national retailers show the lowest traffic band, so commerce scale is scored
   from revenue, store counts and headcount.
+- **One documented whitespace cap.** One account went live on a competitor's enterprise platform inside the last
+  two years and is that vendor's showcase. The rubric's top whitespace band is for legacy platforms, so its platform
+  whitespace is capped at 15 of 25 (`whitespace_cap` in `book.json`), the same cap the October build used for
+  platforms Shopify cannot convert in a quarter. The uncapped score stays on the record.
+- **Second look was a consistency check.** The research pass used the whole web-search budget for the run (200
+  searches), so the two verifiers checked each top-tier record and each judgment-call gate against its own sourced
+  evidence and the rubric's wording instead of searching again (`"verification": "consistency"` in `book.json`).
+  They pulled five Shopify scores down and removed three distress gates that did not meet the rubric's test.
 - **Internal vs shareable.** The internal copy shows which accounts are in Salesforce and a section on how far to
-  trust our own signal. The shareable copy drops both from the data, not just from the page.
+  trust our own signal. The shareable copy drops both from the data and the page, along with notes that correct our
+  own earlier review of the book.

@@ -72,10 +72,16 @@ BLANK_FIRE = {"intent": "", "score": "", "in_market": False, "signals": "", "rec
 # The Apollo row for this account is a different company from the one in the book, so its FIRE fields are not this
 # account's signal. They stay visible, exactly as exported, but do not score.
 SIGNAL_MISATTRIBUTED = book.get("signal_misattributed", {})   # account name -> why
+# Documented whitespace cap, as in the Oct 2026 build: where Shopify cannot convert the platform in a quarter (there: national
+# retailers on proprietary platforms; here: a competitor platform that went live inside the last two years), platform whitespace
+# is capped. The rubric's top band is for LEGACY platforms. The uncapped score stays on the record.
+WHITESPACE_CAP = book.get("whitespace_cap", {})               # account name -> {"cap": n, "reason": "..."}
+ACCOUNT_NOTES = book.get("account_notes", {})                 # account name -> a caveat added to the record's flags
 # Rows that roll up to one buying centre: one decision covers all of them.
 GROUPS = book.get("groups", {})                               # centre -> [account names]
 group_of = {n: g for g, names in GROUPS.items() for n in names}
 assert all(n in inputs for n in group_of), [n for n in group_of if n not in inputs]
+assert all(n in inputs for n in list(WHITESPACE_CAP) + list(ACCOUNT_NOTES) + list(SIGNAL_MISATTRIBUTED)), "book.json names an account that is not in the book"
 
 # Record names that are a domain string or a label artefact get a readable display name; the record name is always shown beside it.
 DISPLAY = book.get("display", {})                             # account name -> readable name
@@ -124,12 +130,16 @@ def recency_window(rows):
     return [lo.strftime("%b %-d"), hi.strftime("%b %-d, %Y")] if datetime.date.min < lo <= hi < datetime.date.max else None
 
 CRM_PRESENCE = re.compile(r"\bin salesforce\b|\bSFDC\b", re.I)   # stated once, in the internal-only in_sfdc field
+def plain(text):
+    """Researchers sometimes name the input field `prior_review`; readers know it as the earlier review of this book."""
+    t = re.sub(r"\bprior_review'?s?\b", "the earlier review", text or "")
+    return t[:1].upper() + t[1:] if t.startswith("the earlier review") else t
 def clean_flags(flags):
     """Drop flags that only restate CRM presence, and take the shouting out of an all-caps lead-in."""
     out = []
     for f in flags:
         if CRM_PRESENCE.search(f): continue
-        out.append(re.sub(r"^([A-Z][A-Z ]{6,}):", lambda m: m.group(1).capitalize().replace("apollo", "Apollo") + ":", f))
+        out.append(plain(re.sub(r"^([A-Z][A-Z ]{6,}):", lambda m: m.group(1).capitalize().replace("apollo", "Apollo") + ":", f)))
     return out
 
 def days_since(s):
@@ -152,6 +162,11 @@ for name, a in inputs.items():
     s, an = dict(r["shopify"]), r["anatta"]
     adj_notes = []
     if name in SIGNAL_MISATTRIBUTED: adj_notes.append("FIRE not scored: " + SIGNAL_MISATTRIBUTED[name])
+    sf_uncapped = clamp(sum(s[k] for k in ("whitespace", "scale", "model_fit", "unified", "timing", "ecosystem")) + s["penalties"], 0, 100)
+    cap = WHITESPACE_CAP.get(name)
+    if cap and s["whitespace"] > cap["cap"]:
+        adj_notes.append(f"Platform whitespace capped {s['whitespace']}→{cap['cap']} (Shopify fit {sf_uncapped} before the cap): {cap['reason']}")
+        s["whitespace"] = cap["cap"]
     sf_raw = s["whitespace"] + s["scale"] + s["model_fit"] + s["unified"] + s["timing"] + s["ecosystem"]
     sf = clamp(sf_raw + s["penalties"], 0, 100)
     sf_research = sf
@@ -197,13 +212,14 @@ for name, a in inputs.items():
         "plat_label": plat_label(plat_family(name, r["platform_confirmed"]), r["platform_confirmed"]),
         "hq": r["hq"], "ownership": r["ownership"],
         "shopify_sub": {k: s[k] for k in ["whitespace", "scale", "model_fit", "unified", "timing", "ecosystem", "penalties"]},
-        "shopify_fit_research": sf_research, "penalty_reason": s["penalty_reason"],
+        "shopify_fit_research": sf_research, "shopify_fit_uncapped": sf_uncapped, "whitespace_capped": sf_uncapped != sf_research,
+        "penalty_reason": s["penalty_reason"],
         "anatta_sub": {"brand_surface": an["brand_surface"], "modernization": an["modernization"], "scale": an["scale"], "ltv": an["ltv"], "intent": intent_pts},
         "anatta_fit_research": af_research,
         "shopify_fit": sf, "anatta_fit": af, "bonus": bon, "triangle": tri, "tier": tier,
-        "gate": gate, "gate_reason": (gate_reason or GATE_TEXT.get(gate, "")) if gate else "",
-        "story": r["story"], "shopify_angle": r["shopify_angle"], "anatta_angle": r["anatta_angle"],
-        "evidence": r["evidence"], "flags": clean_flags(r["flags"]), "confidence": r["confidence"],
+        "gate": gate, "gate_reason": plain(gate_reason or GATE_TEXT.get(gate, "")) if gate else "",
+        "story": plain(r["story"]), "shopify_angle": plain(r["shopify_angle"]), "anatta_angle": plain(r["anatta_angle"]),
+        "evidence": [{"claim": plain(e["claim"]), "source": e["source"]} for e in r["evidence"]], "flags": clean_flags(r["flags"]) + ([ACCOUNT_NOTES[name]] if name in ACCOUNT_NOTES else []), "confidence": r["confidence"],
         "verification": [{"lens": v["lens"], "verdict": v["verdict"], "reason": v["reason"], "evidence": v.get("evidence", [])} for v in vs],
         "adjustments": adj_notes, "signal_misattributed": name in SIGNAL_MISATTRIBUTED,
         "storeleads": a["storeleads"], "builtwith": {k: v for k, v in bw.items() if k != "note"},

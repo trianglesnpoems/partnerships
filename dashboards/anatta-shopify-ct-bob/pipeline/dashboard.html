@@ -75,14 +75,14 @@ p{margin:0 0 12px;color:var(--ink-2)}
 :root[data-theme="dark"] .tierpill.T4{color:#fff}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tierpill.T1,:root:not([data-theme="light"]) .tierpill.T2{color:#0b0b0b}:root:not([data-theme="light"]) .tierpill.T4{color:#fff}}
 /* table */
-.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:13px;background:var(--surface)}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:13px;background:var(--surface);container-type:inline-size}
 table{border-collapse:collapse;width:100%;font-size:13px}
 table.wide{min-width:900px}
 th{text-align:left;font-weight:600;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);padding:10px 12px;border-bottom:1px solid var(--line-2);white-space:nowrap}
 th.s{cursor:pointer;user-select:none}th.s:hover{color:var(--ink)}
 td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
 tbody tr:last-child td{border-bottom:none}
-tr.row{cursor:pointer}tr.row:hover td{background:var(--surface-2)}tr.det>td{background:var(--surface-2);padding:0}
+tr.row{cursor:pointer}tr.row:hover td{background:var(--surface-2)}tr.detrow>td{background:var(--surface-2);padding:0}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
 .clip{max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .inp{background:var(--surface);border:1px solid var(--line-2);border-radius:8px;padding:6px 9px;font-size:13px;min-width:0;color:var(--ink)}
@@ -92,7 +92,7 @@ tr.row{cursor:pointer}tr.row:hover td{background:var(--surface-2)}tr.det>td{back
 .tip{position:fixed;z-index:200;pointer-events:none;background:var(--surface);border:1px solid var(--line-2);border-radius:9px;padding:9px 11px;font-size:12.2px;box-shadow:var(--shadow);max-width:300px;line-height:1.45;color:var(--ink-2)}
 .tip b{color:var(--ink)}
 footer{border-top:1px solid var(--line);padding:26px 0 46px;color:var(--ink-3);font-size:12.5px}
-.det{padding:14px 18px;display:grid;gap:14px;grid-template-columns:1.2fr 1fr}
+.det{padding:14px 18px;display:grid;gap:14px;grid-template-columns:1.2fr 1fr;position:sticky;left:0;max-width:calc(100vw - 42px);max-width:100cqw}
 .det>div{min-width:0}
 @media (max-width:860px){.det{grid-template-columns:1fr}}
 .det h4{margin:10px 0 4px;font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-family:var(--mono);font-weight:600}
@@ -192,12 +192,14 @@ i.T1,.sw.T1{background:var(--t1)}i.T2,.sw.T2{background:var(--t2)}i.T3,.sw.T3{ba
   <p>These accounts already run Shopify Plus. They are expansion and reference accounts, not replatform prospects.</p></header>
   <div class="tblwrap" id="ov-exp"></div>
 </div></section>
+<!--INTERNAL-->
 <section class="sec" id="ov-signal-sec"><div class="wrap">
   <header><p class="eyebrow">Internal &middot; our own signal</p><h2>Where our signal fired and research found no buying window</h2>
   <p id="ov-signal-p"></p></header>
   <div class="tblwrap" id="ov-signal"></div>
   <div class="grid cols q" id="ov-trust" style="margin-top:14px"></div>
 </div></section>
+<!--/INTERNAL-->
 <section class="sec"><div class="wrap">
   <header><p class="eyebrow">Data hygiene</p><h2>What is and isn&rsquo;t in the book</h2></header>
   <div class="grid cols q" id="ov-hygiene"></div>
@@ -345,10 +347,13 @@ function chips(a){ return `<div class="chips"><span class="pill">Shopify ${a.sho
 function play(a){ return `<article class="card pad play"><div class="top"><div style="min-width:0"><h3 style="margin:0"><span class="tierpill ${a.tier}">${a.tier}</span> ${nm(a)}</h3><div class="small" style="margin-top:3px">${esc(a.category)} · ${esc(a.model)} · ${esc(a.plat_label)}${recordNote(a)}</div></div><div class="score"><b>${a.triangle}</b><span class="lbl">Triangle</span></div></div>
   <div><div class="lbl">Why this account</div><div class="tx">${esc(a.story)}</div></div>
   <div class="angles"><div style="border-left:2px solid var(--s1)"><div class="lbl">Shopify's angle</div><div class="tx">${esc(a.shopify_angle)}</div></div><div style="border-left:2px solid var(--s2)"><div class="lbl">Anatta's angle</div><div class="tx">${esc(a.anatta_angle)}</div></div></div>
-  ${a.flags.length ? `<div>${a.flags.map(f => `<div class="flag">${esc(f)}</div>`).join('')}</div>` : ''}
+  ${a.flags.length ? `<div>${a.flags.slice(0, 4).map(f => `<div class="flag">${esc(f)}</div>`).join('')}${a.flags.length > 4 ? `<div class="small" style="padding-left:16px;margin-top:4px">${plural(a.flags.length - 4, 'more flag')} on the full record</div>` : ''}</div>` : ''}
   ${chips(a)}<div><button class="linkbtn" data-focus="${esc(a.name)}">Open the full record →</button></div></article>`; }
 function miniPlay(a){ return `<article class="card pad play"><div class="top"><div style="min-width:0"><h3 style="margin:0">${nm(a)}</h3><div class="small" style="margin-top:3px">${esc(a.category)} · ${esc(a.plat_label)}${recordNote(a)}</div></div><div class="score"><b>${a.triangle}</b><span class="lbl">Triangle</span></div></div><div class="tx">${esc(a.story)}</div>${chips(a)}<div><button class="linkbtn" data-focus="${esc(a.name)}">Open the full record →</button></div></article>`; }
-const firstSentence = s => { const m = String(s || '').match(/^.*?[.!?](?=\s|$)/); return m ? m[0] : String(s || ''); };
+// sentence split that does not break on "Co.", "Inc.", month abbreviations or a lower-case continuation
+function sentences(s){ const ABBR = /\b(?:Co|Inc|Ltd|Corp|St|Mr|Ms|Dr|Jr|Sr|vs|No|approx|est|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)\.$/; const out = []; let buf = ''; for (const part of String(s || '').split(/(?<=[.!?])\s+(?=[A-Z0-9"'(])/)) { buf = buf ? buf + ' ' + part : part; if (!ABBR.test(buf)) { out.push(buf); buf = ''; } } if (buf) out.push(buf); return out; }
+const firstSentence = s => sentences(s)[0] || '';
+const lead = s => { const ss = sentences(s); return ss.length > 1 && ss[0].length < 70 ? ss[0] + ' ' + ss[1] : (ss[0] || ''); };
 
 // ---------- overview ----------
 const BOOK = S.book_label, WHEN = new Date(S.as_of + 'T12:00:00').toLocaleDateString('en-US', {month: 'long', year: 'numeric'});
@@ -380,7 +385,7 @@ function centreCard(c){
 }
 $('ov-plays').innerHTML = T1.length ? t1Centres.map(centreCard).join('') : '<p class="small" style="margin:0">No account clears both bars yet. The strongest candidates are in the next section.</p>';
 $('ov-t2-eyebrow').textContent = `Tier 2 · ${plural(T2.length, 'account')}`;
-$('ov-t2').innerHTML = T2.length ? `<table class="wide"><thead><tr><th>Account</th><th>The angle</th><th>What holds it back</th><th class="num">Shopify</th><th class="num">Anatta</th><th class="num">Triangle</th></tr></thead><tbody>${T2.map(a => `<tr class="row" data-focus="${esc(a.name)}"><td><strong>${nm(a)}</strong><div class="small">${esc(a.category)}</div>${a.group ? `<div style="margin-top:3px">${groupTag(a)}</div>` : ''}</td><td class="small" style="min-width:230px;color:var(--ink-2)">${esc(firstSentence(a.story))}</td><td class="small" style="min-width:220px;color:var(--ink-2)">${esc(holdsBack(a))}</td><td class="num">${a.shopify_fit}</td><td class="num">${a.anatta_fit}</td><td class="num"><b>${a.triangle}</b></td></tr>`).join('')}</tbody></table>` : '<p class="small pad" style="margin:0">No account in this tier.</p>';
+$('ov-t2').innerHTML = T2.length ? `<table class="wide"><thead><tr><th>Account</th><th>The angle</th><th>What holds it back</th><th class="num">Shopify</th><th class="num">Anatta</th><th class="num">Triangle</th></tr></thead><tbody>${T2.map(a => `<tr class="row" data-focus="${esc(a.name)}"><td><strong>${nm(a)}</strong><div class="small">${esc(a.category)}</div>${a.group ? `<div style="margin-top:3px">${groupTag(a)}</div>` : ''}</td><td class="small" style="min-width:230px;color:var(--ink-2)">${esc(lead(a.story))}</td><td class="small" style="min-width:220px;color:var(--ink-2)">${esc(holdsBack(a))}</td><td class="num">${a.shopify_fit}</td><td class="num">${a.anatta_fit}</td><td class="num"><b>${a.triangle}</b></td></tr>`).join('')}</tbody></table>` : '<p class="small pad" style="margin:0">No account in this tier.</p>';
 // buying centres
 const groups = {}; A.forEach(a => { if (a.group) (groups[a.group] = groups[a.group] || []).push(a); });
 const gNames = Object.keys(groups).sort((x, y) => Math.max(...groups[y].map(a => a.triangle ?? 0)) - Math.max(...groups[x].map(a => a.triangle ?? 0)));
@@ -390,22 +395,23 @@ $('ov-centres').innerHTML = gNames.map(g => `<div class="card pad"><h3>${esc(g)}
 $('ov-exp-sec').hidden = !EXP.length;
 $('ov-exp-eyebrow').textContent = `Reference · ${plural(EXP.length, 'account')}`;
 $('ov-exp').innerHTML = `<table class="wide"><thead><tr><th>Account</th><th>Category</th><th>What's live</th><th>Expansion angle</th><th class="num">Triangle</th></tr></thead><tbody>${EXP.map(a => `<tr class="row" data-focus="${esc(a.name)}"><td><strong>${nm(a)}</strong></td><td class="small">${esc(a.category)}</td><td class="small">${esc(a.platform)}</td><td class="small">${esc(a.shopify_angle)}</td><td class="num">${a.triangle}</td></tr>`).join('')}</tbody></table>`;
-// internal: our own signal
-$('ov-signal-sec').hidden = !INTERNAL;
+/*INTERNAL*/
+// internal: our own signal (this whole block and its section are removed from the shareable build)
 if (INTERNAL) {
   const hot = a => a.fire.score !== '' && +a.fire.score > 0 || a.fire.in_market || a.fire.signals || ['Medium','High'].includes(a.fire.intent);
   const fired = scored.filter(hot), cold = fired.filter(a => ['T4','X'].includes(a.tier) || a.shopify_sub.timing <= 2), kept = fired.filter(a => ['T1','T2'].includes(a.tier));
   $('ov-signal-p').textContent = `${fired.length} accounts carry some signal of ours (a FIRE score, a named intent signal, Medium intent or an In-market flag). ${kept.length} of them reached the top two tiers. For ${cold.length}, research found no buying window: they ended in Watch or disqualified, or scored 2 or less out of 10 on timing. They are listed here so nobody works them off the signal alone.`;
-  $('ov-signal').innerHTML = `<table class="wide"><thead><tr><th>Account</th><th>What our data says</th><th>Tier</th><th>What research found</th></tr></thead><tbody>${cold.map(a => `<tr class="row" data-focus="${esc(a.name)}"><td><strong>${nm(a)}</strong><div class="small">${esc(a.category)}</div></td><td class="small" style="color:var(--ink-2)">${sig(a).map(esc).join(' · ')}</td><td><span class="tierpill ${a.tier}">${a.tier}</span></td><td class="small" style="min-width:280px;color:var(--ink-2)">${esc(a.tier === 'X' ? firstSentence(a.gate_reason) : firstSentence(a.story))}</td></tr>`).join('')}</tbody></table>`;
-  const F = S.fire, visits = A.filter(a => a.signals_raw.website_visit === 'true'), im = A.filter(a => a.fire.in_market), imTop = im.filter(a => ['T1','T2','T3'].includes(a.tier));
+  $('ov-signal').innerHTML = `<table class="wide"><thead><tr><th>Account</th><th>What our data says</th><th>Tier</th><th>What research found</th></tr></thead><tbody>${cold.map(a => `<tr class="row" data-focus="${esc(a.name)}"><td><strong>${nm(a)}</strong><div class="small">${esc(a.category)}</div></td><td class="small" style="color:var(--ink-2)">${sig(a).map(esc).join(' · ')}</td><td><span class="tierpill ${a.tier}">${a.tier}</span></td><td class="small" style="min-width:280px;color:var(--ink-2)">${esc(a.tier === 'X' ? firstSentence(a.gate_reason) : lead(a.story))}</td></tr>`).join('')}</tbody></table>`;
+  const F = S.fire, visits = A.filter(a => a.signals_raw.website_visit === 'true'), im = A.filter(a => a.fire.in_market), imHard = im.filter(a => !a.missing && a.shopify_sub.timing >= 6), imLow = im.filter(a => ['T4','X'].includes(a.tier));
   const w = S.fire.recency_window;
   $('ov-trust').innerHTML = [
     ['Thin', `${F.with_score} of ${S.accounts} accounts carry a FIRE score and ${F.with_signal} carry a named signal. ${S.not_in_sfdc} accounts are not in Salesforce. The GMV, mobile-score and headless columns are empty on every row.`],
     ['Stale', `The newest signal in the book is ${F.newest_signal_days} days old.${w ? ` The recency labels only add up if scoring last ran between ${esc(w[0])} and ${esc(w[1])}, so an account labelled "&lt;7d" is about eight weeks cold.` : ''}`],
     ['Misattributed', visits.length ? `The ${plural(visits.length, 'website visit')} in the book resolved to ${visits.map(a => `<strong>${nm(a)}</strong>`).join(', ')}: ${plural(visits.filter(a => a.model === 'Education').length, 'university', 'universities')} (a campus network, not a buyer) and ${plural(visits.filter(a => a.signal_misattributed).length, 'row')} where Apollo holds a different company from the one in the book.` : 'No website visits in the book.'],
-    ['Noisy', `${im.length} accounts carry the In-market flag. ${imTop.length} of them reached Develop or better; the rest include ${im.filter(a => !['T1','T2','T3'].includes(a.tier)).slice(0, 3).map(a => nm(a)).join(', ')}. Treat the flag as a prompt to look, not as a buying window.`],
+    ['Noisy', `${im.length} accounts carry the In-market flag. Research found a hard timing signal of its own (6 or more out of 10 on timing) at ${imHard.length ? imHard.length + ' of them' : 'none of them'}, and ${imLow.length} ended in Watch or disqualified (${imLow.map(a => nm(a)).join(', ')}). Treat the flag as a prompt to look, not as a buying window.`],
   ].map(([h, t]) => `<div class="card pad"><h3>${h}</h3><p style="margin:0;font-size:13.2px">${t}</p></div>`).join('');
 }
+/*/INTERNAL*/
 // hygiene
 const mism = A.filter(a => a.domain_note), wrongCo = A.filter(a => a.signal_misattributed), bad = scored.filter(a => a.gate === 'bad_record');
 $('ov-hygiene').innerHTML = [
@@ -521,7 +527,7 @@ function detail(a){
     <div class="small" style="margin-top:6px">Triangle = round(0.55 × ${a.shopify_fit} + 0.45 × ${a.anatta_fit}${a.bonus ? ` + ${a.bonus} bonus` : ''}) = <b style="color:var(--ink)">${a.triangle}</b></div>
     <h4>Company</h4><div class="tx">${esc(a.size_est)}${a.hq ? ` · HQ ${esc(a.hq)}` : ''}${a.ownership ? ` · ${esc(a.ownership)}` : ''}<br>${link(a.website, a.domain)}${a.book_domain && a.book_domain !== a.domain ? ` · book lists ${esc(a.book_domain)}` : ''}${safeUrl(a.linkedin) ? ` · ${link(a.linkedin, 'LinkedIn')}` : ''}${a.display !== a.name ? `<br>Record name: ${esc(a.name)}` : ''}</div>
     <h4>Platform as researched</h4><div class="tx">${esc(a.platform)}</div>
-    <h4>Our signal (FIRE), exactly as exported</h4><div class="tx">${fireLine}${extra.length ? '<br>Also on the row: ' + extra.join(', ') : ''}${INTERNAL ? `<br>${a.in_sfdc ? 'In Salesforce' : 'Not in Salesforce'}` : ''}</div>
+    <h4>Our signal (FIRE), exactly as exported</h4><div class="tx">${fireLine}${extra.length ? '<br>Also on the row: ' + extra.join(', ') : ''}${a.crm_note ? '<br>' + esc(a.crm_note) : ''}</div>
     <h4>Detected stack (BuiltWith)</h4><div class="tx" style="font-size:12px">${bw}</div>
   </div></div>`;
 }
@@ -531,7 +537,7 @@ function renderTable(){
   const rows = A.filter(a => (!fTier.value || a.tier === fTier.value) && (!fPlat.value || a.plat === fPlat.value) && (!fModel.value || a.model === fModel.value) && sigOk(a) && (!term || [a.name, a.display, a.category, a.platform, a.model, a.hq, a.ownership, a.group].join(' ').toLowerCase().includes(term)));
   rows.sort((p, r) => { let a = p[sortK], b = r[sortK]; if (sortK === 'tier') { a = TIERS.indexOf(a); b = TIERS.indexOf(b); } if (a == null && b == null) return 0; if (a == null) return 1; if (b == null) return -1; if (typeof a === 'string') return sortDir * a.localeCompare(b); return sortDir * (a - b); });
   $('tbl-count').textContent = `${rows.length} of ${A.length}`;
-  $('tbody').innerHTML = rows.map(a => `<tr class="row" data-n="${esc(a.name)}" tabindex="0" aria-expanded="${openName === a.name}"><td><strong>${nm(a)}</strong>${a.group ? ` <span class="tag">${esc(a.group)}</span>` : ''}<div class="small">${esc(a.category || '')}</div></td><td><span class="tierpill ${a.tier}">${a.tier}</span></td><td class="num"><b>${dash(a.triangle)}</b></td><td class="num">${dash(a.shopify_fit)}</td><td class="num">${dash(a.anatta_fit)}</td><td class="small"><div class="clip" title="${esc(a.platform || '')}">${esc(a.plat_label || '')}</div></td><td class="small">${esc(a.model || '')}</td><td class="num">${a.fire_num == null ? '—' : a.fire_num}</td><td class="small">${esc(a.confidence || '—')}</td></tr>${openName === a.name ? `<tr class="det"><td colspan="9">${detail(a)}</td></tr>` : ''}`).join('') || '<tr><td colspan="9" class="small" style="padding:18px 12px">No account matches these filters.</td></tr>';
+  $('tbody').innerHTML = rows.map(a => `<tr class="row" data-n="${esc(a.name)}" tabindex="0" aria-expanded="${openName === a.name}"><td><strong>${nm(a)}</strong>${a.group ? ` <span class="tag">${esc(a.group)}</span>` : ''}<div class="small">${esc(a.category || '')}</div></td><td><span class="tierpill ${a.tier}">${a.tier}</span></td><td class="num"><b>${dash(a.triangle)}</b></td><td class="num">${dash(a.shopify_fit)}</td><td class="num">${dash(a.anatta_fit)}</td><td class="small"><div class="clip" title="${esc(a.platform || '')}">${esc(a.plat_label || '')}</div></td><td class="small">${esc(a.model || '')}</td><td class="num">${a.fire_num == null ? '—' : a.fire_num}</td><td class="small">${esc(a.confidence || '—')}</td></tr>${openName === a.name ? `<tr class="detrow"><td colspan="9">${detail(a)}</td></tr>` : ''}`).join('') || '<tr><td colspan="9" class="small" style="padding:18px 12px">No account matches these filters.</td></tr>';
 }
 function openRow(name, scroll){
   openName = openName === name && !scroll ? null : name;
@@ -550,7 +556,7 @@ const D = S.research_depth || {}, starved = scored.filter(a => a.flags.some(f =>
 const live = scored.filter(a => /fetched \d{4}-\d\d-\d\d/i.test(a.platform)).length, unconf = scored.filter(a => /^unconfirmed/i.test(a.platform)).length;
 $('method').innerHTML = `<p><b>Sources.</b> One Apollo accounts export (${S.accounts} rows) carrying the FIRE fields Anatta maintains, and one BuiltWith technology export of the book (${S.accounts - (S.no_builtwith || 0)} domains: commerce platform, CMS, CRM, marketing automation, payments, and first and last detected dates for tracked apps). Both were pulled on ${esc(S.as_of)}. ${S.domain_mismatches} accounts carry a different domain in the two files and were matched by hand; the reason is on each record. No contacts export was in scope.</p>
 <p><b>Research.</b> ${S.triaged} universities were gated by rule without web research. Every other account was researched from the two rubrics with web search: ${D.full ?? '—'} accounts with a visible commerce surface got a full pass (platform confirmation, scale, ownership, timing, distress) and ${D.light ?? '—'} manufacturers, processors and dealers with none got a one-search pass. Each record carries sourced evidence, a confidence rating and a written story. ${S.verified} accounts (the provisional top two tiers and every judgment-call gate) then got an adversarial second look through two lenses: platform and scale; business model and gates. ${S.verification === 'consistency' ? 'The research pass used the whole web-search budget for this run, so that second look was a consistency check of each record against its own sourced evidence and the rubric, not fresh research. Every verdict says so.' : 'Verifiers searched for their own evidence.'} Where a verifier moved a score by 8 points or more the final value is the average of the two views, and the adjustment is shown on the record. ${starved ? `${plural(starved, 'account')} carry a flag naming a check that was not done because the search budget ran out.` : ''} Platform confirmation: for ${live} accounts the researcher loaded the live site and read the platform from the page itself (the record says "fetched" with the date); for the rest it rests on press, job posts, agency case studies and the BuiltWith row, and the record says "unconfirmed" where BuiltWith is the only source (${unconf} accounts).</p>
-<p><b>Book-specific handling.</b> ${A.filter(a => a.signal_misattributed).map(a => `<b>${nm(a)}</b>`).join(', ') || 'No account'}: the Apollo row is a different company from the one in the book, so its FIRE fields are shown as exported but not scored. ${S.grouped_rows} rows are marked as sharing ${Object.keys(groups).length} buying centres; each is still scored on its own storefront. The CRuX traffic rank in the BuiltWith export is unreliable for this book (several national retailers show the lowest band), so scale is scored from revenue, store counts and headcount.</p>
+<p><b>Book-specific handling.</b> ${A.filter(a => a.signal_misattributed).map(a => `<b>${nm(a)}</b>`).join(', ') || 'No account'}: the Apollo row is a different company from the one in the book, so its FIRE fields are shown as exported but not scored. ${A.filter(a => a.whitespace_capped).map(a => `<b>${nm(a)}</b>`).join(', ') || 'No account'}: platform whitespace is capped at 15 of 25 because the platform is new rather than legacy (the reason and the uncapped score are on the record). This is the same documented cap the October build applied to platforms Shopify cannot convert in a quarter. ${S.grouped_rows} rows are marked as sharing ${Object.keys(groups).length} buying centres; each is still scored on its own storefront. The CRuX traffic rank in the BuiltWith export is unreliable for this book (several national retailers show the lowest band), so scale is scored from revenue, store counts and headcount.</p>
 <p><b>Formula.</b> Shopify fit = Σ six subscores + penalties, clamped 0–100. Anatta fit = Σ four research subscores + FIRE intent (max 20), clamped 0–100. Triangle = round(0.55 × Shopify + 0.45 × Anatta + bonus), capped at 100, where bonus = +3 in-market, +3 FIRE intent High, +4 explicit Shopify intent signal. Tiers: T1 if triangle ≥ 62 and Shopify fit ≥ 63; T2 ≥ 48; T3 ≥ 36; T4 otherwise. Gates override tiers: Shopify Plus live → EXP; government, distress, no commerce surface (only when Shopify fit &lt; 20), bad record, restricted → X.</p>
 <p><b>The age of our signal.</b> The newest FIRE signal in the book is ${S.fire.newest_signal_days} days older than this build, so researchers counted a FIRE signal or an In-market flag as a soft timing signal unless public evidence backed it. The 20-point intent subscore is still computed from the export exactly as written.</p>
 <p style="margin:0"><b>What the numbers are not.</b> A prioritisation aid built from detected stack evidence, FIRE signals and desk research. It is not a substitute for a conversation with the account. Confidence is low where platform, scale or model could not all be sourced.</p>`;
@@ -567,7 +573,7 @@ if (TARGET === 'file') {
     const fallback = () => { location.hash = '#overview'; const box = $('csvbox'), ta = $('csvta'); box.hidden = false; ta.value = text; ta.focus(); ta.select(); };
     try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); } };
 }
-$('foot').innerHTML = `<p style="margin:0 0 6px">Anatta &times; Shopify partner triangulation for ${esc(S.book_label)} &middot; built ${esc(S.as_of)} from an Apollo accounts export and a BuiltWith technology export pulled the same day. ${INTERNAL ? 'Internal copy: it shows which accounts are in Salesforce and how far our own signal can be trusted. Do not forward outside Anatta.' : 'Salesforce record IDs and internal CRM notes are stripped; this copy is safe to share with Shopify.'}</p><p class="small" style="margin:0">Scores are a prioritisation aid built from detected stack evidence, FIRE signals and desk research. Single self-contained file: all data is embedded.</p>`;
+$('foot').innerHTML = `<p style="margin:0 0 6px">Anatta &times; Shopify partner triangulation for ${esc(S.book_label)} &middot; built ${esc(S.as_of)} from an Apollo accounts export and a BuiltWith technology export pulled the same day. ${S.copy_note}</p><p class="small" style="margin:0">Scores are a prioritisation aid built from detected stack evidence, FIRE signals and desk research. Single self-contained file: all data is embedded.</p>`;
 route();
 })();
 </script>

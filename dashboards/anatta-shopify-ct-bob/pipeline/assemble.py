@@ -22,23 +22,36 @@ ICON = "<link rel=\"icon\" href=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3
 SFDC_ID = re.compile(r"\b001[A-Za-z0-9]{12,15}\b")
 INTERNAL_ONLY_ACCOUNT_KEYS = ["in_sfdc"]
 INTERNAL_ONLY_SUMMARY_KEYS = ["not_in_sfdc"]
-INTERNAL_FLAG = re.compile(r"\bCRM\b|\bin salesforce\b|\bSFDC\b", re.I)   # notes about our own records stay inside
+# notes about our own records, and corrections to our own earlier review of the book, stay inside
+INTERNAL_FLAG = re.compile(r"\bCRM\b|\bin salesforce\b|\bSFDC\b|\bearlier (?:review|read)\b|\bprior (?:read|note)\b", re.I)
 
 def build(internal, target):
     accounts, summary = copy.deepcopy(sc["accounts"]), copy.deepcopy(sc["summary"])
-    if not internal:
+    if internal:
+        for a in accounts: a["crm_note"] = "In Salesforce" if a["in_sfdc"] else "Not in Salesforce"
+    else:
         for a in accounts:
             for k in INTERNAL_ONLY_ACCOUNT_KEYS: a.pop(k, None)
             if "flags" in a: a["flags"] = [f for f in a["flags"] if not INTERNAL_FLAG.search(f)]
         for k in INTERNAL_ONLY_SUMMARY_KEYS: summary.pop(k, None)
+    summary["copy_note"] = ("Internal copy: it shows which accounts are in Salesforce and how far our own signal can be trusted. Do not forward outside Anatta."
+                            if internal else "CRM record IDs and internal notes are stripped; this copy is safe to share with Shopify.")
     data = {"internal": internal, "target": target, "summary": summary, "accounts": accounts}
     blob = json.dumps(data, separators=(",", ":"), ensure_ascii=False).replace("<", "\\u003c")
     assert not SFDC_ID.search(blob), "a Salesforce record ID is in the data"
     if not internal:
-        assert '"in_sfdc"' not in blob and '"not_in_sfdc"' not in blob, "internal-only field left in the shareable copy"
+        assert not any(k in blob for k in ('"in_sfdc"', '"not_in_sfdc"', '"crm_note"')), "internal-only field left in the shareable copy"
         assert not any(INTERNAL_FLAG.search(f) for a in accounts for f in a.get("flags", [])), "internal CRM note left in the shareable copy"
-    page = body.replace("__DATA__", blob)
+    tpl_body = body
+    if not internal:   # the internal-only section leaves the file entirely: markup, script and wording
+        tpl_body = re.sub(r"<!--INTERNAL-->.*?<!--/INTERNAL-->\n?", "", tpl_body, flags=re.S)
+        tpl_body = re.sub(r"/\*INTERNAL\*/.*?/\*/INTERNAL\*/\n?", "", tpl_body, flags=re.S)
+        assert "ov-signal" not in tpl_body and "INTERNAL-->" not in tpl_body
+    page = tpl_body.replace("<!--INTERNAL-->\n", "").replace("<!--/INTERNAL-->\n", "").replace("/*INTERNAL*/\n", "").replace("/*/INTERNAL*/\n", "").replace("__DATA__", blob)
     assert "__DATA__" not in page and page.count('id="data"') == 1
+    if not internal:
+        for needle in ("our own signal", "not in Salesforce", "Not in Salesforce", "Do not forward"):
+            assert needle not in page, f"internal wording left in the shareable copy: {needle}"
     if target == "artifact":
         return head + page
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n"

@@ -41,5 +41,14 @@
         "A Manufacturer With No Store"
       ]
     }
-  ]
+  ],
+  "whitespace_cap": {
+    "Account Name As Exported": {
+      "cap": 15,
+      "reason": "Sourced reason the platform is not legacy whitespace (for example: went live on a competitor's platform within the last two years)."
+    }
+  },
+  "account_notes": {
+    "Account Name As Exported": "A caveat to show among the record's flags."
+  }
 }
