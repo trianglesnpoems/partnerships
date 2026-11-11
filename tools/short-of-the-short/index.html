@@ -2,8 +2,8 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-  /* Layout: one desk-note column. The aide speaks at the top, the dump goes in
-     the middle, and the short lands below under a single swipe of highlighter. */
+  /* Layout: one column under an old picture tube. The talking head is the only
+     loud thing on the page. You paste below it, and the short takes the box's place. */
   :root {
     --paper: #f3f4f7;
     --sheet: #ffffff;
@@ -12,8 +12,17 @@
     --rule: #d3d7e0;
     --marker: #ffe14a;
     --marker-ink: #14161d;
-    --visor: #14161d;
     --alert: #b3261e;
+
+    /* The tube is a screen, so it is dark in both themes. */
+    --tube: #05080c;
+    --phosphor: #ecf6fa;
+    --phosphor-dim: rgba(236, 246, 250, 0.55);
+    --phosphor-edge: rgba(236, 246, 250, 0.26);
+    --tube-veil: rgba(5, 8, 12, 0.62);
+    --tube-shade: rgba(0, 0, 0, 0.6);
+    --tube-sheen: rgba(255, 255, 255, 0.05);
+    --tube-rim: rgba(128, 140, 160, 0.3);
 
     --font-display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
     --font-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
@@ -22,7 +31,7 @@
     --step-small: 0.8125rem;
     --step-body: 1rem;
     --step-list: 1.125rem;
-    --step-hello: clamp(1.35rem, 1.05rem + 1.4vw, 1.7rem);
+    --step-hello: clamp(1.3rem, 1.05rem + 1.2vw, 1.6rem);
     --step-short: clamp(2.05rem, 1.2rem + 4.4vw, 3.3rem);
     --measure: 42rem;
   }
@@ -35,7 +44,6 @@
       --rule: #2e3553;
       --marker: #f6d83c;
       --marker-ink: #14161d;
-      --visor: #272d49;
       --alert: #ff9a8f;
       color-scheme: dark;
     }
@@ -48,7 +56,6 @@
     --rule: #2e3553;
     --marker: #f6d83c;
     --marker-ink: #14161d;
-    --visor: #272d49;
     --alert: #ff9a8f;
     color-scheme: dark;
   }
@@ -64,12 +71,12 @@
   .page {
     max-width: calc(var(--measure) + 2rem);
     margin-inline: auto;
-    padding-block: 1.25rem 3rem;
+    padding-block: 1.25rem 2.5rem;
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.25rem;
     font: 400 var(--step-body)/1.5 var(--font-body);
   }
   main { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
@@ -83,99 +90,74 @@
     white-space: nowrap;
   }
 
-  /* ---------- header ---------- */
-  .top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 0.75rem 1rem;
-  }
   .wordmark {
     margin: 0;
-    font: 800 1.6rem/1 var(--font-display);
+    font: 800 1.5rem/1 var(--font-display);
     font-stretch: 68%;
     letter-spacing: -0.005em;
   }
   /* The second "short" is set shorter than the first. */
   .wordmark span { font-size: 0.56em; font-stretch: 62%; letter-spacing: 0.01em; }
 
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.45rem;
-    min-width: 7.4rem;
-    min-height: 2.25rem;
-    padding: 0.45rem 0.75rem;
-    font: 500 var(--step-small)/1 var(--font-aide);
-    color: var(--ink);
-    background: transparent;
-    border: 1px solid var(--rule);
-    border-radius: 999px;
+  /* ---------- the tube and what the head says ---------- */
+  .stage { display: flex; flex-direction: column; gap: 1rem; }
+  .tube {
+    position: relative;
+    aspect-ratio: 2 / 1;
+    max-width: 100%;
+    overflow: hidden;
+    background: var(--tube);
+    border-radius: 1rem;
+    box-shadow: 0 0 0 1px var(--tube-rim);
   }
-  .chip:hover { border-color: var(--ink-soft); }
-  .chip svg { flex: none; }
-  .chip .waves, .chip .slash, .chip .square { display: none; }
-  .chip[data-mode="on"] .waves { display: inline; }
-  .chip[data-mode="off"] { color: var(--ink-soft); }
-  .chip[data-mode="off"] .slash { display: inline; }
-  .chip[data-mode="stop"] .body { display: none; }
-  .chip[data-mode="stop"] .square { display: inline; }
-
-  /* ---------- the aide ---------- */
-  .aide { display: flex; align-items: flex-start; gap: 1rem; }
-  .visor {
-    flex: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 3.5rem;
-    height: 2.1rem;
-    margin-top: 0.15rem;
-    border-radius: 999px;
-    background: var(--visor);
+  .tube canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+  /* Darker toward the corners, with a faint sheen along the top of the glass. */
+  .tube::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(to bottom, var(--tube-sheen), transparent 28%),
+      radial-gradient(115% 95% at 50% 46%, transparent 52%, var(--tube-shade) 100%);
   }
-  .visor-line { display: inline-flex; align-items: center; gap: 0; }
-  .visor-line i {
-    display: block;
-    width: 0.3rem;
-    height: 0.2rem;
-    background: var(--marker);
-    transition: transform 0.2s ease;
-  }
-  .visor-line i:first-child { border-radius: 2px 0 0 2px; }
-  .visor-line i:last-child { border-radius: 0 2px 2px 0; }
-  .aide[data-state="thinking"] .visor-line { animation: squeeze 1s ease-in-out infinite; }
-  .aide[data-speaking="true"] .visor-line { gap: 0.16rem; animation: none; }
-  .aide[data-speaking="true"] .visor-line i {
-    border-radius: 2px;
-    animation: talk 0.42s ease-in-out infinite alternate;
-  }
-  .aide[data-speaking="true"] .visor-line i:nth-child(2) { animation-duration: 0.33s; animation-delay: -0.1s; }
-  .aide[data-speaking="true"] .visor-line i:nth-child(3) { animation-duration: 0.5s; animation-delay: -0.25s; }
-  .aide[data-speaking="true"] .visor-line i:nth-child(4) { animation-duration: 0.37s; animation-delay: -0.05s; }
-  .aide[data-speaking="true"] .visor-line i:nth-child(5) { animation-duration: 0.46s; animation-delay: -0.3s; }
-  @keyframes squeeze { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.28); } }
-  @keyframes talk { from { transform: scaleY(1); } to { transform: scaleY(4.6); } }
-
-  .aide-say {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    font-family: var(--font-aide);
-  }
-  .aide-name {
-    margin: 0;
-    font-size: 0.75rem;
-    line-height: 1.2;
-    letter-spacing: 0.14em;
+  .plate {
+    position: absolute;
+    z-index: 1;
+    top: 0.85rem;
+    left: 1rem;
+    font: 500 0.6875rem/1 var(--font-aide);
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--ink-soft);
+    color: var(--phosphor-dim);
   }
-  .aide-hello { margin: 0; font-size: var(--step-hello); font-weight: 500; line-height: 1.25; }
-  .aide-hello input {
+  .tube-btn {
+    position: absolute;
+    z-index: 1;
+    top: 0.55rem;
+    right: 0.55rem;
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    color: var(--phosphor);
+    background: var(--tube-veil);
+    border: 1px solid var(--phosphor-edge);
+    border-radius: 999px;
+  }
+  .tube-btn:hover { border-color: var(--phosphor-dim); }
+  .tube-btn:focus-visible { outline-color: var(--phosphor); }
+  .tube-btn .waves, .tube-btn .slash, .tube-btn .square { display: none; }
+  .tube-btn[data-mode="on"] .waves { display: inline; }
+  .tube-btn[data-mode="off"] { color: var(--phosphor-dim); }
+  .tube-btn[data-mode="off"] .slash { display: inline; }
+  .tube-btn[data-mode="stop"] .body { display: none; }
+  .tube-btn[data-mode="stop"] .square { display: inline; }
+
+  .says { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; font-family: var(--font-aide); }
+  .hello { margin: 0; font-size: var(--step-hello); font-weight: 500; line-height: 1.25; }
+  .hello input {
     width: calc(var(--n, 4) * 1ch + 2px);
     min-width: 2ch;
     max-width: 100%;
@@ -188,18 +170,18 @@
     -webkit-appearance: none;
     appearance: none;
   }
-  .aide-hello input::placeholder { color: var(--ink-soft); opacity: 1; }
-  .aide-hello input:focus-visible { outline-offset: 4px; border-bottom-color: transparent; }
-  .aide-status { margin: 0; min-height: 1.5em; font-size: 0.9375rem; line-height: 1.5; color: var(--ink-soft); }
-  .aide-status[data-tone="deliver"] { color: var(--ink); }
-  .aide-status[data-tone="alert"] { color: var(--alert); }
+  .hello input::placeholder { color: var(--ink-soft); opacity: 1; }
+  .hello input:focus-visible { outline-offset: 4px; border-bottom-color: transparent; }
+  .status { margin: 0; min-height: 1.5em; font-size: 0.9375rem; line-height: 1.5; color: var(--ink-soft); }
+  .status[data-tone="deliver"] { color: var(--ink); }
+  .status[data-tone="alert"] { color: var(--alert); }
 
-  /* ---------- the dump ---------- */
-  .dump { display: flex; flex-direction: column; gap: 0.6rem; }
-  .dump textarea {
+  /* ---------- asking ---------- */
+  .ask { display: flex; flex-direction: column; gap: 0.75rem; }
+  .ask textarea {
     display: block;
     width: 100%;
-    height: 12.5rem;
+    height: 9.5rem;
     padding: 0.9rem 1rem;
     resize: none;
     font: 400 1rem/1.5 var(--font-body);
@@ -207,38 +189,14 @@
     background: var(--sheet);
     border: 1px solid var(--rule);
     border-radius: 0.6rem;
-    transition: height 0.32s cubic-bezier(0.3, 0.7, 0.2, 1);
   }
-  .dump textarea::placeholder { color: var(--ink-soft); opacity: 1; }
-  .dump textarea:focus-visible { outline-offset: -1px; border-color: var(--ink); }
-  /* Once the aide has the dump, it folds down to three lines that fade out. */
-  .dump[data-compact="true"] textarea { height: 5.4rem; overflow: hidden; }
-  .dump-box { position: relative; }
-  .dump-box::after {
-    content: "";
-    position: absolute;
-    inset: auto 1px 1px 1px;
-    height: 2rem;
-    border-radius: 0 0 0.55rem 0.55rem;
-    background: linear-gradient(to bottom, transparent, var(--sheet));
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-  }
-  .dump[data-compact="true"] .dump-box::after { opacity: 1; }
-  .dump-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1rem; }
-  .dump-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-    min-width: 0;
-    margin-right: auto;
-    font: 400 var(--step-small)/1.3 var(--font-aide);
-    color: var(--ink-soft);
-    font-variant-numeric: tabular-nums;
-  }
+  .ask textarea::placeholder { color: var(--ink-soft); opacity: 1; }
+  .ask textarea:focus-visible { outline-offset: -1px; border-color: var(--ink); }
+  .bar { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem 1rem; }
+  .bar .push { margin-left: auto; }
   .link {
     padding: 0.4rem 0;
+    font: 400 var(--step-small)/1.3 var(--font-aide);
     color: var(--ink);
     background: none;
     border: 0;
@@ -248,56 +206,26 @@
   }
   .link:hover { text-decoration-color: currentColor; }
   .link:disabled { color: var(--ink-soft); }
-  .primary {
+  .primary, .ghost {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.65rem;
     min-height: 2.75rem;
-    padding: 0.75rem 1.15rem;
+    padding: 0.7rem 1.1rem;
     font: 700 1rem/1 var(--font-body);
-    color: var(--paper);
-    background: var(--ink);
-    border: 1px solid var(--ink);
     border-radius: 0.6rem;
   }
+  .primary { color: var(--paper); background: var(--ink); border: 1px solid var(--ink); }
   .primary:disabled { opacity: 0.4; }
-  .primary.is-stop { color: var(--ink); background: transparent; }
-  /* Both labels share one cell, so the button is as wide when it says Stop. */
-  .primary .swap { display: inline-grid; justify-items: center; }
-  .primary .swap > span { grid-area: 1 / 1; }
-  .primary .swap > [data-when="busy"], .primary.is-stop .swap > [data-when="idle"] { visibility: hidden; }
-  .primary.is-stop .swap > [data-when="busy"] { visibility: visible; }
   .primary kbd { font: 500 0.75rem/1 var(--font-aide); opacity: 0.7; }
-  .primary.is-stop kbd { visibility: hidden; }
   @media (pointer: coarse), (hover: none) { .primary kbd { display: none; } }
+  .ghost { font-weight: 600; color: var(--ink); background: transparent; border: 1px solid var(--rule); }
+  .ghost:hover { border-color: var(--ink-soft); }
 
   /* ---------- the short ---------- */
-  .result {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--rule);
-    scroll-margin-top: 1rem;
-  }
-  .result-head { display: flex; align-items: center; gap: 0.75rem; }
-  .result-head h2 {
-    margin: 0;
-    font: 500 0.75rem/1.2 var(--font-aide);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
-  }
-  .tag {
-    padding: 0.25rem 0.5rem;
-    font: 500 0.6875rem/1 var(--font-aide);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
-    border: 1px solid var(--rule);
-    border-radius: 999px;
-  }
+  .answer { display: flex; flex-direction: column; gap: 1rem; }
+  .answer:focus { outline: none; }
   .short {
     display: grid;
     min-height: 1.3em;
@@ -353,111 +281,80 @@
   .points.is-fresh li { animation: rise 0.35s ease-out both; animation-delay: calc(var(--i, 0) * 90ms + 380ms); }
   @keyframes rise { from { opacity: 0; transform: translateY(0.3rem); } }
 
-  .result-foot {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 0.6rem 1rem;
-    min-height: 2.5rem;
-  }
+  .answer .bar { min-height: 2.75rem; margin-top: 0.25rem; }
+  .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 0.6rem 0.75rem; }
   .stat {
     margin: 0;
     font: 400 var(--step-small)/1.4 var(--font-aide);
     color: var(--ink-soft);
     font-variant-numeric: tabular-nums;
   }
-  .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-  .ghost {
-    min-height: 2.5rem;
-    padding: 0.55rem 0.9rem;
-    font: 600 0.9375rem/1 var(--font-body);
-    color: var(--ink);
-    background: transparent;
-    border: 1px solid var(--rule);
-    border-radius: 0.6rem;
-  }
-  .ghost:hover { border-color: var(--ink-soft); }
-  .ghost:disabled { color: var(--ink-soft); }
 
-  .fine { margin: 0; font: 400 var(--step-small)/1.5 var(--font-aide); color: var(--ink-soft); }
+  .fine { margin: 0; font: 400 0.75rem/1.5 var(--font-aide); color: var(--ink-soft); }
+
+  /* A view slides in when it replaces the other; nothing fades in on first load. */
+  .is-live .ask, .is-live .answer { animation: arrive 0.26s ease-out; }
+  @keyframes arrive { from { opacity: 0; transform: translateY(0.4rem); } }
 
   @media (max-width: 30rem) {
-    .aide { gap: 0.75rem; }
-    .visor { width: 3rem; height: 1.85rem; }
-    .aide-status { min-height: 3em; }
-    .dump textarea { height: 10.5rem; }
-    .dump[data-compact="true"] textarea { height: 5.4rem; }
+    .tube { aspect-ratio: 16 / 10; }
+    .status { min-height: 3em; }
+    .ask textarea { height: 8.5rem; }
     .primary kbd { display: none; }
+    .answer .stat { flex-basis: 100%; margin-left: 0; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .dump textarea, .dump-box::after, .visor-line i { transition: none; }
-    .aide[data-state="thinking"] .visor-line { animation: none; transform: scaleX(0.5); }
-    .aide[data-speaking="true"] .visor-line i { animation: none; }
-    .aide[data-speaking="true"] .visor-line i:nth-child(odd) { transform: scaleY(3.4); }
-    .aide[data-speaking="true"] .visor-line i:nth-child(even) { transform: scaleY(2); }
-    .short.is-pending .short-plain::after { animation: none; }
-    .points.is-fresh li { animation: none; }
+    .is-live .ask, .is-live .answer, .points.is-fresh li, .short.is-pending .short-plain::after { animation: none; }
   }
 </style>
 
 <div class="page">
-  <header class="top">
+  <header>
     <h1 class="wordmark">the short of the <span>short</span></h1>
-    <button type="button" class="chip" id="voice" data-mode="on" aria-pressed="true" hidden>
-      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-        <path class="body" d="M2 6h2.5L8 3v10L4.5 10H2z" fill="currentColor"/>
-        <path class="waves" d="M10.4 5.6a3.4 3.4 0 0 1 0 4.8M12.3 3.7a6.1 6.1 0 0 1 0 8.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-        <path class="slash" d="M10.6 6.2l3.6 3.6m0-3.6l-3.6 3.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-        <rect class="square" x="3.5" y="3.5" width="9" height="9" rx="1.5" fill="currentColor"/>
-      </svg>
-      <span id="voice-label">Voice on</span>
-    </button>
   </header>
 
-  <main>
-    <section class="aide" id="aide" data-state="idle" data-speaking="false" aria-label="Brevis, your aide">
-      <span class="visor" aria-hidden="true"><span class="visor-line"><i></i><i></i><i></i><i></i><i></i></span></span>
-      <div class="aide-say">
-        <p class="aide-name">Brevis</p>
-        <p class="aide-hello">Hello, <input id="who" type="text" value="Jake" placeholder="you" maxlength="24" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" aria-label="The name Brevis greets" title="Change the name">.</p>
-        <p class="aide-status" id="status">Paste a brain dump. I'll start the moment it lands.</p>
+  <main id="main">
+    <section class="stage" aria-label="Brevis, your aide">
+      <div class="tube">
+        <canvas id="head" aria-hidden="true"></canvas>
+        <span class="plate" aria-hidden="true">Brevis</span>
+        <button type="button" class="tube-btn" id="voice" data-mode="on" aria-pressed="true" aria-label="Voice" title="Voice on" hidden>
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+            <path class="body" d="M2 6h2.5L8 3v10L4.5 10H2z" fill="currentColor"/>
+            <path class="waves" d="M10.4 5.6a3.4 3.4 0 0 1 0 4.8M12.3 3.7a6.1 6.1 0 0 1 0 8.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <path class="slash" d="M10.6 6.2l3.6 3.6m0-3.6l-3.6 3.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <rect class="square" x="4" y="4" width="8" height="8" rx="1.5" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+      <div class="says">
+        <p class="hello">Hello, <input id="who" type="text" value="Jake" placeholder="you" maxlength="24" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" aria-label="The name Brevis greets" title="Change the name">.</p>
+        <p class="status" id="status">Paste your brain dump. I'll start the moment it lands.</p>
       </div>
     </section>
 
-    <form class="dump" id="dump-form" data-compact="false">
+    <form class="ask" id="ask">
       <label class="sr-only" for="dump">Your brain dump</label>
-      <div class="dump-box">
-        <textarea id="dump" placeholder="Paste it here. Notes, a rant, a call transcript, anything." autocomplete="off" autocapitalize="sentences"></textarea>
-      </div>
-      <div class="dump-bar">
-        <div class="dump-meta">
-          <span id="count" hidden></span>
-          <button type="button" class="link" id="clear" hidden>Clear</button>
-          <button type="button" class="link" id="load-example">Load an example</button>
-        </div>
-        <button type="submit" class="primary" id="go" disabled><span class="swap"><span data-when="idle">Get the short</span><span data-when="busy">Stop</span></span><kbd id="go-key">Ctrl ↵</kbd></button>
+      <textarea id="dump" placeholder="Paste it here. Notes, a rant, a call transcript, anything." autocomplete="off" autocapitalize="sentences"></textarea>
+      <div class="bar">
+        <button type="button" class="link" id="clear" hidden>Clear</button>
+        <button type="submit" class="primary push" id="go" disabled>Get the short<kbd id="go-key">Ctrl ↵</kbd></button>
       </div>
     </form>
 
-    <section class="result" id="result" data-mode="example" aria-labelledby="result-label">
-      <div class="result-head">
-        <h2 id="result-label">The short of the short</h2>
-        <span class="tag" id="example-tag">Example</span>
-      </div>
-      <p class="short is-marked" id="short"><span class="short-plain"><span id="short-text">I need to pick webinar or NYC dinner and tell Maya before Friday.</span></span><span class="short-marked" aria-hidden="true"><span id="short-copy"></span></span></p>
-      <ul class="points" id="points">
-        <li><span>Oct 14 is three weeks out with no landing page, speaker or invite list.</span></li>
-        <li><span>Only about 40 shared accounts fit, so the scoring needs a rerun.</span></li>
-        <li><span>The 50/50 promo split isn't in writing and finance will ask.</span></li>
-      </ul>
-      <div class="result-foot">
-        <p class="stat" id="stat">13 words, down from 231.</p>
+    <section class="answer" id="answer" aria-labelledby="answer-label" tabindex="-1" hidden>
+      <h2 class="sr-only" id="answer-label">The short of the short</h2>
+      <p class="short is-pending" id="short"><span class="short-plain"><span id="short-text"></span></span><span class="short-marked" aria-hidden="true"><span id="short-copy"></span></span></p>
+      <ul class="points" id="points"></ul>
+      <div class="bar">
         <div class="actions" id="actions" hidden>
-          <button type="button" class="ghost" id="copy">Copy</button>
-          <button type="button" class="ghost" id="harder" title="Asks a more capable model. Takes up to a minute.">Think harder</button>
+          <button type="button" class="primary" id="copy">Copy</button>
+          <button type="button" class="ghost" id="again">Paste another</button>
+          <button type="button" class="link" id="harder" title="Asks a more capable model. Takes up to a minute.">Think harder</button>
         </div>
+        <button type="button" class="ghost" id="stop">Stop</button>
+        <p class="stat push" id="stat"></p>
       </div>
     </section>
   </main>
@@ -472,12 +369,11 @@
 
   const $ = (id) => document.getElementById(id);
   const el = {
-    aide: $("aide"), who: $("who"), status: $("status"), live: $("live"),
-    form: $("dump-form"), dump: $("dump"), count: $("count"), clear: $("clear"),
-    example: $("load-example"), go: $("go"), goKey: $("go-key"),
-    result: $("result"), tag: $("example-tag"), short: $("short"), shortText: $("short-text"),
-    shortCopy: $("short-copy"), points: $("points"), stat: $("stat"), actions: $("actions"),
-    copy: $("copy"), harder: $("harder"), voice: $("voice"), voiceLabel: $("voice-label"),
+    main: $("main"), canvas: $("head"), who: $("who"), status: $("status"), live: $("live"),
+    ask: $("ask"), dump: $("dump"), clear: $("clear"), go: $("go"), goKey: $("go-key"),
+    answer: $("answer"), short: $("short"), shortText: $("short-text"), shortCopy: $("short-copy"),
+    points: $("points"), actions: $("actions"), copy: $("copy"), again: $("again"),
+    harder: $("harder"), stop: $("stop"), stat: $("stat"), voice: $("voice"),
   };
 
   const KEY_NAME = "sots.name";
@@ -485,7 +381,8 @@
   const AUTO_RUN_WORDS = 8; // a paste at least this long starts a run by itself
 
   const SAY = {
-    idle: "Paste a brain dump. I'll start the moment it lands.",
+    idle: "Paste your brain dump. I'll start the moment it lands.",
+    next: "Paste the next one, or edit this one.",
     reading: "Reading it now…",
     harder: "Thinking harder. This one can take up to a minute.",
     deliver: "Here is the short of the short.",
@@ -512,15 +409,6 @@
     if (code === "invalid_request" || code === "transform_error" || code === "queue_overflow") return ERRORS.page_fault;
     return ERRORS.upstream_error;
   };
-
-  const EXAMPLE_DUMP = [
-    "ok brain dump after the partner call. they're keen on the joint webinar but nobody on their side actually owns it yet. maya said she'd find someone by friday, but she said that last week too.",
-    "the date we floated is oct 14, which is three weeks out, and we still have no landing page, no speaker from their side and no agreed list of accounts to invite. i think maybe 40 of the shared accounts are a real fit and the rest of the list is junk, so the scoring needs a rerun before anyone sends invites.",
-    "budget: we said we'd split paid promo 50/50 but i never got that in writing and finance will ask.",
-    "honestly the date is the real problem. if we push to early november everything else gets easy, but we proposed oct 14 so moving it makes us look flaky. dan thinks we should skip the webinar and host a small dinner in new york instead. cheaper, and most of the top 15 accounts are there anyway. might be right.",
-    "other stuff: recap email has to go out today, i still owe the agency a reply about the case study, and the survey numbers came back better than expected, which is a decent talking point.",
-    "anyway. main thing: i need to pick webinar or dinner and tell maya before friday or we lose another week.",
-  ].join("\n\n");
 
   // ---------- small helpers ----------
   const store = {
@@ -629,6 +517,339 @@
     return { headline, points };
   }
 
+  // ---------- Brevis, the talking head ----------
+  // A bust drawn the way an old picture tube would draw it: horizontal scan lines,
+  // each pushed out of place by the height of the face behind it. The eyes and
+  // the mouth are simply where the lines stop.
+  function createHead(canvas) {
+    const ctx = canvas.getContext && canvas.getContext("2d");
+    const nothing = () => {};
+    if (!ctx) return { power: nothing, think: nothing, say: nothing, voice: nothing, attend: nothing, deliver: nothing, shake: nothing };
+
+    const css = getComputedStyle(canvas);
+    const hex = (name, fallback) => { const v = css.getPropertyValue(name).trim(); return /^#[0-9a-f]{6}$/i.test(v) ? v : fallback; };
+    const TUBE = hex("--tube", "#05080c");
+    const GLOW = hex("--phosphor", "#ecf6fa");
+    const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const mix = (t) => { const a = rgb(TUBE), b = rgb(GLOW); return `rgb(${a.map((x, i) => Math.round(x + (b[i] - x) * t)).join(",")})`; };
+    // Brightness steps, already mixed with the tube colour so strokes can overlap cleanly.
+    const LEVELS = [0.3, 0.45, 0.62, 0.8, 1].map(mix);
+    const RASTER = mix(0.17);
+    const RASTER_LIT = mix(0.5);
+    const HALO = mix(0.22);
+
+    const p = { presence: 0.3, open: 0, blink: 0, gx: 0, gy: 0, yaw: 0, pitch: 0, band: -1, jitter: 0 };
+    let W = 0, H = 0, dpr = 1;
+    let zs = new Float32Array(0), prev = new Float32Array(0), light = new Float32Array(0), lv = new Int8Array(0);
+
+    const G = (d, s) => Math.exp(-(d * d) / (s * s));
+    const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+    // Where the face sits once the head has turned a little: features slide over the skull.
+    const faceU = (u) => u - p.yaw * 0.4;
+    const faceV = (v) => v - p.pitch * 0.4;
+    const jaw = (v) => (v > 0.3 ? 0.3 + (v - 0.3) / (1 + 0.06 * p.open) : v); // the jaw drops as the mouth opens
+    const lipLine = (fu) => 0.635 - 0.07 * (1 - 0.65 * p.open) * (fu / 0.22) * (fu / 0.22); // the corners lift into a slight smile
+
+    // Height of the bust at (u, v), in head units: v runs -1 (crown) to 1 (chin), then the neck and shoulders.
+    function height(u, v) {
+      const o = p.open;
+      let z = 0;
+      const wide = Math.abs(u);
+      const top = 1.1 + 0.2 * wide + 0.5 * sstep(1.25, 1.75, wide); // the line of the shoulders
+      if (v > top) {
+        const k = 1 - (u / 1.78) ** 4;
+        if (k > 0) z = 0.4 * Math.sqrt(k) * sstep(0, 0.2, v - top);
+      }
+      if (v > 0.5) { // the neck
+        const k = 1 - (u / 0.37) ** 2;
+        if (k > 0) z = Math.max(z, 0.42 * Math.sqrt(k) * sstep(0.5, 0.72, v));
+      }
+      // the skull: round on top, squarer along the jaw
+      const vv = jaw(v);
+      const us = u - p.yaw * 0.1;
+      const a = 0.73 - 0.14 * sstep(0, 0.9, vv);
+      const n = 2.45 + 0.3 * sstep(-0.1, 0.55, vv);
+      const f = Math.abs(us / a) ** n + Math.abs(vv) ** n;
+      const ear = 1 - ((Math.abs(us) - a - 0.03) / 0.085) ** 2 - ((vv - 0.13) / 0.2) ** 2;
+      if (ear > 0 && Math.abs(vv) < 0.6) z = Math.max(z, 0.2 * Math.sqrt(ear));
+      if (f >= 1) return z * p.presence;
+      const dome = Math.sqrt(1 - f);
+      let h = 0.8 * dome;
+      const m = Math.min(1, dome * 2.4); // features fade out at the silhouette
+      const fu = faceU(u), fv = faceV(vv), au = Math.abs(fu);
+      h += m * 0.07 * G(au - 0.3, 0.2) * G(fv + 0.185, 0.06); // brow
+      h -= m * 0.12 * G(au - 0.3, 0.14) * G(fv, 0.085); // eye sockets
+      if (fv > -0.16 && fv < 0.46) { // nose
+        const t = (fv + 0.16) / 0.48;
+        h += m * (0.05 + 0.25 * t * t) * (1 - sstep(0.33, 0.42, fv)) * G(fu, 0.058 + 0.07 * t);
+      }
+      h += m * 0.055 * G(au - 0.115, 0.06) * G(fv - 0.33, 0.05); // nostrils
+      h += m * 0.055 * G(au - 0.42, 0.17) * G(fv - 0.18, 0.17); // cheekbones
+      h += m * 0.06 * G(fu, 0.3) * G(fv - 0.64, 0.17); // muzzle
+      const lip = lipLine(fu);
+      h += m * 0.05 * G(fu, 0.22) * G(fv - (lip - 0.05), 0.034); // upper lip
+      h += m * 0.06 * G(fu, 0.19) * G(fv - (lip + 0.055 + 0.13 * o), 0.04); // lower lip
+      h += m * 0.09 * G(fu, 0.19) * G(fv - (0.87 + 0.03 * o), 0.09); // chin
+      return Math.max(z, h) * p.presence;
+    }
+
+    // 1 where a line should burn, 0 inside an eye or the mouth.
+    function ink(u, v) {
+      const o = p.open;
+      const fu = faceU(u), fv = faceV(jaw(v)), au = Math.abs(fu);
+      let k = 1;
+      const lid = 0.066 * (1 - p.blink) + 0.004;
+      const d = (au - 0.3) / 0.128;
+      const e = d * d + ((fv - 0.03 * d * d) / lid) ** 2; // the openings arch a little, as eyes do in a smile
+      if (e < 1.4) k = Math.min(k, sstep(0.75, 1.25, e));
+      const q = Math.abs(fu / (0.22 - 0.03 * o)) ** 3 + ((fv - (lipLine(fu) + 0.01 + 0.05 * o)) / (0.034 + 0.1 * o)) ** 2;
+      if (q < 1.4) k = Math.min(k, sstep(0.7, 1.3, q));
+      return k;
+    }
+
+    function resize() {
+      const box = canvas.getBoundingClientRect();
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = Math.max(1, Math.round(box.width));
+      H = Math.max(1, Math.round(box.height));
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+    }
+
+    function draw() {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = TUBE;
+      ctx.fillRect(0, 0, W, H);
+      const S = H * 0.36; // half the height of the head, in pixels
+      const rise = S * 0.3; // how far a line is pushed per unit of height
+      const cx = W / 2;
+      const cy = H * 0.05 + S;
+      const gap = Math.max(4.5, Math.min(9, H / 48));
+      const rows = Math.ceil(H / gap);
+      const step = 2;
+      const xa = Math.max(0, cx - S * 1.9);
+      const xb = Math.min(W, cx + S * 1.9);
+      const count = Math.floor((xb - xa) / step) + 1;
+      if (zs.length !== count) {
+        zs = new Float32Array(count);
+        prev = new Float32Array(count);
+        light = new Float32Array(count);
+        lv = new Int8Array(count);
+      }
+      prev.fill(0);
+      const thick = Math.max(1, gap * 0.19);
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      // From the bottom of the tube up: each row hides what lies behind it.
+      for (let r = rows; r >= 0; r--) {
+        const y = (r + 0.5) * gap;
+        const v = (y - cy) / S;
+        const jit = p.jitter > 0.01 ? ((Math.sin(r * 12.9898 + p.jitter * 78.233) * 43758.5453) % 1) * p.jitter * 8 : 0;
+        const reach = v > 1 ? 1.85 : 0.9; // the shoulders are wider than the head
+        const i0 = Math.max(0, Math.floor((cx - reach * S - xa) / step));
+        const i1 = Math.min(count - 1, Math.ceil((cx + reach * S - xa) / step));
+        zs.fill(0);
+        let any = false;
+        if (v > -1.02) {
+          for (let i = i0; i <= i1; i++) {
+            const z = height((xa + i * step - cx) / S, v);
+            if (z > 0.004) { zs[i] = z; any = true; }
+          }
+        }
+        const band = p.band >= 0 ? G(y / H - p.band, 0.09) : 0;
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = band > 0.5 ? RASTER_LIT : RASTER;
+        if (!any) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(W, y);
+          ctx.stroke();
+          const swap = prev; prev = zs; zs = swap;
+          continue;
+        }
+        ctx.beginPath();
+        ctx.moveTo(xa + i0 * step + jit, y);
+        for (let i = i0; i <= i1; i++) ctx.lineTo(xa + i * step + jit, y + rise * zs[i]);
+        ctx.lineTo(xa + i1 * step + jit, y);
+        ctx.closePath();
+        ctx.fillStyle = TUBE;
+        ctx.fill();
+        // the plain raster line, broken where the bust is
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(xa + i0 * step + jit, y);
+        let pen = true;
+        for (let i = i0; i <= i1; i++) {
+          if (zs[i] > 0) { pen = false; continue; }
+          const x = xa + i * step + jit;
+          if (pen) ctx.lineTo(x, y); else { ctx.moveTo(x, y); pen = true; }
+        }
+        if (!pen) ctx.moveTo(xa + i1 * step + jit, y);
+        ctx.lineTo(W, y);
+        ctx.stroke();
+        // light from the upper left, as on a film set
+        for (let i = i0; i <= i1; i++) {
+          if (zs[i] <= 0) { light[i] = -1; continue; }
+          const dzu = (zs[Math.min(i1, i + 1)] - zs[Math.max(i0, i - 1)]) / ((2 * step) / S);
+          const dzv = (prev[i] - zs[i]) / (gap / S);
+          const nl = (0.5 * dzu + 0.42 * dzv + 0.76) / Math.sqrt(dzu * dzu + dzv * dzv + 1);
+          light[i] = Math.max(0, Math.min(1, 0.29 + 0.94 * nl));
+        }
+        for (let i = i0; i <= i1; i++) {
+          if (light[i] < 0) { lv[i] = -1; continue; }
+          const k = ink((xa + i * step - cx) / S, v);
+          if (k < 0.15) { lv[i] = -1; continue; }
+          // average over a few samples so a stretch does not flicker between two steps
+          let sum = 0, n = 0;
+          for (let j = Math.max(i0, i - 4); j <= Math.min(i1, i + 4); j++) if (light[j] >= 0) { sum += light[j]; n += 1; }
+          const t = (sum / n) * k * (1 + 0.4 * band);
+          lv[i] = t > 0.88 ? 4 : t > 0.7 ? 3 : t > 0.52 ? 2 : t > 0.36 ? 1 : 0;
+        }
+        ctx.lineWidth = thick;
+        for (let L = 0; L < LEVELS.length; L++) {
+          ctx.beginPath();
+          let down = false, used = false;
+          for (let i = i0; i <= i1; i++) {
+            if (lv[i] === L) {
+              const x = xa + i * step + jit, yy = y + rise * zs[i];
+              if (down) ctx.lineTo(x, yy); else { ctx.moveTo(x, yy); down = true; used = true; }
+            } else if (down) {
+              if (lv[i] >= 0) ctx.lineTo(xa + i * step + jit, y + rise * zs[i]); // meet the next stretch
+              down = false;
+            }
+          }
+          if (!used) continue;
+          ctx.strokeStyle = LEVELS[L];
+          ctx.stroke();
+        }
+        const swap = prev; prev = zs; zs = swap;
+      }
+      // pupils: two points of light
+      if (p.presence > 0.55 && p.blink < 0.65) {
+        for (const side of [-1, 1]) {
+          const eu = side * 0.3 + p.yaw * 0.4 + p.gx * 0.05;
+          const ev = p.pitch * 0.4 + p.gy * 0.028;
+          const ex = cx + eu * S;
+          const ey = cy + ev * S + rise * height(eu, ev);
+          const rad = S * 0.03 * (1 - p.blink * 0.8);
+          ctx.beginPath();
+          ctx.arc(ex, ey, rad * 1.9, 0, 6.2832);
+          ctx.fillStyle = HALO;
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(ex, ey, rad, 0, 6.2832);
+          ctx.fillStyle = GLOW;
+          ctx.fill();
+        }
+      }
+    }
+
+    // ----- what the head is doing -----
+    let power = 1;
+    let thinking = false;
+    let voiced = false;
+    let attending = false;
+    let talkUntil = 0;
+    let glitchUntil = 0;
+    let nodAt = -1e9;
+    let shakeAt = -1e9;
+    let blinkAt = -1e9;
+    let nextBlink = 1800;
+    let glanceX = 0, glanceY = 0;
+    let restYaw = 0.1, restPitch = 0, baseYaw = 0.1, basePitch = 0;
+    let driftAt = 3200;
+    let last = 0;
+    let drawn = "";
+    let stillTimer = 0;
+
+    // Syllables: quick openings, a slower swell, and the odd breath.
+    const mouth = (t) => (Math.sin(t * 1.31) > 0.93 ? 0 : Math.min(1, 0.12 + 0.95 * Math.abs(Math.sin(t * 13)) * (0.55 + 0.45 * Math.sin(t * 2.3 + 1.7))));
+    const within = (now, since, span) => now >= since && now - since < span;
+
+    function frame(now) {
+      requestAnimationFrame(frame);
+      if (!motionOK()) return;
+      const talking = voiced || now < talkUntil;
+      const lively = talking || thinking || now < glitchUntil || within(now, blinkAt, 200) || within(now, nodAt, 700) || within(now, shakeAt, 800) || Math.abs(power - p.presence) > 0.01;
+      if (now - last < (lively ? 40 : 66)) return; // film ran at twenty-four frames, and so does this
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      const t = now / 1000;
+      p.presence += (power - p.presence) * Math.min(1, dt * 3.4);
+      if (Math.abs(power - p.presence) < 0.004) p.presence = power;
+      p.open += ((talking ? mouth(t) : 0) - p.open) * Math.min(1, dt * 24);
+      if (!talking && p.open < 0.01) p.open = 0;
+      if (now > nextBlink) { blinkAt = now; nextBlink = now + 2400 + Math.random() * 3800; }
+      p.blink = within(now, blinkAt, 180) ? Math.sin(((now - blinkAt) / 180) * Math.PI) : 0;
+      // The head mostly holds still. Now and then it shifts and looks somewhere else.
+      if (now > driftAt) {
+        driftAt = now + 4800 + Math.random() * 4400;
+        restYaw = (Math.random() - 0.5) * 0.36;
+        restPitch = (Math.random() - 0.5) * 0.08;
+        glanceX = (Math.random() - 0.5) * 0.9;
+        glanceY = (Math.random() - 0.5) * 0.5;
+      }
+      const aimYaw = thinking ? -0.2 + 0.06 * Math.sin(t * 0.9) : talking ? restYaw * 0.35 : restYaw;
+      const aimPitch = thinking ? -0.16 : talking ? 0.025 * Math.sin(t * 6.1) : attending ? 0.1 : restPitch;
+      baseYaw += (aimYaw - baseYaw) * Math.min(1, dt * 2.6);
+      basePitch += (aimPitch - basePitch) * Math.min(1, dt * 3.2);
+      const wantX = thinking ? -0.9 : talking || attending ? 0 : glanceX;
+      const wantY = thinking ? -1 : talking ? 0 : attending ? 1 : glanceY;
+      p.gx += (wantX - p.gx) * Math.min(1, dt * 7);
+      p.gy += (wantY - p.gy) * Math.min(1, dt * 7);
+      const nod = within(now, nodAt, 700) ? 0.2 * Math.sin(((now - nodAt) / 700) * Math.PI) : 0;
+      const sx = (now - shakeAt) / 800;
+      const shake = within(now, shakeAt, 800) ? 0.34 * Math.sin(sx * Math.PI * 4) * (1 - sx) : 0;
+      p.yaw = baseYaw + shake;
+      p.pitch = basePitch + nod;
+      p.band = thinking ? ((t * 0.75) % 1.3) - 0.15 : -1;
+      p.jitter = now < glitchUntil ? (glitchUntil - now) / 300 + Math.random() * 0.05 : 0;
+      // Redraw only when the picture would actually change.
+      const pose = [p.presence, p.open, p.blink, p.gx, p.gy, p.yaw, p.pitch, p.band, p.jitter].map((x) => Math.round(x * 400)).join();
+      if (pose === drawn) return;
+      drawn = pose;
+      draw();
+    }
+
+    // With motion turned down the head holds a pose and only redraws when something changes.
+    function hold() {
+      if (motionOK()) return;
+      const talking = voiced || performance.now() < talkUntil;
+      p.presence = power;
+      p.open = talking ? 0.45 : 0;
+      p.blink = 0;
+      p.gx = thinking ? -0.9 : 0;
+      p.gy = thinking ? -1 : attending ? 1 : 0;
+      p.yaw = thinking ? -0.18 : 0.08;
+      p.pitch = thinking ? -0.16 : 0;
+      p.band = -1;
+      p.jitter = 0;
+      draw();
+      clearTimeout(stillTimer);
+      const wait = talkUntil - performance.now();
+      if (wait > 0) stillTimer = setTimeout(hold, wait + 30);
+    }
+
+    resize();
+    draw();
+    requestAnimationFrame(frame);
+    hold();
+    if (window.ResizeObserver) new ResizeObserver(() => { resize(); drawn = ""; draw(); }).observe(canvas);
+    if (reduced.addEventListener) reduced.addEventListener("change", hold);
+
+    return {
+      power(level) { power = level; hold(); },
+      think(on) { thinking = Boolean(on); hold(); },
+      say(ms) { talkUntil = Math.max(talkUntil, performance.now() + ms); hold(); },
+      voice(on) { voiced = Boolean(on); hold(); },
+      attend(on) { attending = Boolean(on); hold(); },
+      deliver() { glitchUntil = performance.now() + 300; nodAt = performance.now() + 120; },
+      shake() { shakeAt = performance.now(); },
+    };
+  }
+  const head = createHead(el.canvas);
+  const sayTime = (text) => Math.min(6000, 350 + String(text || "").length * 55);
+
   // ---------- the name Brevis greets ----------
   const currentName = () => el.who.value.trim().replace(/\s+/g, " ").slice(0, 24);
   const hello = (who) => (who ? `Hello, ${who}.` : "Hello.");
@@ -664,10 +885,15 @@
       const mode = active ? "stop" : on ? "on" : "off";
       el.voice.hidden = !kind;
       el.voice.dataset.mode = mode;
-      el.voiceLabel.textContent = mode === "stop" ? "Stop voice" : on ? "Voice on" : "Voice off";
-      if (mode === "stop") el.voice.removeAttribute("aria-pressed");
-      else el.voice.setAttribute("aria-pressed", String(on));
-      el.aide.dataset.speaking = String(Boolean(kind) && talking);
+      el.voice.title = mode === "stop" ? "Stop voice" : on ? "Voice on" : "Voice off";
+      if (mode === "stop") {
+        el.voice.setAttribute("aria-label", "Stop voice");
+        el.voice.removeAttribute("aria-pressed");
+      } else {
+        el.voice.setAttribute("aria-label", "Voice");
+        el.voice.setAttribute("aria-pressed", String(on));
+      }
+      head.voice(Boolean(kind) && talking);
     }
     function retire() {
       kind = null;
@@ -805,7 +1031,8 @@
   })();
 
   // ---------- page state ----------
-  const state = { busy: false, blocked: false, job: null, result: null };
+  // Two views share one slot under the head: "ask" (the paste box) and "answer" (the short).
+  const state = { view: "ask", busy: false, blocked: false, job: null, result: null };
   const statusTyper = makeTyper(el.status, 5);
   const shortTyper = makeTyper(el.shortText, 9);
   let swipeTimer = 0;
@@ -813,32 +1040,27 @@
   function setStatus(text, tone) {
     el.status.dataset.tone = tone || "";
     statusTyper.to(text);
+    head.say(sayTime(text)); // the head mouths whatever it says, with or without sound
   }
   const announce = (text) => { el.live.textContent = text; };
 
+  function show(view) {
+    if (state.view !== view) el.main.classList.add("is-live");
+    state.view = view;
+    el.ask.hidden = view !== "ask";
+    el.answer.hidden = view !== "answer";
+  }
   function refreshControls() {
     const hasText = Boolean(el.dump.value.trim());
-    el.go.disabled = state.blocked || (!state.busy && !hasText);
-    el.go.classList.toggle("is-stop", state.busy);
-    el.example.disabled = state.blocked || state.busy;
-    el.harder.disabled = state.blocked || state.busy;
-  }
-  function onDumpChanged() {
-    const words = wordCount(el.dump.value);
-    el.count.textContent = plural(words, "word");
-    el.count.hidden = words === 0;
-    el.clear.hidden = words === 0;
-    el.example.hidden = words !== 0;
-    compact(false);
-    refreshControls();
-  }
-  function compact(yes) {
-    const fold = Boolean(yes) && Boolean(el.dump.value.trim());
-    el.form.dataset.compact = String(fold);
-    if (fold) el.dump.scrollTop = 0;
+    el.go.disabled = state.blocked || !hasText;
+    el.clear.hidden = !hasText;
+    el.actions.hidden = state.busy;
+    el.stop.hidden = !state.busy;
+    el.harder.disabled = state.blocked;
   }
   function setBusy(busy) {
     state.busy = busy;
+    head.think(busy);
     refreshControls();
   }
 
@@ -853,29 +1075,25 @@
       return li;
     }));
   }
-  // A run has started: clear the stage and show the waiting dash.
-  function beginResult() {
+  // A run has started: the short takes the box's place, waiting dash and all.
+  function beginAnswer() {
     clearTimeout(swipeTimer);
-    el.result.dataset.mode = "pending";
-    el.tag.hidden = true;
-    el.actions.hidden = true;
-    el.stat.hidden = true;
+    show("answer");
     el.short.className = "short is-pending";
     shortTyper.set("");
     el.shortCopy.textContent = "";
     paintPoints([], false);
+    el.stat.textContent = "";
+    el.answer.focus({ preventScroll: true }); // leaves the box, so a phone keyboard closes
   }
-  // Put a finished result (or the example) back on the page with no animation.
-  function showSettled(result, isExample) {
+  // Put a finished result back on the page with no animation.
+  function showSettled(result) {
     clearTimeout(swipeTimer);
-    el.result.dataset.mode = isExample ? "example" : "live";
-    el.tag.hidden = !isExample;
-    el.actions.hidden = isExample;
+    show("answer");
     el.short.className = "short is-marked";
     shortTyper.set(result.headline);
     paintPoints(result.points, false);
     el.stat.textContent = statLine(result.wordsOut, result.wordsIn);
-    el.stat.hidden = false;
   }
   function swipe() {
     if (!motionOK()) { el.short.classList.add("is-marked"); return; }
@@ -887,61 +1105,62 @@
       el.short.classList.remove("is-swiping");
     }, 620);
   }
-  function bringResultIntoView() {
-    const box = el.result.getBoundingClientRect();
+  function bringIntoView() {
+    const box = el.answer.getBoundingClientRect();
     const tall = window.innerHeight || document.documentElement.clientHeight;
-    if (box.top < 0 || box.top > tall * 0.6) {
-      el.result.scrollIntoView({ behavior: motionOK() ? "smooth" : "auto", block: "start" });
+    if (box.top < 0 || box.top > tall * 0.7) {
+      el.answer.scrollIntoView({ behavior: motionOK() ? "smooth" : "auto", block: "center" });
     }
   }
 
-  const exampleResult = {
-    headline: el.shortText.textContent,
-    points: Array.from(el.points.querySelectorAll("li span"), (s) => s.textContent),
-    wordsIn: wordCount(EXAMPLE_DUMP),
-    wordsOut: wordCount(el.shortText.textContent),
-  };
-
   function finish(parsed, sourceText) {
-    if (!parsed.headline) { fail("empty_completion"); return; }
+    if (!parsed.headline) { fail("empty_completion", sourceText); return; }
     const result = {
       headline: parsed.headline,
       points: parsed.points,
+      source: sourceText,
       wordsIn: wordCount(sourceText),
       wordsOut: wordCount(parsed.headline),
     };
     state.result = result;
     state.job = null;
     setBusy(false);
-    el.aide.dataset.state = "done";
     setStatus(SAY.deliver, "deliver");
+    head.deliver();
+    head.say(sayTime(result.headline));
     speech.say([{ text: SAY.deliver, lang: "en" }, { text: result.headline }]);
     announce([SAY.deliver, result.headline, ...result.points].join(" "));
-    el.result.dataset.mode = "live";
     shortTyper.to(result.headline, () => {
       if (state.result !== result || state.busy) return;
       el.short.classList.remove("is-pending");
       paintPoints(result.points, true);
       el.stat.textContent = statLine(result.wordsOut, result.wordsIn);
-      el.stat.hidden = false;
-      el.actions.hidden = false;
       swipe();
-      bringResultIntoView();
+      bringIntoView();
     });
   }
 
-  function fail(code) {
+  function fail(code, sourceText) {
     state.job = null;
     setBusy(false);
-    showSettled(state.result || exampleResult, !state.result);
-    compact(false);
+    // A second look at the same text that fails leaves the first answer standing.
+    // Anything else goes back to the box, with the text still in it.
+    if (state.result && state.result.source === sourceText) {
+      showSettled(state.result);
+    } else {
+      show("ask");
+      if (!coarse.matches) el.dump.focus();
+    }
     if (code === "cancelled") {
-      el.aide.dataset.state = "idle";
       setStatus(SAY.stopped);
       return;
     }
-    if (PERMANENT.has(code)) state.blocked = true;
-    el.aide.dataset.state = "error";
+    if (PERMANENT.has(code)) {
+      state.blocked = true;
+      head.power(0.3);
+    } else {
+      head.shake();
+    }
     setStatus(errorCopy(code), "alert");
     announce(errorCopy(code));
     refreshControls();
@@ -950,7 +1169,7 @@
   async function run({ tier = "quick", greeted = false } = {}) {
     const text = el.dump.value.trim();
     if (state.blocked) return;
-    if (!text) { el.dump.focus(); return; }
+    if (!text) { show("ask"); el.dump.focus(); return; }
     const who = currentName();
     // Speak first: the greeting has to start inside the click, key press or paste that began the run.
     if (!greeted) {
@@ -965,17 +1184,14 @@
 
     const waiting = tier === "quick" ? SAY.reading : SAY.harder;
     setBusy(true);
-    el.aide.dataset.state = "thinking";
     setStatus(waiting);
     announce(waiting);
-    beginResult();
-    compact(true);
-    if (coarse.matches) el.dump.blur(); // lets a phone keyboard get out of the way
+    beginAnswer();
 
     const sample = await sampleReady;
     if (!current()) return;
-    if (!sample) { fail("unavailable"); return; }
-    if (job.ctl.signal.aborted) { fail("cancelled"); return; }
+    if (!sample) { fail("unavailable", text); return; }
+    if (job.ctl.signal.aborted) { fail("cancelled", text); return; }
 
     let started = false;
     try {
@@ -997,79 +1213,76 @@
       finish(parseShort(answer && answer.text), text);
     } catch (e) {
       if (!current()) return;
-      fail(e && typeof e.code === "string" ? e.code : "upstream_error");
+      fail(e && typeof e.code === "string" ? e.code : "upstream_error", text);
     }
   }
   const stopRun = () => { if (state.job) state.job.ctl.abort(); };
 
   // ---------- wiring ----------
-  el.form.addEventListener("submit", (e) => {
+  el.ask.addEventListener("submit", (e) => {
     e.preventDefault();
-    if (state.busy) stopRun(); else run({ tier: "quick" });
+    run({ tier: "quick" });
   });
   el.dump.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
-      if (!state.busy) run({ tier: "quick" });
+      run({ tier: "quick" });
     }
   });
-  el.dump.addEventListener("input", onDumpChanged);
-  el.dump.addEventListener("pointerdown", () => compact(false));
-  el.dump.addEventListener("focus", () => { if (!state.busy) compact(false); });
+  el.dump.addEventListener("input", refreshControls);
+  el.dump.addEventListener("focus", () => head.attend(true));
+  el.dump.addEventListener("blur", () => head.attend(false));
 
   const pastedText = (e) => {
     try { return (e.clipboardData && e.clipboardData.getData("text/plain")) || ""; } catch { return ""; }
   };
-  function takeNewDump(text) {
-    el.dump.value = text;
-    onDumpChanged();
-    if (wordCount(text) >= AUTO_RUN_WORDS) run({ tier: "quick" }); else el.dump.focus();
-  }
   // Pasting into an empty box (or over everything in it) starts a run.
   el.dump.addEventListener("paste", (e) => {
     const before = el.dump.value;
-    const incoming = pastedText(e);
-    // Still folded means the last dump was handed over and left alone: this is the next one.
-    if (el.form.dataset.compact === "true" && incoming.trim()) {
-      e.preventDefault();
-      takeNewDump(incoming);
-      return;
-    }
     const replacingAll = el.dump.selectionStart === 0 && el.dump.selectionEnd === before.length;
     if (before.trim() && !replacingAll) return; // adding to a draft: wait for the button
+    const incoming = pastedText(e);
     if (incoming && wordCount(incoming) < AUTO_RUN_WORDS) return;
+    // Greet inside the paste itself, where the browser still counts it as the viewer's own action.
     const greeted = Boolean(incoming) && !state.blocked;
     if (greeted) speech.say([{ text: hello(currentName()), lang: "en" }], { fresh: true });
     setTimeout(() => {
       if (wordCount(el.dump.value) >= AUTO_RUN_WORDS) run({ tier: "quick", greeted });
     }, 0);
   });
-  // Pasting anywhere else on the page counts as handing over a new dump.
+  // Pasting anywhere else on the page hands over a new dump.
   document.addEventListener("paste", (e) => {
     const target = e.target;
     if (target && target.closest && target.closest("input, textarea, [contenteditable]")) return;
     const incoming = pastedText(e);
     if (!incoming.trim()) return;
     e.preventDefault();
-    takeNewDump(incoming);
+    el.dump.value = incoming;
+    refreshControls();
+    if (wordCount(incoming) >= AUTO_RUN_WORDS) {
+      run({ tier: "quick" });
+    } else {
+      show("ask");
+      el.dump.focus();
+    }
   });
 
   el.clear.addEventListener("click", () => {
-    stopRun();
     el.dump.value = "";
-    onDumpChanged();
-    if (!state.blocked) {
-      el.aide.dataset.state = "idle";
-      setStatus(SAY.idle);
-    }
+    refreshControls();
+    if (!state.blocked) setStatus(SAY.idle);
     el.dump.focus();
   });
-  el.example.addEventListener("click", () => {
-    el.dump.value = EXAMPLE_DUMP;
-    onDumpChanged();
-    run({ tier: "quick" });
-  });
+  el.stop.addEventListener("click", stopRun);
   el.harder.addEventListener("click", () => run({ tier: "default" }));
+  // Back to the box with the old text selected: one paste replaces it, one click edits it.
+  el.again.addEventListener("click", () => {
+    show("ask");
+    refreshControls();
+    if (!state.blocked) setStatus(el.dump.value.trim() ? SAY.next : SAY.idle);
+    el.dump.focus();
+    el.dump.select();
+  });
 
   let flashTimer = 0;
   function flash(button, text) {
@@ -1112,14 +1325,16 @@
   if (savedName !== null) el.who.value = savedName;
   sizeName();
   el.goKey.textContent = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || "") ? "⌘↵" : "Ctrl ↵";
-  el.stat.textContent = statLine(exampleResult.wordsOut, exampleResult.wordsIn);
-  onDumpChanged();
+  refreshControls();
+  head.power(1); // the picture comes up
+  head.say(1300); // and the head says hello
 
   sampleReady.then((sample) => {
     if (sample || state.busy || state.blocked) return;
     state.blocked = true;
-    el.aide.dataset.state = "error";
-    setStatus(ERRORS.unavailable, "alert");
+    head.power(0.3);
+    el.status.dataset.tone = "alert";
+    statusTyper.to(ERRORS.unavailable);
     refreshControls();
   });
 })();
