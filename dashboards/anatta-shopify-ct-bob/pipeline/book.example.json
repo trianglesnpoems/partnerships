@@ -3,14 +3,21 @@
   "title": "XX Book Triangulation",
   "slug": "xx-book-triangulation",
   "as_of": "2026-11-11",
+  "verification": "web",
   "domain_alias": {
-    "apollo-domain.com": {"book_domain": "domain-in-the-book.com", "note": "Book lists domain-in-the-book.com; Apollo lists apollo-domain.com (why they differ)."}
+    "apollo-domain.com": {
+      "book_domain": "domain-in-the-book.com",
+      "note": "Book lists domain-in-the-book.com; Apollo lists apollo-domain.com (why they differ)."
+    }
   },
   "signal_misattributed": {
     "Account Name As Exported": "Why the Apollo row is a different company, so its FIRE fields are shown but not scored."
   },
   "groups": {
-    "Parent Or Buying Centre": ["Account Name As Exported", "Another Row Of The Same Company"]
+    "Parent Or Buying Centre": [
+      "Account Name As Exported",
+      "Another Row Of The Same Company"
+    ]
   },
   "display": {
     "domain-string-record.com (DUPE)": "Readable Company Name"
@@ -19,7 +26,20 @@
     "Account Name As Exported": "No online store"
   },
   "batch_plan": [
-    {"id": "batch_01", "depth": "full", "names": ["Account Name As Exported", "Another Row Of The Same Company"]},
-    {"id": "batch_02", "depth": "light", "names": ["A Manufacturer With No Store"]}
+    {
+      "id": "batch_01",
+      "depth": "full",
+      "names": [
+        "Account Name As Exported",
+        "Another Row Of The Same Company"
+      ]
+    },
+    {
+      "id": "batch_02",
+      "depth": "light",
+      "names": [
+        "A Manufacturer With No Store"
+      ]
+    }
   ]
 }

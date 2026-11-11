@@ -232,7 +232,8 @@ summary = {"accounts": len(out), "scored": len(scored), "missing": [x["name"] fo
                     "with_signal": sum(1 for x in out if x["fire"]["signals"]),
                     "intent": dict(collections.Counter(x["fire"]["intent"] or "(blank)" for x in out)),
                     "newest_signal_days": min((x["fire_days_since_signal"] for x in out if x["fire_days_since_signal"] is not None), default=None)},
-           "as_of": AS_OF.isoformat(), "book_label": book["label"], "title": book["title"], "slug": book["slug"]}
+           "as_of": AS_OF.isoformat(), "book_label": book["label"], "title": book["title"], "slug": book["slug"],
+           "verification": book.get("verification", "web")}   # "web" = verifiers searched; "consistency" = checked each record against its own evidence
 no_bw = [a["name"] for a in inputs.values() if "note" in a["builtwith"]]
 summary["no_builtwith"], summary["no_builtwith_names"] = len(no_bw), [DISPLAY.get(n, n) for n in no_bw]
 summary["fire"]["recency_window"] = recency_window([(x["fire"]["last_signal"], x["fire"]["recency"]) for x in out])

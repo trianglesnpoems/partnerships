@@ -21,7 +21,8 @@ map. Data files and the generated HTML are **not** committed here; everything ne
 
 | Step | Script | What it does |
 |---|---|---|
-| 1 | `build_inputs.py` | Joins the two exports into one research input per account. Nine accounts carry a different domain in the two files; the alias table records each one and why. Salesforce record IDs never leave the export (only an in-Salesforce yes/no is kept). |
+| 0 | `book.json` | Not a script: the one file that names accounts (domain aliases, shared buying centres, display names, the misattributed-signal list, the batch plan). It lives with the data and is not committed; `book.example.json` documents the shape. |
+| 1 | `build_inputs.py` | Joins the two exports into one research input per account. Nine accounts carry a different domain in the two files; `book.json` records each one and why. Salesforce record IDs never leave the export (only an in-Salesforce yes/no is kept). |
 | 2 | `triage.py` | Gates the universities by rule. With 79 accounts and an unreliable CRuX column, every other account is researched. |
 | 3 | `make_batches.py` | Splits the rest into research batches, keeping rows that share a buying centre together. "Full" batches get 2–4 searches per account; "light" batches (no visible commerce surface) get one. |
 | 4 | research agents + `validate_batch.py` | One agent per batch scores both legs per `rubric.md` with sourced web evidence and writes `results/batch_NN.json`; the validator enforces names, schema and ranges. |
@@ -30,14 +31,15 @@ map. Data files and the generated HTML are **not** committed here; everything ne
 | 7 | `assemble.py` | Embeds the scored book into `dashboard.html`. Writes the internal and shareable copies, each as a standalone file and as a page fragment for publishing; asserts the shareable copy carries no internal-only field or CRM note. |
 
 ```bash
-python3 pipeline/build_inputs.py <builtwith.csv> <apollo_accounts.csv> <build>/accounts_input.json
+# book.json (see pipeline/book.example.json) holds everything that names an account; it lives with the data
+python3 pipeline/build_inputs.py <builtwith.csv> <apollo_accounts.csv> <build>/book.json <build>/accounts_input.json
 python3 pipeline/triage.py <build>
-python3 pipeline/make_batches.py <build> [prior_review.json]
+python3 pipeline/make_batches.py <build> <build>/book.json [prior_review.json]
 # research agents write <build>/results/batch_NN.json; check each with validate_batch.py <build> batch_NN
-python3 pipeline/score.py <build> <apollo_accounts.csv> <build>/scored.json
+python3 pipeline/score.py <build> <apollo_accounts.csv> <build>/book.json <build>/scored.json
 python3 pipeline/make_verify.py <build> <build>/scored.json
 # verifier agents write <build>/verify/<part>__<lens>.json; check each with validate_verify.py
-python3 pipeline/score.py <build> <apollo_accounts.csv> <build>/scored.json
+python3 pipeline/score.py <build> <apollo_accounts.csv> <build>/book.json <build>/scored.json
 python3 pipeline/assemble.py <build>/scored.json <out>
 ```
 
@@ -53,8 +55,8 @@ government, distress, no commerce surface (only when Shopify fit < 20), bad reco
 ## What is specific to this book
 
 - **Signal attached to the wrong company.** Apollo matched one account to a different company from the one in the
-  book. Its FIRE fields are shown exactly as exported but are not scored (`SIGNAL_MISATTRIBUTED` in `score.py`).
-- **Shared buying centres.** Ten rows roll up to four companies (`GROUPS` in `score.py`). Each row is scored on its
+  book. Its FIRE fields are shown exactly as exported but are not scored (`signal_misattributed` in `book.json`).
+- **Shared buying centres.** Ten rows roll up to four companies (`groups` in `book.json`). Each row is scored on its
   own storefront and marked as a shared decision.
 - **Old signal.** The newest FIRE signal is 53 days older than the build, and the recency labels were computed about
   seven weeks earlier. Researchers treated a FIRE signal or an In-market flag as soft unless public evidence backed
