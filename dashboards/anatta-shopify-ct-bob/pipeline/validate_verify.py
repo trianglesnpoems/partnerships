@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Validate a verifier's output file against its job list. Usage: validate_verify.py <build_dir> <lens> <part> <names_json>
-The output file is <build_dir>/verify/<part>__<lens>.json = {"verdicts": [...]}, one verdict per name in names_json."""
+"""Validate a verifier's output file against its job list. Usage: validate_verify.py <build_dir> <lens> <part> [names_json]
+The output file is <build_dir>/verify/<part>__<lens>.json = {"verdicts": [...]}, one verdict per account in the lens's
+job file <build_dir>/verify_jobs/<lens>.json (or per name in names_json when the job is split between verifiers)."""
 import json, sys
-B, lens, part, names = sys.argv[1], sys.argv[2], sys.argv[3], json.loads(sys.argv[4])
+B, lens, part = sys.argv[1], sys.argv[2], sys.argv[3]
+names = json.loads(sys.argv[4]) if len(sys.argv) > 4 else [j["name"] for j in json.load(open(f"{B}/verify_jobs/{lens}.json"))]
 GATES = ['keep', '', 'already_plus', 'gov', 'distress', 'non_merchant', 'bad_record', 'restricted']
 err = []
 try:

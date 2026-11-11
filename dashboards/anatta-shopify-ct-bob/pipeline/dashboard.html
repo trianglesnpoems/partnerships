@@ -174,8 +174,8 @@ i.T1,.sw.T1{background:var(--t1)}i.T2,.sw.T2{background:var(--t2)}i.T3,.sw.T3{ba
 </div></section>
 <section class="sec"><div class="wrap">
   <header><p class="eyebrow" id="ov-t1-eyebrow"></p><h2>The golden triangles</h2>
-  <p>Each of these clears both bars: a blended triangle score of 62 or better and a Shopify-side score of 63 or better, so none is carried by one side alone.</p></header>
-  <div class="grid cols w" id="ov-plays"></div>
+  <p>Each of these clears both bars: a blended triangle score of 62 or better and a Shopify-side score of 63 or better, so none is carried by one side alone. Rows that belong to one company are shown as one card.</p></header>
+  <div class="grid cols w" id="ov-plays" style="align-items:start"></div>
 </div></section>
 <section class="sec"><div class="wrap">
   <header><p class="eyebrow" id="ov-t2-eyebrow"></p><h2>Strong, one step short</h2>
@@ -193,7 +193,7 @@ i.T1,.sw.T1{background:var(--t1)}i.T2,.sw.T2{background:var(--t2)}i.T3,.sw.T3{ba
   <div class="tblwrap" id="ov-exp"></div>
 </div></section>
 <section class="sec" id="ov-signal-sec"><div class="wrap">
-  <header><p class="eyebrow">Internal &middot; our own signal</p><h2>Where our signal fired and research said no</h2>
+  <header><p class="eyebrow">Internal &middot; our own signal</p><h2>Where our signal fired and research found no buying window</h2>
   <p id="ov-signal-p"></p></header>
   <div class="tblwrap" id="ov-signal"></div>
   <div class="grid cols q" id="ov-trust" style="margin-top:14px"></div>
@@ -245,7 +245,7 @@ i.T1,.sw.T1{background:var(--t1)}i.T2,.sw.T2{background:var(--t2)}i.T3,.sw.T3{ba
 </div></section>
 <section class="sec"><div class="wrap">
   <header><p class="eyebrow" id="ac-plays-eyebrow"></p><h2>The plays</h2><p>Why the account, what Shopify leads with, what Anatta leads with, and every flag a human should see before picking up the phone.</p></header>
-  <div class="grid cols w" id="ac-plays"></div>
+  <div class="grid cols w" id="ac-plays" style="align-items:start"></div>
 </div></section>
 <section class="sec"><div class="wrap">
   <header><p class="eyebrow">Step four</p><h2>Every tier</h2><p>Open a strip to list its accounts; pick an account to jump to its full record.</p></header>
@@ -342,12 +342,12 @@ const sig = a => { const f = a.fire, out = []; if (f.score !== '') out.push('FIR
 const groupTag = a => a.group ? `<span class="tag" title="One buying centre: ${esc(a.group)}">${esc(a.group)} · shared decision</span>` : '';
 const recordNote = a => a.display !== a.name ? `<span class="small"> · record: ${esc(a.name)}</span>` : '';
 function chips(a){ return `<div class="chips"><span class="pill">Shopify ${a.shopify_fit}</span><span class="pill">Anatta ${a.anatta_fit}</span>${sig(a).map(s => `<span class="tag">${esc(s)}</span>`).join('')}${groupTag(a)}<span class="tag">confidence ${esc(a.confidence)}</span></div>`; }
-function play(a){ return `<article class="card pad play"><div class="top"><div style="min-width:0"><h3 style="margin:0"><span class="tierpill ${a.tier}">${a.tier}</span> ${nm(a)}</h3><div class="small" style="margin-top:3px">${esc(a.category)} · ${esc(a.model)} · ${esc(a.plat)}${recordNote(a)}</div></div><div class="score"><b>${a.triangle}</b><span class="lbl">Triangle</span></div></div>
+function play(a){ return `<article class="card pad play"><div class="top"><div style="min-width:0"><h3 style="margin:0"><span class="tierpill ${a.tier}">${a.tier}</span> ${nm(a)}</h3><div class="small" style="margin-top:3px">${esc(a.category)} · ${esc(a.model)} · ${esc(a.plat_label)}${recordNote(a)}</div></div><div class="score"><b>${a.triangle}</b><span class="lbl">Triangle</span></div></div>
   <div><div class="lbl">Why this account</div><div class="tx">${esc(a.story)}</div></div>
   <div class="angles"><div style="border-left:2px solid var(--s1)"><div class="lbl">Shopify's angle</div><div class="tx">${esc(a.shopify_angle)}</div></div><div style="border-left:2px solid var(--s2)"><div class="lbl">Anatta's angle</div><div class="tx">${esc(a.anatta_angle)}</div></div></div>
   ${a.flags.length ? `<div>${a.flags.map(f => `<div class="flag">${esc(f)}</div>`).join('')}</div>` : ''}
   ${chips(a)}<div><button class="linkbtn" data-focus="${esc(a.name)}">Open the full record →</button></div></article>`; }
-function miniPlay(a){ return `<article class="card pad play"><div class="top"><div style="min-width:0"><h3 style="margin:0">${nm(a)}</h3><div class="small" style="margin-top:3px">${esc(a.category)} · ${esc(a.plat)}${recordNote(a)}</div></div><div class="score"><b>${a.triangle}</b><span class="lbl">Triangle</span></div></div><div class="tx">${esc(a.story)}</div>${chips(a)}<div><button class="linkbtn" data-focus="${esc(a.name)}">Open the full record →</button></div></article>`; }
+function miniPlay(a){ return `<article class="card pad play"><div class="top"><div style="min-width:0"><h3 style="margin:0">${nm(a)}</h3><div class="small" style="margin-top:3px">${esc(a.category)} · ${esc(a.plat_label)}${recordNote(a)}</div></div><div class="score"><b>${a.triangle}</b><span class="lbl">Triangle</span></div></div><div class="tx">${esc(a.story)}</div>${chips(a)}<div><button class="linkbtn" data-focus="${esc(a.name)}">Open the full record →</button></div></article>`; }
 const firstSentence = s => { const m = String(s || '').match(/^.*?[.!?](?=\s|$)/); return m ? m[0] : String(s || ''); };
 
 // ---------- overview ----------
@@ -355,21 +355,30 @@ const BOOK = S.book_label, WHEN = new Date(S.as_of + 'T12:00:00').toLocaleDateSt
 $('bookLabel').textContent = '· ' + BOOK;
 $('ov-eyebrow').textContent = `Partner GTM triangulation · Anatta × Shopify · ${BOOK} · ${WHEN}`;
 const centres = S.buying_centres;
+const centreOf = a => a.group || a.name;
+const t1Centres = [...new Set(T1.map(centreOf))], t2Centres = [...new Set(T2.map(centreOf))].filter(c => !t1Centres.includes(c));
+const NUM = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
+const numWord = n => NUM[n] || String(n);
 $('ov-h1').textContent = T1.length
-  ? `${S.accounts} accounts in the book. ${T1.length === 1 ? 'One is' : T1.length + ' are'} worth walking into together now.`
+  ? `${S.accounts} accounts in the book. ${numWord(t1Centres.length)} ${t1Centres.length === 1 ? 'company is' : 'companies are'} worth walking into together now.`
   : `${S.accounts} accounts in the book. None clears both bars yet; ${T2.length} come close.`;
 $('ov-lede').textContent = `Anatta builds and optimises Shopify Plus and headless storefronts; Shopify sells the platform underneath them. A brand on a legacy platform should hear one replatform story from both, not two cold pitches. This page scores all ${S.accounts} accounts in ${BOOK} against both ICPs. ${S.accounts} rows come down to ${centres} companies, and most of those are manufacturers, distributors and processors with no storefront to move: ${T1.length + T2.length} ${T1.length + T2.length === 1 ? 'account reaches' : 'accounts reach'} the top two tiers and ${X.length} ${X.length === 1 ? 'is' : 'are'} gated out with a stated reason.`;
 $('ov-kpis').innerHTML = [
   [S.accounts, 'Accounts scored', `${centres} companies once shared rows are grouped`],
-  [T1.length, 'Golden triangles', 'strong for both sides'],
+  [T1.length, 'Golden triangles', t1Centres.length === T1.length ? 'strong for both sides' : `strong for both sides · ${plural(t1Centres.length, 'company', 'companies')}`],
   [T2.length, 'Strong candidates', 'triangle 48 or better'],
   [T3.length, 'Develop', 'a fit on one leg, or no trigger yet'],
   [EXP.length, 'Already on Shopify Plus', 'expansion, not replatform'],
   [X.length, 'Disqualified', 'each with a stated reason'],
 ].map(([v, k, s]) => `<div class="kpi"><span class="v">${v}</span><span class="k">${k}</span><div class="sub">${s}</div></div>`).join('');
 $('ov-note').innerHTML = `<strong style="color:var(--ink-2)">Where the Shopify leg comes from.</strong> The book was run through BuiltWith, so every account carries its detected commerce platform and stack. That makes platform whitespace, the heaviest subscore, a measured starting point that research then confirms or corrects. BuiltWith found Shopify Plus on none of the book's ${S.accounts - (S.no_builtwith || 0)} domains.`;
-$('ov-t1-eyebrow').textContent = `Tier 1 · ${plural(T1.length, 'account')}`;
-$('ov-plays').innerHTML = T1.length ? T1.map(miniPlay).join('') : '<p class="small" style="margin:0">No account clears both bars yet. The strongest candidates are in the next section.</p>';
+$('ov-t1-eyebrow').textContent = `Tier 1 · ${plural(T1.length, 'account')}${t1Centres.length === T1.length ? '' : ' · ' + plural(t1Centres.length, 'company', 'companies')}`;
+function centreCard(c){
+  const rows = scored.filter(a => centreOf(a) === c).sort((x, y) => y.triangle - x.triangle), lead = rows[0];
+  if (rows.length === 1) return miniPlay(lead);
+  return `<article class="card pad play"><div class="top"><div style="min-width:0"><h3 style="margin:0">${esc(c)}</h3><div class="small" style="margin-top:3px">${plural(rows.length, 'row')} in the book, one decision · ${esc(lead.category)}</div></div><div class="score"><b>${lead.triangle}</b><span class="lbl">Top triangle</span></div></div><div class="tx">${esc(lead.story)}</div><ul class="list2">${rows.map(a => `<li><button class="linkbtn" data-focus="${esc(a.name)}" style="font-size:13px;color:var(--ink);font-weight:600">${nm(a)}</button> <span class="tierpill ${a.tier}">${a.tier}</span> <span class="mono small">triangle ${a.triangle} · Shopify ${a.shopify_fit} · Anatta ${a.anatta_fit}</span>${a.tier === 'X' ? `<div class="small">${esc(a.gate_reason)}</div>` : ''}</li>`).join('')}</ul></article>`;
+}
+$('ov-plays').innerHTML = T1.length ? t1Centres.map(centreCard).join('') : '<p class="small" style="margin:0">No account clears both bars yet. The strongest candidates are in the next section.</p>';
 $('ov-t2-eyebrow').textContent = `Tier 2 · ${plural(T2.length, 'account')}`;
 $('ov-t2').innerHTML = T2.length ? `<table class="wide"><thead><tr><th>Account</th><th>The angle</th><th>What holds it back</th><th class="num">Shopify</th><th class="num">Anatta</th><th class="num">Triangle</th></tr></thead><tbody>${T2.map(a => `<tr class="row" data-focus="${esc(a.name)}"><td><strong>${nm(a)}</strong><div class="small">${esc(a.category)}</div>${a.group ? `<div style="margin-top:3px">${groupTag(a)}</div>` : ''}</td><td class="small" style="min-width:230px;color:var(--ink-2)">${esc(firstSentence(a.story))}</td><td class="small" style="min-width:220px;color:var(--ink-2)">${esc(holdsBack(a))}</td><td class="num">${a.shopify_fit}</td><td class="num">${a.anatta_fit}</td><td class="num"><b>${a.triangle}</b></td></tr>`).join('')}</tbody></table>` : '<p class="small pad" style="margin:0">No account in this tier.</p>';
 // buying centres
@@ -377,7 +386,7 @@ const groups = {}; A.forEach(a => { if (a.group) (groups[a.group] = groups[a.gro
 const gNames = Object.keys(groups).sort((x, y) => Math.max(...groups[y].map(a => a.triangle ?? 0)) - Math.max(...groups[x].map(a => a.triangle ?? 0)));
 $('ov-centres-sec').hidden = !gNames.length;
 $('ov-centres-h2').textContent = `${S.grouped_rows} rows, ${gNames.length} decisions`;
-$('ov-centres').innerHTML = gNames.map(g => `<div class="card pad"><h3>${esc(g)}</h3><ul class="list2">${groups[g].sort((x, y) => (y.triangle ?? 0) - (x.triangle ?? 0)).map(a => `<li><button class="linkbtn" data-focus="${esc(a.name)}" style="font-size:13px;color:var(--ink);font-weight:600">${nm(a)}</button> <span class="tierpill ${a.tier}">${a.tier}</span> <span class="mono small">${a.missing ? '' : 'triangle ' + a.triangle}</span><div class="small">${esc(a.tier === 'X' ? a.gate_reason : a.plat || '')}</div></li>`).join('')}</ul></div>`).join('');
+$('ov-centres').innerHTML = gNames.map(g => `<div class="card pad"><h3>${esc(g)}</h3><ul class="list2">${groups[g].sort((x, y) => (y.triangle ?? 0) - (x.triangle ?? 0)).map(a => `<li><button class="linkbtn" data-focus="${esc(a.name)}" style="font-size:13px;color:var(--ink);font-weight:600">${nm(a)}</button> <span class="tierpill ${a.tier}">${a.tier}</span> <span class="mono small">${a.missing ? '' : 'triangle ' + a.triangle}</span><div class="small">${esc(a.tier === 'X' ? a.gate_reason : a.plat_label || '')}</div></li>`).join('')}</ul></div>`).join('');
 $('ov-exp-sec').hidden = !EXP.length;
 $('ov-exp-eyebrow').textContent = `Reference · ${plural(EXP.length, 'account')}`;
 $('ov-exp').innerHTML = `<table class="wide"><thead><tr><th>Account</th><th>Category</th><th>What's live</th><th>Expansion angle</th><th class="num">Triangle</th></tr></thead><tbody>${EXP.map(a => `<tr class="row" data-focus="${esc(a.name)}"><td><strong>${nm(a)}</strong></td><td class="small">${esc(a.category)}</td><td class="small">${esc(a.platform)}</td><td class="small">${esc(a.shopify_angle)}</td><td class="num">${a.triangle}</td></tr>`).join('')}</tbody></table>`;
@@ -385,9 +394,9 @@ $('ov-exp').innerHTML = `<table class="wide"><thead><tr><th>Account</th><th>Cate
 $('ov-signal-sec').hidden = !INTERNAL;
 if (INTERNAL) {
   const hot = a => a.fire.score !== '' && +a.fire.score > 0 || a.fire.in_market || a.fire.signals || ['Medium','High'].includes(a.fire.intent);
-  const fired = scored.filter(hot), cold = fired.filter(a => ['T4','X'].includes(a.tier)), kept = fired.filter(a => ['T1','T2'].includes(a.tier));
-  $('ov-signal-p').textContent = `${fired.length} accounts carry some signal of ours (a FIRE score, a named intent signal, Medium intent or an In-market flag). ${kept.length} of them reached the top two tiers and ${cold.length} ended in Watch or disqualified. Those ${cold.length} are listed here so nobody works them off the signal alone.`;
-  $('ov-signal').innerHTML = `<table class="wide"><thead><tr><th>Account</th><th>What our data says</th><th>Tier</th><th>What research found</th></tr></thead><tbody>${cold.map(a => `<tr class="row" data-focus="${esc(a.name)}"><td><strong>${nm(a)}</strong><div class="small">${esc(a.category)}</div></td><td class="small" style="color:var(--ink-2)">${sig(a).map(esc).join(' · ')}</td><td><span class="tierpill ${a.tier}">${a.tier}</span></td><td class="small" style="min-width:280px;color:var(--ink-2)">${esc(a.tier === 'X' ? a.gate_reason : firstSentence(a.story))}</td></tr>`).join('')}</tbody></table>`;
+  const fired = scored.filter(hot), cold = fired.filter(a => ['T4','X'].includes(a.tier) || a.shopify_sub.timing <= 2), kept = fired.filter(a => ['T1','T2'].includes(a.tier));
+  $('ov-signal-p').textContent = `${fired.length} accounts carry some signal of ours (a FIRE score, a named intent signal, Medium intent or an In-market flag). ${kept.length} of them reached the top two tiers. For ${cold.length}, research found no buying window: they ended in Watch or disqualified, or scored 2 or less out of 10 on timing. They are listed here so nobody works them off the signal alone.`;
+  $('ov-signal').innerHTML = `<table class="wide"><thead><tr><th>Account</th><th>What our data says</th><th>Tier</th><th>What research found</th></tr></thead><tbody>${cold.map(a => `<tr class="row" data-focus="${esc(a.name)}"><td><strong>${nm(a)}</strong><div class="small">${esc(a.category)}</div></td><td class="small" style="color:var(--ink-2)">${sig(a).map(esc).join(' · ')}</td><td><span class="tierpill ${a.tier}">${a.tier}</span></td><td class="small" style="min-width:280px;color:var(--ink-2)">${esc(a.tier === 'X' ? firstSentence(a.gate_reason) : firstSentence(a.story))}</td></tr>`).join('')}</tbody></table>`;
   const F = S.fire, visits = A.filter(a => a.signals_raw.website_visit === 'true'), im = A.filter(a => a.fire.in_market), imTop = im.filter(a => ['T1','T2','T3'].includes(a.tier));
   const w = S.fire.recency_window;
   $('ov-trust').innerHTML = [
@@ -461,7 +470,7 @@ function drawScatter(){
   s += '</svg>';
   const wrap = $('scatter'); wrap.innerHTML = s;
   const svg = wrap.querySelector('svg'), pts = [...svg.querySelectorAll('.pt')];
-  const tipHtml = a => `<b>${nm(a)}</b> <span class="tierpill ${a.tier}">${a.tier}</span><br>${esc(a.category)} · ${esc(a.plat)}<br>Triangle <b>${a.triangle}</b> · Shopify <b>${a.shopify_fit}</b> · Anatta <b>${a.anatta_fit}</b>`;
+  const tipHtml = a => `<b>${nm(a)}</b> <span class="tierpill ${a.tier}">${a.tier}</span><br>${esc(a.category)} · ${esc(a.plat_label)}<br>Triangle <b>${a.triangle}</b> · Shopify <b>${a.shopify_fit}</b> · Anatta <b>${a.anatta_fit}</b>`;
   let hotI = -1;
   const setHot = i => { if (hotI >= 0) pts[hotI].classList.remove('hot'); hotI = i; if (i >= 0) pts[i].classList.add('hot'); };
   const nearest = e => { const r = svg.getBoundingClientRect(), k = W / r.width, mx = (e.clientX - r.left) * k, my = (e.clientY - r.top) * k; let best = -1, bd = 24 * k; ds.forEach((d, i) => { const dd = Math.hypot(d.px - mx, d.py - my); if (dd < bd) { bd = dd; best = i; } }); return best; };
@@ -472,7 +481,7 @@ function drawScatter(){
 }
 
 // ---------- tier strips ----------
-$('strips').innerHTML = TIERS.filter(t => byTier(t).length || t === 'T1').map(t => { const L = byTier(t); return `<details class="strip" ${t === 'T1' || t === 'T2' ? 'open' : ''}><summary><span class="tierpill ${t}">${t}</span><b style="font-size:13.5px">${TIER_NAME[t]}</b><span class="small mono">${plural(L.length, 'account')}</span><span class="spacer"></span><span class="small">${TIER_RULE[t]}</span></summary><div class="list">${L.map(a => `<button class="it" data-focus="${esc(a.name)}"><span style="min-width:0"><b>${nm(a)}</b> <span class="small">· ${esc(a.category)}${t === 'X' ? ' · ' + esc(a.gate_reason) : ''}</span></span><span class="small">${esc(a.plat)}</span><span class="mono small">${a.triangle} · S ${a.shopify_fit} / A ${a.anatta_fit}</span></button>`).join('') || '<div class="small" style="padding:8px 14px">none</div>'}</div></details>`; }).join('');
+$('strips').innerHTML = TIERS.filter(t => byTier(t).length || t === 'T1').map(t => { const L = byTier(t); return `<details class="strip" ${t === 'T1' || t === 'T2' ? 'open' : ''}><summary><span class="tierpill ${t}">${t}</span><b style="font-size:13.5px">${TIER_NAME[t]}</b><span class="small mono">${plural(L.length, 'account')}</span><span class="spacer"></span><span class="small">${TIER_RULE[t]}</span></summary><div class="list">${L.map(a => `<button class="it" data-focus="${esc(a.name)}"><span style="min-width:0"><b>${nm(a)}</b> <span class="small">· ${esc(a.category)}${t === 'X' ? ' · ' + esc(a.gate_reason) : ''}</span></span><span class="small">${esc(a.plat_label)}</span><span class="mono small">${a.triangle} · S ${a.shopify_fit} / A ${a.anatta_fit}</span></button>`).join('') || '<div class="small" style="padding:8px 14px">none</div>'}</div></details>`; }).join('');
 
 // ---------- breakdowns ----------
 function breakdown(el, key){
@@ -522,7 +531,7 @@ function renderTable(){
   const rows = A.filter(a => (!fTier.value || a.tier === fTier.value) && (!fPlat.value || a.plat === fPlat.value) && (!fModel.value || a.model === fModel.value) && sigOk(a) && (!term || [a.name, a.display, a.category, a.platform, a.model, a.hq, a.ownership, a.group].join(' ').toLowerCase().includes(term)));
   rows.sort((p, r) => { let a = p[sortK], b = r[sortK]; if (sortK === 'tier') { a = TIERS.indexOf(a); b = TIERS.indexOf(b); } if (a == null && b == null) return 0; if (a == null) return 1; if (b == null) return -1; if (typeof a === 'string') return sortDir * a.localeCompare(b); return sortDir * (a - b); });
   $('tbl-count').textContent = `${rows.length} of ${A.length}`;
-  $('tbody').innerHTML = rows.map(a => `<tr class="row" data-n="${esc(a.name)}" tabindex="0" aria-expanded="${openName === a.name}"><td><strong>${nm(a)}</strong>${a.group ? ` <span class="tag">${esc(a.group)}</span>` : ''}<div class="small">${esc(a.category || '')}</div></td><td><span class="tierpill ${a.tier}">${a.tier}</span></td><td class="num"><b>${dash(a.triangle)}</b></td><td class="num">${dash(a.shopify_fit)}</td><td class="num">${dash(a.anatta_fit)}</td><td class="small"><div class="clip" title="${esc(a.platform || '')}">${esc(a.plat || '')}</div></td><td class="small">${esc(a.model || '')}</td><td class="num">${a.fire_num == null ? '—' : a.fire_num}</td><td class="small">${esc(a.confidence || '—')}</td></tr>${openName === a.name ? `<tr class="det"><td colspan="9">${detail(a)}</td></tr>` : ''}`).join('') || '<tr><td colspan="9" class="small" style="padding:18px 12px">No account matches these filters.</td></tr>';
+  $('tbody').innerHTML = rows.map(a => `<tr class="row" data-n="${esc(a.name)}" tabindex="0" aria-expanded="${openName === a.name}"><td><strong>${nm(a)}</strong>${a.group ? ` <span class="tag">${esc(a.group)}</span>` : ''}<div class="small">${esc(a.category || '')}</div></td><td><span class="tierpill ${a.tier}">${a.tier}</span></td><td class="num"><b>${dash(a.triangle)}</b></td><td class="num">${dash(a.shopify_fit)}</td><td class="num">${dash(a.anatta_fit)}</td><td class="small"><div class="clip" title="${esc(a.platform || '')}">${esc(a.plat_label || '')}</div></td><td class="small">${esc(a.model || '')}</td><td class="num">${a.fire_num == null ? '—' : a.fire_num}</td><td class="small">${esc(a.confidence || '—')}</td></tr>${openName === a.name ? `<tr class="det"><td colspan="9">${detail(a)}</td></tr>` : ''}`).join('') || '<tr><td colspan="9" class="small" style="padding:18px 12px">No account matches these filters.</td></tr>';
 }
 function openRow(name, scroll){
   openName = openName === name && !scroll ? null : name;
@@ -538,8 +547,9 @@ renderTable();
 
 // ---------- methodology ----------
 const D = S.research_depth || {}, starved = scored.filter(a => a.flags.some(f => /search budget/i.test(f))).length;
+const live = scored.filter(a => /fetched \d{4}-\d\d-\d\d/i.test(a.platform)).length, unconf = scored.filter(a => /^unconfirmed/i.test(a.platform)).length;
 $('method').innerHTML = `<p><b>Sources.</b> One Apollo accounts export (${S.accounts} rows) carrying the FIRE fields Anatta maintains, and one BuiltWith technology export of the book (${S.accounts - (S.no_builtwith || 0)} domains: commerce platform, CMS, CRM, marketing automation, payments, and first and last detected dates for tracked apps). Both were pulled on ${esc(S.as_of)}. ${S.domain_mismatches} accounts carry a different domain in the two files and were matched by hand; the reason is on each record. No contacts export was in scope.</p>
-<p><b>Research.</b> ${S.triaged} universities were gated by rule without web research. Every other account was researched from the two rubrics with web search: ${D.full ?? '—'} accounts with a visible commerce surface got a full pass (platform confirmation, scale, ownership, timing, distress) and ${D.light ?? '—'} manufacturers, processors and dealers with none got a one-search pass. Each record carries sourced evidence, a confidence rating and a written story. ${S.verified} accounts (the provisional top two tiers and every judgment-call gate) then got an adversarial second look through two lenses: platform and scale; business model and gates. ${S.verification === 'consistency' ? 'The research pass used the whole web-search budget for this run, so that second look was a consistency check of each record against its own sourced evidence and the rubric, not fresh research. Every verdict says so.' : 'Verifiers searched for their own evidence.'} Where a verifier moved a score by 8 points or more the final value is the average of the two views, and the adjustment is shown on the record. ${starved ? `${plural(starved, 'account')} carry a flag naming a check that was not done because the search budget ran out.` : ''} Storefronts could not be opened directly from the research environment, so platform confirmation rests on press, job posts, agency case studies and the BuiltWith rows.</p>
+<p><b>Research.</b> ${S.triaged} universities were gated by rule without web research. Every other account was researched from the two rubrics with web search: ${D.full ?? '—'} accounts with a visible commerce surface got a full pass (platform confirmation, scale, ownership, timing, distress) and ${D.light ?? '—'} manufacturers, processors and dealers with none got a one-search pass. Each record carries sourced evidence, a confidence rating and a written story. ${S.verified} accounts (the provisional top two tiers and every judgment-call gate) then got an adversarial second look through two lenses: platform and scale; business model and gates. ${S.verification === 'consistency' ? 'The research pass used the whole web-search budget for this run, so that second look was a consistency check of each record against its own sourced evidence and the rubric, not fresh research. Every verdict says so.' : 'Verifiers searched for their own evidence.'} Where a verifier moved a score by 8 points or more the final value is the average of the two views, and the adjustment is shown on the record. ${starved ? `${plural(starved, 'account')} carry a flag naming a check that was not done because the search budget ran out.` : ''} Platform confirmation: for ${live} accounts the researcher loaded the live site and read the platform from the page itself (the record says "fetched" with the date); for the rest it rests on press, job posts, agency case studies and the BuiltWith row, and the record says "unconfirmed" where BuiltWith is the only source (${unconf} accounts).</p>
 <p><b>Book-specific handling.</b> ${A.filter(a => a.signal_misattributed).map(a => `<b>${nm(a)}</b>`).join(', ') || 'No account'}: the Apollo row is a different company from the one in the book, so its FIRE fields are shown as exported but not scored. ${S.grouped_rows} rows are marked as sharing ${Object.keys(groups).length} buying centres; each is still scored on its own storefront. The CRuX traffic rank in the BuiltWith export is unreliable for this book (several national retailers show the lowest band), so scale is scored from revenue, store counts and headcount.</p>
 <p><b>Formula.</b> Shopify fit = Σ six subscores + penalties, clamped 0–100. Anatta fit = Σ four research subscores + FIRE intent (max 20), clamped 0–100. Triangle = round(0.55 × Shopify + 0.45 × Anatta + bonus), capped at 100, where bonus = +3 in-market, +3 FIRE intent High, +4 explicit Shopify intent signal. Tiers: T1 if triangle ≥ 62 and Shopify fit ≥ 63; T2 ≥ 48; T3 ≥ 36; T4 otherwise. Gates override tiers: Shopify Plus live → EXP; government, distress, no commerce surface (only when Shopify fit &lt; 20), bad record, restricted → X.</p>
 <p><b>The age of our signal.</b> The newest FIRE signal in the book is ${S.fire.newest_signal_days} days older than this build, so researchers counted a FIRE signal or an In-market flag as a soft timing signal unless public evidence backed it. The 20-point intent subscore is still computed from the export exactly as written.</p>

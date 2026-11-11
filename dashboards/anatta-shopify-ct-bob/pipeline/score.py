@@ -102,6 +102,16 @@ def plat_family(name, text):
         if re.search(pat, t): return fam
     return "Other / unclear"
 
+# In card and table text, "Other enterprise" is replaced by the platform's own name where the researcher gave one.
+ENTERPRISE_NAMES = [("vtex", "VTEX"), ("oracle", "Oracle Commerce"), ("hcl", "HCL Commerce"), ("optimizely", "Optimizely"), ("episerver", "Optimizely"),
+                    ("hybris", "SAP Commerce"), ("sap", "SAP Commerce"), ("netsuite", "NetSuite"), ("suitecommerce", "NetSuite"),
+                    ("commercetools", "commercetools"), ("kibo", "Kibo"), ("znode", "Znode"), ("sitecore", "Sitecore")]
+def plat_label(family, text):
+    if family != "Other enterprise": return family
+    t = (text or "").lower()
+    hits = sorted((t.index(k), n) for k, n in ENTERPRISE_NAMES if k in t)
+    return hits[0][1] if hits else family
+
 def recency_window(rows):
     """The scoring-run dates for which every (last signal date, recency label) pair in the export is consistent."""
     span = {"<7d": (0, 7), "8-30d": (8, 30), "31-90d": (31, 90)}
@@ -114,7 +124,13 @@ def recency_window(rows):
     return [lo.strftime("%b %-d"), hi.strftime("%b %-d, %Y")] if datetime.date.min < lo <= hi < datetime.date.max else None
 
 CRM_PRESENCE = re.compile(r"\bin salesforce\b|\bSFDC\b", re.I)   # stated once, in the internal-only in_sfdc field
-def clean_flags(flags): return [f for f in flags if not CRM_PRESENCE.search(f)]
+def clean_flags(flags):
+    """Drop flags that only restate CRM presence, and take the shouting out of an all-caps lead-in."""
+    out = []
+    for f in flags:
+        if CRM_PRESENCE.search(f): continue
+        out.append(re.sub(r"^([A-Z][A-Z ]{6,}):", lambda m: m.group(1).capitalize().replace("apollo", "Apollo") + ":", f))
+    return out
 
 def days_since(s):
     m = re.match(r"([A-Za-z]{3})\w* (\d+)\w* (\d{4})$", s or "")
@@ -178,6 +194,7 @@ for name, a in inputs.items():
         **common, "missing": False,
         "category": r["category"], "model": r["model"], "size_est": r["size_est"], "platform": r["platform_confirmed"],
         "plat": plat_family(name, r["platform_confirmed"]),
+        "plat_label": plat_label(plat_family(name, r["platform_confirmed"]), r["platform_confirmed"]),
         "hq": r["hq"], "ownership": r["ownership"],
         "shopify_sub": {k: s[k] for k in ["whitespace", "scale", "model_fit", "unified", "timing", "ecosystem", "penalties"]},
         "shopify_fit_research": sf_research, "penalty_reason": s["penalty_reason"],

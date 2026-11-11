@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Assemble the single-file triangulation dashboard for one rep's book.
-Writes four files: an internal and a shareable copy, each as a standalone HTML file and as a page fragment for
-publishing as a claude.ai artifact (which supplies its own <html>/<head>/<body>).
+Writes an internal and a shareable copy, each as a standalone HTML file, as a page fragment for publishing as a
+claude.ai artifact (which supplies its own <html>/<head>/<body>), and as a CSV of the scored book.
 
 Internal copy: shows which accounts are in Salesforce and the "how far to trust our own signal" section.
 Shareable copy: those are removed from the DATA, not just hidden, and the build asserts they are gone.
 Neither copy ever contains a Salesforce record ID.
 
 Usage: assemble.py <scored.json> <out_dir>"""
-import json, sys, os, re, copy
+import csv, json, sys, os, re, copy
 scored_p, OUT = sys.argv[1:3]
 here = os.path.dirname(os.path.abspath(__file__))
 tpl = open(os.path.join(here, "dashboard.html"), encoding="utf-8").read()
@@ -44,6 +44,25 @@ def build(internal, target):
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n"
             + ICON + "\n" + head + "</head>\n<body>\n" + page + "</body>\n</html>\n")
 
+CSV_COLS = ["name", "display", "group", "domain", "book_domain", "tier", "triangle", "shopify_fit", "anatta_fit", "gate", "gate_reason", "category", "model",
+            "plat", "platform", "size_est", "hq", "ownership", "confidence", "fire_score", "fire_intent", "fire_in_market", "fire_signals",
+            "fire_last_signal", "story", "shopify_angle", "anatta_angle", "flags", "adjustments"]
+def write_csv(path, internal):
+    cols = CSV_COLS + (["in_salesforce"] if internal else [])
+    def val(a, k):
+        if k.startswith("fire_"): return a["fire"][k[5:]]
+        if k == "flags": return " | ".join(f for f in a.get("flags", []) if internal or not INTERNAL_FLAG.search(f))
+        if k == "adjustments": return " | ".join(a.get("adjustments", []))
+        if k == "in_salesforce": return "yes" if a["in_sfdc"] else "no"
+        return a.get(k, "")
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f); w.writerow(cols)
+        for a in sc["accounts"]: w.writerow([val(a, k) for k in cols])
+    text = open(path, encoding="utf-8").read()
+    assert not SFDC_ID.search(text), "a Salesforce record ID is in the CSV"
+    if not internal: assert "in_salesforce" not in text
+    print(f"{os.path.relpath(path, OUT):55s} {len(text.encode('utf-8')) / 1024:6.0f} KB  {'internal' if internal else 'shareable'}/csv")
+
 os.makedirs(f"{OUT}/artifact", exist_ok=True)
 for internal in (True, False):
     kind = "internal" if internal else "shareable"
@@ -51,5 +70,6 @@ for internal in (True, False):
         html = build(internal, target)
         open(path, "w", encoding="utf-8").write(html)
         print(f"{os.path.relpath(path, OUT):55s} {len(html.encode('utf-8')) / 1024:6.0f} KB  {kind}/{target}")
+    write_csv(f"{OUT}/{SLUG}-accounts-{kind}.csv", internal)
 t = sc["summary"]["tiers"]
 print("accounts", sc["summary"]["accounts"], "| tiers", {k: t[k] for k in sorted(t)})
