@@ -1,0 +1,563 @@
+<!--HEAD-->
+<title>__TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="robots" content="noindex,nofollow">
+<style>
+/* Layout: one sticky nav and two views. Overview answers "who do we walk in on together"; Accounts shows the working. */
+*,*::before,*::after{box-sizing:border-box}
+:root{color-scheme:light;
+  --bg:#f9f9f7;--surface:#fcfcfb;--surface-2:#f0efec;--line:#e4e2dc;--line-2:#d3d0c7;
+  --ink:#0b0b0b;--ink-2:#52514e;--ink-3:#898781;--grid:#e1e0d9;--axis:#c3c2b7;--border:rgba(11,11,11,.10);
+  --s1:#2a78d6;--s1-soft:#cde2fb;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--s5:#e87ba4;--s6:#008300;
+  --t1:#104281;--t2:#256abf;--t3:#5598e7;--t4:#86b6ef;--exp:#1baf7a;--dq:#8a8a85;
+  --good:#0ca30c;--warn:#fab219;--serious:#ec835a;--crit:#d03b3b;
+  --shadow:0 1px 2px rgba(11,11,11,.05),0 8px 24px -12px rgba(11,11,11,.14);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;--sans:system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --bg:#0d0d0d;--surface:#1a1a19;--surface-2:#232322;--line:#2c2c2a;--line-2:#3f3f3b;
+  --ink:#f0efec;--ink-2:#c3c2b7;--ink-3:#898781;--grid:#2c2c2a;--axis:#383835;--border:rgba(255,255,255,.10);
+  --s1:#3987e5;--s1-soft:#184f95;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;
+  --t1:#b7d3f6;--t2:#6da7ec;--t3:#2a78d6;--t4:#184f95;--exp:#199e70;--dq:#6e6e69;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 24px -12px rgba(0,0,0,.7)}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#0d0d0d;--surface:#1a1a19;--surface-2:#232322;--line:#2c2c2a;--line-2:#3f3f3b;
+  --ink:#f0efec;--ink-2:#c3c2b7;--ink-3:#898781;--grid:#2c2c2a;--axis:#383835;--border:rgba(255,255,255,.10);
+  --s1:#3987e5;--s1-soft:#184f95;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;
+  --t1:#b7d3f6;--t2:#6da7ec;--t3:#2a78d6;--t4:#184f95;--exp:#199e70;--dq:#6e6e69;
+  --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 24px -12px rgba(0,0,0,.7)}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14.5px/1.5 var(--sans);overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:70;background:var(--bg)}
+a{color:var(--s1);text-decoration:none}a:hover{text-decoration:underline}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+/* nav */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:60;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:6px;min-height:54px;flex-wrap:wrap;padding-block:8px}
+.brand{font-weight:650;letter-spacing:-.015em;margin-right:14px;display:flex;align-items:center;gap:9px;color:var(--ink);white-space:nowrap}
+.brand .tri{width:15px;height:14px;flex:none}
+.tab{color:var(--ink-2);padding:6px 11px;border-radius:7px;font-size:13.5px;font-weight:500;white-space:nowrap;cursor:pointer;border:none;background:none}
+.tab:hover{background:var(--surface-2);color:var(--ink)}.tab.on{background:var(--surface-2);color:var(--ink);font-weight:600}
+.spacer{flex:1}
+.btn{background:var(--surface);border:1px solid var(--line-2);border-radius:8px;padding:6px 11px;font-size:12.5px;cursor:pointer;font-weight:500;color:var(--ink)}
+.btn:hover{background:var(--surface-2)}
+.tgl{width:32px;height:32px;padding:0;display:grid;place-items:center}
+/* type */
+h1{font-size:clamp(25px,3.2vw,36px);line-height:1.12;letter-spacing:-.028em;margin:0 0 14px;font-weight:660;text-wrap:balance;max-width:24ch}
+h2{font-size:19px;letter-spacing:-.018em;margin:0 0 4px;font-weight:640;text-wrap:balance}
+h3{font-size:15px;letter-spacing:-.012em;margin:0 0 6px;font-weight:620}
+p{margin:0 0 12px;color:var(--ink-2)}
+.lede{font-size:16px;line-height:1.6;color:var(--ink-2);max-width:72ch}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px;font-weight:600}
+.sec{padding:40px 0;border-top:1px solid var(--line)}.sec:first-child{border-top:none}
+.sec>.wrap>header{margin-bottom:18px;max-width:78ch}.sec>.wrap>header p{margin:0}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.small{font-size:12.5px;color:var(--ink-3)}
+.lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);margin-bottom:2px}
+/* cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:13px;min-width:0}
+.pad{padding:18px}.grid{display:grid;gap:14px}
+.cols{grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
+.cols.w{grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr))}
+.cols.q{grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr));align-items:start}
+.notes{display:grid;gap:0 28px;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
+.notes>div{padding:8px 0;border-top:1px solid var(--line);font-size:13px;color:var(--ink-2);min-width:0}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:14px 16px}
+.kpi .v{font-size:30px;font-weight:620;letter-spacing:-.03em;line-height:1;display:block;margin-bottom:6px}
+.kpi .k{font-size:12.5px;color:var(--ink-2);font-weight:500}.kpi .sub{font-size:11.5px;color:var(--ink-3);margin-top:3px}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:100px;padding:2px 9px;font-size:11px;font-weight:600;font-family:var(--mono);letter-spacing:.02em;border:1px solid var(--line-2);color:var(--ink-2);background:var(--surface-2);white-space:nowrap}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);white-space:nowrap}
+.tierpill{display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px;color:#fff;letter-spacing:.04em;white-space:nowrap}
+.tierpill.T1{background:var(--t1)}.tierpill.T2{background:var(--t2)}.tierpill.T3{background:var(--t3)}.tierpill.T4{background:var(--t4);color:#0b0b0b}.tierpill.EXP{background:var(--exp)}.tierpill.X{background:var(--dq)}.tierpill.NA{background:var(--line-2);color:var(--ink)}
+:root[data-theme="dark"] .tierpill.T1,:root[data-theme="dark"] .tierpill.T2{color:#0b0b0b}
+:root[data-theme="dark"] .tierpill.T4{color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tierpill.T1,:root:not([data-theme="light"]) .tierpill.T2{color:#0b0b0b}:root:not([data-theme="light"]) .tierpill.T4{color:#fff}}
+/* table */
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:13px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+table.wide{min-width:900px}
+th{text-align:left;font-weight:600;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);padding:10px 12px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+th.s{cursor:pointer;user-select:none}th.s:hover{color:var(--ink)}
+td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tr.row{cursor:pointer}tr.row:hover td{background:var(--surface-2)}tr.det>td{background:var(--surface-2);padding:0}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.clip{max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inp{background:var(--surface);border:1px solid var(--line-2);border-radius:8px;padding:6px 9px;font-size:13px;min-width:0;color:var(--ink)}
+.ctrls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.flag{font-size:12.4px;color:var(--ink-2);padding-left:16px;position:relative;margin:3px 0}
+.flag::before{content:"";position:absolute;left:3px;top:8px;width:5px;height:5px;border-radius:50%;background:var(--warn)}
+.tip{position:fixed;z-index:200;pointer-events:none;background:var(--surface);border:1px solid var(--line-2);border-radius:9px;padding:9px 11px;font-size:12.2px;box-shadow:var(--shadow);max-width:300px;line-height:1.45;color:var(--ink-2)}
+.tip b{color:var(--ink)}
+footer{border-top:1px solid var(--line);padding:26px 0 46px;color:var(--ink-3);font-size:12.5px}
+.det{padding:14px 18px;display:grid;gap:14px;grid-template-columns:1.2fr 1fr}
+.det>div{min-width:0}
+@media (max-width:860px){.det{grid-template-columns:1fr}}
+.det h4{margin:10px 0 4px;font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);font-family:var(--mono);font-weight:600}
+.det h4:first-child{margin-top:0}
+.det .tx{font-size:12.8px;color:var(--ink-2);overflow-wrap:anywhere}
+/* meters: one hue, track is a lighter step of the same ramp */
+.subbar{display:grid;grid-template-columns:150px 1fr 40px;gap:8px;align-items:center;font-size:12px;color:var(--ink-2);margin:3px 0}
+.meter{height:6px;border-radius:3px;background:var(--s1-soft);overflow:hidden}.meter>i{display:block;height:100%;border-radius:3px;background:var(--s1)}
+/* tier strips */
+.strip{border:1px solid var(--line);border-radius:11px;background:var(--surface);overflow:hidden}
+.strip summary{cursor:pointer;padding:11px 14px;display:flex;align-items:center;gap:10px;list-style:none;flex-wrap:wrap}
+.strip summary::-webkit-details-marker{display:none}
+.strip .list{border-top:1px solid var(--line)}
+.strip .it{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;padding:7px 14px;font-size:12.8px;align-items:center;border-bottom:1px solid var(--line);cursor:pointer;width:100%;background:none;border-left:none;border-right:none;border-top:none;text-align:left}
+.strip .it:last-child{border-bottom:none}.strip .it:hover{background:var(--surface-2)}
+/* play cards */
+.play{display:flex;flex-direction:column;gap:11px}
+.play .top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.play .score{text-align:right;flex:none}
+.play .score b{display:block;font-size:25px;font-weight:620;line-height:1;letter-spacing:-.02em;color:var(--ink)}
+.play .angles{display:grid;gap:9px;grid-template-columns:1fr 1fr}
+.play .angles>div{padding-left:9px;min-width:0}
+@media (max-width:640px){.play .angles{grid-template-columns:1fr}}
+.play .tx{font-size:13.2px;color:var(--ink-2)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.linkbtn{background:none;border:none;padding:0;color:var(--s1);cursor:pointer;font-size:12.5px}
+.linkbtn:hover{text-decoration:underline}
+/* stacked breakdown bars: thin, 2px surface gap, square at the baseline */
+.cat{display:grid;grid-template-columns:minmax(0,190px) minmax(0,1fr) 30px;align-items:center;gap:10px;font-size:12.5px;margin:6px 0}
+.cat .nm{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat .stack{display:flex;height:10px;gap:2px}
+.cat .stack i{display:block;height:100%;min-width:3px}
+.cat .stack i:last-child{border-radius:0 4px 4px 0}
+.cat .n{text-align:right;color:var(--ink-2)}
+i.T1,.sw.T1{background:var(--t1)}i.T2,.sw.T2{background:var(--t2)}i.T3,.sw.T3{background:var(--t3)}i.T4,.sw.T4{background:var(--t4)}i.EXP,.sw.EXP{background:var(--exp)}i.X,.sw.X{background:var(--dq)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.2px;color:var(--ink-2)}
+.legend span.k{display:inline-flex;align-items:center;gap:6px}
+.legend .sw{width:10px;height:10px;border-radius:50%;flex:none}
+/* ICP + rubric */
+.icp{padding:11px 0;border-top:1px solid var(--line)}.icp:first-of-type{border-top:none}
+.icp .k{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:3px}
+.icp .v{font-size:13.4px;color:var(--ink-2)}
+.rub{display:flex;gap:2px;align-items:flex-start}.rub>div{min-width:0}.rub .blk{height:24px;border-radius:4px}
+.rub .l{font-size:11px;margin-top:6px;color:var(--ink-2);line-height:1.3;overflow-wrap:anywhere}.rub .p{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.rubd{display:flex;gap:11px;padding:10px 0;border-top:1px solid var(--line)}.rubd span.d{width:9px;height:9px;border-radius:50%;flex:none;margin-top:6px}
+.rubd b{font-size:13.2px}.rubd div div{font-size:12.8px;color:var(--ink-2)}
+.gate{display:flex;gap:11px;padding:9px 0;border-top:1px solid var(--line)}.gate .x{color:var(--ink-3);font-weight:700;flex:none}
+/* scatter */
+.scwrap{overflow-x:auto}
+#scatter svg{display:block;width:100%;min-width:560px;height:auto}
+#scatter .pt{stroke:var(--surface);stroke-width:2}
+#scatter .pt.hot{stroke:var(--ink);stroke-width:1.6}
+#scatter text{font-family:var(--sans)}
+.csvbox{margin-top:10px}.csvbox textarea{width:100%;height:120px;font-family:var(--mono);font-size:11px;background:var(--surface);border:1px solid var(--line-2);border-radius:8px;padding:8px;color:var(--ink)}
+.list2{list-style:none;padding:0;margin:0;font-size:13px;color:var(--ink-2)}
+.list2 li{padding:7px 0;border-top:1px solid var(--line)}.list2 li:first-child{border-top:none}
+@media (prefers-reduced-motion:no-preference){.tip{transition:opacity .1s}}
+</style>
+<!--/HEAD-->
+<nav class="nav"><div class="wrap">
+  <span class="brand"><svg class="tri" viewBox="0 0 16 15" aria-hidden="true"><path d="M8 1.4 L15 13.6 L1 13.6 Z" fill="none" stroke="var(--s1)" stroke-width="1.7" stroke-linejoin="round"/></svg>Anatta <span style="color:var(--ink-3);font-weight:400">&times;</span> Shopify <span id="bookLabel" style="color:var(--ink-3);font-weight:400"></span></span>
+  <button class="tab" data-view="overview">Overview</button>
+  <button class="tab" data-view="accounts">Account Dashboard</button>
+  <span class="spacer"></span>
+  <button class="btn" id="csvbtn"></button>
+  <button class="btn tgl" id="themeBtn" aria-label="Toggle colour theme" title="Toggle light / dark" hidden><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.8a6.2 6.2 0 0 1 0 12.4z" fill="currentColor"/></svg></button>
+</div></nav>
+<div class="tip" id="tip" hidden></div>
+
+<!-- ============ OVERVIEW ============ -->
+<div class="view" id="v-overview" hidden>
+<section class="sec"><div class="wrap">
+  <p class="eyebrow" id="ov-eyebrow"></p>
+  <h1 id="ov-h1"></h1>
+  <p class="lede" id="ov-lede"></p>
+  <div class="grid kpis" id="ov-kpis" style="margin:24px 0 10px"></div>
+  <p class="small" id="ov-note" style="max-width:80ch"></p>
+  <div class="csvbox" id="csvbox" hidden><p class="small" style="margin:0 0 6px">Your browser blocked the copy. The CSV is selected below: copy it from here.</p><textarea id="csvta" readonly aria-label="Accounts CSV"></textarea></div>
+</div></section>
+<section class="sec"><div class="wrap">
+  <header><p class="eyebrow" id="ov-t1-eyebrow"></p><h2>The golden triangles</h2>
+  <p>Each of these clears both bars: a blended triangle score of 62 or better and a Shopify-side score of 63 or better, so none is carried by one side alone.</p></header>
+  <div class="grid cols w" id="ov-plays"></div>
+</div></section>
+<section class="sec"><div class="wrap">
+  <header><p class="eyebrow" id="ov-t2-eyebrow"></p><h2>Strong, one step short</h2>
+  <p>Triangle score of 48 or better. Each has a reason it is not golden yet; the open record says what would change that.</p></header>
+  <div class="tblwrap" id="ov-t2"></div>
+</div></section>
+<section class="sec" id="ov-centres-sec"><div class="wrap">
+  <header><p class="eyebrow">Read the book as decisions, not rows</p><h2 id="ov-centres-h2"></h2>
+  <p>Several rows in the book belong to one company. One conversation covers all of them, so they are grouped here and marked on every record.</p></header>
+  <div class="grid cols q" id="ov-centres"></div>
+</div></section>
+<section class="sec" id="ov-exp-sec"><div class="wrap">
+  <header><p class="eyebrow" id="ov-exp-eyebrow"></p><h2>Where Shopify is already inside</h2>
+  <p>These accounts already run Shopify Plus. They are expansion and reference accounts, not replatform prospects.</p></header>
+  <div class="tblwrap" id="ov-exp"></div>
+</div></section>
+<section class="sec" id="ov-signal-sec"><div class="wrap">
+  <header><p class="eyebrow">Internal &middot; our own signal</p><h2>Where our signal fired and research said no</h2>
+  <p id="ov-signal-p"></p></header>
+  <div class="tblwrap" id="ov-signal"></div>
+  <div class="grid cols q" id="ov-trust" style="margin-top:14px"></div>
+</div></section>
+<section class="sec"><div class="wrap">
+  <header><p class="eyebrow">Data hygiene</p><h2>What is and isn&rsquo;t in the book</h2></header>
+  <div class="grid cols q" id="ov-hygiene"></div>
+  <div class="card pad" id="ov-domains" style="margin-top:14px"></div>
+</div></section>
+</div>
+
+<!-- ============ ACCOUNTS ============ -->
+<div class="view" id="v-accounts" hidden>
+<section class="sec"><div class="wrap">
+  <p class="eyebrow">Account dashboard</p>
+  <h1 id="ac-h1"></h1>
+  <p class="lede">Every account is scored twice: once against what Shopify&rsquo;s enterprise organisation wants to win, once against the engagements Anatta delivers. The two are blended and tiered. Gates apply before tiering, so nothing can score its way past a hard disqualifier.</p>
+</div></section>
+<section class="sec"><div class="wrap">
+  <header><p class="eyebrow">Step one</p><h2>What a good fit means, for each side</h2><p>The two ICPs share very little vocabulary. An account can be obvious to one of us and invisible to the other.</p></header>
+  <div class="grid cols">
+    <div class="card pad"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="width:9px;height:9px;border-radius:50%;background:var(--s1)"></span><h3 style="margin:0">Shopify&rsquo;s ICP</h3></div><p class="small" style="margin:0 0 4px">Read off Shopify&rsquo;s 2026 enterprise positioning and what its account executives are paid to land.</p>
+      <div class="icp"><div class="k">What they sell</div><div class="v">Shopify Plus and Shopify Enterprise: one commerce foundation for B2C, B2B and retail. Checkout and Shop Pay, POS, B2B catalogues and terms, Markets for international, Hydrogen for headless, Flow for automation.</div></div>
+      <div class="icp"><div class="k">Who they want</div><div class="v">Brands and retailers with real online revenue (roughly $1M+ online for Plus, $50M+ total for Enterprise) that are on a legacy platform, a mid-market platform they have outgrown, or no proper storefront at all.</div></div>
+      <div class="icp"><div class="k">Where it lands cleanly</div><div class="v">Replatforms off Salesforce Commerce Cloud, Adobe Commerce / Magento, Oracle, SAP, VTEX or a custom build; unifying stores and online on POS; adding a B2B catalogue; consolidating several storefronts.</div></div>
+      <div class="icp"><div class="k">What winning looks like</div><div class="v">A signed Plus or Enterprise merchant whose launch an SI like Anatta can deliver in a quarter, with POS, B2B or Markets attached.</div></div>
+      <div class="icp"><div class="k">What kills a deal</div><div class="v">Government or military procurement, a business with no product catalogue, a brand already on Plus (that is expansion, not a win), or a category Shopify cannot host.</div></div>
+    </div>
+    <div class="card pad"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="width:9px;height:9px;border-radius:50%;background:var(--s2)"></span><h3 style="margin:0">Anatta&rsquo;s ICP</h3></div><p class="small" style="margin:0 0 4px">Our own book, expressed the same way so the two are comparable.</p>
+      <div class="icp"><div class="k">What we build</div><div class="v">High-performance Shopify Plus and headless (Hydrogen) storefronts for DTC and omnichannel brands: migrations, builds, then conversion, subscription and LTV optimisation on a retainer. Shopify Platinum Partner.</div></div>
+      <div class="icp"><div class="k">Who buys</div><div class="v">Brands with a product catalogue, a real ecommerce team and enough scale to sustain an embedded team. Multi-location, multi-brand or subscription complexity is a plus.</div></div>
+      <div class="icp"><div class="k">The signal we already run</div><div class="v">FIRE, an account-level fit and intent score combining Shopify, replatform and agency-search intent, engagement recency and in-market status. It enters this model as a 20-point intent subscore computed straight from the export.</div></div>
+      <div class="icp"><div class="k">What winning looks like</div><div class="v">A replatform or modernisation engagement at a brand whose current stack is holding back conversion or repeat revenue, ideally alongside Shopify&rsquo;s own deal team.</div></div>
+      <div class="icp"><div class="k">Proof</div><div class="v">Rothy&rsquo;s from $0 to $220M, Molekule through to IPO, AG1, Dollar Shave Club, Mack Weldon.</div></div>
+    </div>
+  </div>
+</div></section>
+<section class="sec"><div class="wrap">
+  <header><p class="eyebrow">Step two</p><h2>The two rubrics and the gates</h2><p>Weighted subscores summing to 100 on each leg, explicit penalties, then gates. Same rubric, weights and thresholds as the October 2026 Anatta &times; Shopify build, so the two books compare directly.</p></header>
+  <div class="grid cols w">
+    <div class="card pad"><h3>Shopify fit <span class="small mono">100 pts + penalties</span></h3><div class="rub" id="rub-shop"></div><div id="rub-shop-d" style="margin-top:14px"></div></div>
+    <div class="card pad"><h3>Anatta fit <span class="small mono">80 research pts + 20 FIRE intent pts</span></h3><div class="rub" id="rub-an"></div><div id="rub-an-d" style="margin-top:14px"></div></div>
+  </div>
+  <div class="card pad" style="margin-top:14px"><h3>Gates, applied before tiering</h3><p class="small" id="gates-note" style="margin:0 0 2px"></p><div id="gates"></div></div>
+</div></section>
+<section class="sec"><div class="wrap">
+  <header><p class="eyebrow">Step three</p><h2>Where every account sits</h2><p>Shopify fit runs left to right, Anatta fit bottom to top. The shaded corner is where both golden-triangle bars are cleared before any intent bonus. Points are nudged slightly so identical scores stay countable. Point at a dot for detail, click it to open the record; the table below carries every value.</p></header>
+  <div class="card pad"><div class="legend" id="scLegend" style="margin-bottom:12px"></div><div class="scwrap"><div id="scatter"></div></div></div>
+</div></section>
+<section class="sec"><div class="wrap">
+  <header><p class="eyebrow" id="ac-plays-eyebrow"></p><h2>The plays</h2><p>Why the account, what Shopify leads with, what Anatta leads with, and every flag a human should see before picking up the phone.</p></header>
+  <div class="grid cols w" id="ac-plays"></div>
+</div></section>
+<section class="sec"><div class="wrap">
+  <header><p class="eyebrow">Step four</p><h2>Every tier</h2><p>Open a strip to list its accounts; pick an account to jump to its full record.</p></header>
+  <div id="strips" class="grid" style="gap:10px"></div>
+</div></section>
+<section class="sec"><div class="wrap">
+  <header><p class="eyebrow">Breakdowns</p><h2>By platform and by business model</h2><p>Each bar is the accounts in that group, split by tier.</p></header>
+  <div class="legend" id="bkLegend" style="margin-bottom:12px"></div>
+  <div class="grid cols w">
+    <div class="card pad"><h3>Current platform</h3><div id="bk-plat"></div></div>
+    <div class="card pad"><h3>Business model</h3><div id="bk-model"></div></div>
+  </div>
+</div></section>
+<section class="sec" id="book"><div class="wrap">
+  <header><p class="eyebrow">The whole book</p><h2 id="tbl-h2"></h2><p>Sort any column, filter by tier, platform, model or signal, search by name, and open a row for the full score breakdown, the detected stack, the evidence behind the scores and the verification notes.</p></header>
+  <div class="ctrls">
+    <input class="inp" id="q" type="search" placeholder="Search account, category, platform…" aria-label="Search accounts" style="flex:1;min-width:170px">
+    <select class="inp" id="fTier" aria-label="Filter by tier"></select><select class="inp" id="fPlat" aria-label="Filter by platform"></select><select class="inp" id="fModel" aria-label="Filter by business model"></select>
+    <select class="inp" id="fSig" aria-label="Filter by our signal"><option value="">Any signal</option><option value="score">Has a FIRE score</option><option value="market">In-market</option><option value="named">Named intent signal</option></select>
+    <span class="small" id="tbl-count"></span>
+  </div>
+  <div class="tblwrap"><table id="tbl" class="wide"><thead><tr>
+    <th class="s" data-k="display">Account</th><th class="s" data-k="tier">Tier</th><th class="s num" data-k="triangle">Triangle</th><th class="s num" data-k="shopify_fit">Shopify</th><th class="s num" data-k="anatta_fit">Anatta</th><th class="s" data-k="plat">Platform</th><th class="s" data-k="model">Model</th><th class="s num" data-k="fire_num">FIRE</th><th class="s" data-k="confidence">Conf.</th>
+  </tr></thead><tbody id="tbody"></tbody></table></div>
+</div></section>
+<section class="sec"><div class="wrap">
+  <header><p class="eyebrow">Methodology</p><h2>How the numbers are made</h2></header>
+  <div class="card pad" id="method" style="font-size:13.4px;color:var(--ink-2)"></div>
+</div></section>
+</div>
+
+<footer><div class="wrap" id="foot"></div></footer>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+(function(){
+'use strict';
+const DATA = JSON.parse(document.getElementById('data').textContent);
+const A = DATA.accounts, S = DATA.summary, INTERNAL = DATA.internal, TARGET = DATA.target;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeUrl = u => /^https?:\/\//i.test(u || '') ? u : '';
+const plural = (n, one, many) => `${n} ${n === 1 ? one : (many || one + 's')}`;
+const TIERS = ['T1','T2','T3','T4','EXP','X','NA'];
+const TIER_LABEL = {T1:'T1 · Golden triangle', T2:'T2 · Strong', T3:'T3 · Develop', T4:'T4 · Watch', EXP:'EXP · Already on Shopify Plus', X:'X · Disqualified', NA:'Not scored'};
+const TIER_NAME = {T1:'Golden triangle', T2:'Strong', T3:'Develop', T4:'Watch', EXP:'Already on Shopify Plus', X:'Disqualified', NA:'Not scored'};
+const TIER_RULE = {T1:'triangle ≥ 62 and Shopify fit ≥ 63', T2:'triangle ≥ 48', T3:'triangle ≥ 36', T4:'below 36', EXP:'Shopify Plus live', X:'gated', NA:'no research record'};
+const tierVar = t => `var(--${({T1:'t1',T2:'t2',T3:'t3',T4:'t4',EXP:'exp',X:'dq',NA:'line-2'})[t]})`;
+const dash = x => (x ?? '—');
+const nm = a => esc(a.display || a.name);
+const byName = new Map(A.map(a => [a.name, a]));
+A.forEach(a => { a.fire_num = a.fire.score === '' ? null : +a.fire.score; a.display = a.display || a.name; });
+const scored = A.filter(a => !a.missing);
+const byTier = t => scored.filter(a => a.tier === t);
+const T1 = byTier('T1'), T2 = byTier('T2'), T3 = byTier('T3'), EXP = byTier('EXP'), X = byTier('X');
+
+// ---------- theme / tooltip / router ----------
+const root = document.documentElement;
+if (TARGET === 'file') {
+  const tb = $('themeBtn'); tb.hidden = false;
+  try { const t = localStorage.getItem('tri-theme'); if (t) root.setAttribute('data-theme', t); } catch (e) {}
+  tb.onclick = () => { const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; root.dataset.theme = dark ? 'light' : 'dark'; try { localStorage.setItem('tri-theme', root.dataset.theme); } catch (e) {} };
+}
+const TIP = $('tip');
+function tipShow(html, e){ TIP.innerHTML = html; TIP.hidden = false; tipMove(e); }
+function tipMove(e){ const p = 14, w = TIP.offsetWidth, h = TIP.offsetHeight; let x = e.clientX + p, y = e.clientY + p; if (x + w > innerWidth - 8) x = e.clientX - w - p; if (y + h > innerHeight - 8) y = e.clientY - h - p; TIP.style.left = Math.max(8, x) + 'px'; TIP.style.top = Math.max(8, y) + 'px'; }
+function tipAt(html, el){ const r = el.getBoundingClientRect(); tipShow(html, {clientX: r.left + r.width / 2, clientY: r.top + r.height / 2}); }
+function tipHide(){ TIP.hidden = true; }
+let pendingFocus = null;
+function route(){
+  const h = (location.hash || '#overview').slice(1); const v = ['overview','accounts'].includes(h) ? h : 'overview';
+  document.querySelectorAll('.view').forEach(el => { el.hidden = el.id !== 'v-' + v; });
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.view === v));
+  if (v === 'accounts') drawScatter();
+  if (v === 'accounts' && pendingFocus) { const n = pendingFocus; pendingFocus = null; openRow(n, true); } else window.scrollTo(0, 0);
+}
+function focusAccount(name){ pendingFocus = name; if (location.hash === '#accounts') route(); else location.hash = '#accounts'; }
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => { location.hash = '#' + t.dataset.view; });
+addEventListener('hashchange', route);
+document.addEventListener('click', e => { const el = e.target.closest('[data-focus]'); if (el) { e.preventDefault(); focusAccount(el.dataset.focus); } });
+
+// ---------- shared pieces ----------
+const RUB_S = [['whitespace','Platform whitespace',25,'var(--s1)','How much Shopify gains from this merchant moving: legacy enterprise platforms (Salesforce Commerce Cloud, Magento, Oracle, SAP, VTEX, custom) score highest; mid-market stacks next; no store but an obvious need next; already on Shopify scores as an upgrade; already on Plus is gated out.'],['scale','Commerce scale',20,'var(--s2)','Online revenue, store count, headcount. Plus starts making sense around $1M online; Enterprise at $50M+ total.'],['model_fit','Business-model fit',20,'var(--s3)','Consumer brands and retailers with a catalogue score highest; distributors with a wholesale catalogue mid; restaurants and services low; government, education, media, associations near zero.'],['unified','Unified-commerce surface',15,'var(--s4)','How many channels Shopify would unify: stores (POS), wholesale (B2B), international (Markets), multiple brands, marketplaces, subscriptions.'],['timing','Timing & intent',10,'var(--s5)','FIRE signals, the in-market flag, a new agency, a leadership change, funding, a platform end-of-life.'],['ecosystem','Ecosystem pull',10,'var(--s6)','A stack that already speaks Shopify\'s ecosystem (Klaviyo, Yotpo, Recharge, Gorgias, Global-e) versus one welded to Salesforce, Oracle or SAP.']];
+const RUB_A = [['brand_surface','Brand & storefront surface',20,'var(--s1)','A brand or retailer that owns a product catalogue and a storefront Anatta would build or optimise.'],['modernization','Modernisation need',20,'var(--s2)','Legacy or underperforming platform, dated theme, poor mobile, no composable path, an agency gap.'],['scale','Scale for a retainer',20,'var(--s3)','Roughly $20M+ revenue or $2M+ online, a real ecommerce team, multi-location or multi-brand complexity.'],['ltv','LTV & subscription complexity',20,'var(--s4)','Subscription, replenishment, membership, loyalty, bundles, gifting calendars: the levers Anatta optimises.'],['intent','Intent & engagement (FIRE)',20,'var(--s5)','Computed straight from the export: FIRE intent (High 10 / Medium 7 / Low 3 / Unknown or blank 2), +5 in-market, up to +5 for the FIRE score, +3 for a named signal. Never re-derived.']];
+const SUBS = [...RUB_S.map(r => ['shopify_sub', r[0], r[1], r[2]]), ...RUB_A.map(r => ['anatta_sub', r[0], r[1], r[2]])];
+// what keeps an account out of the tier above, read straight off its subscores
+function holdsBack(a){
+  const weak = SUBS.map(([leg, k, l, p]) => ({l, v: a[leg][k], p, r: a[leg][k] / p})).sort((x, y) => x.r - y.r).slice(0, 3);
+  const d = a.shopify_fit - a.anatta_fit;
+  const leg = d >= 12 ? `The Anatta leg is the short one (${a.anatta_fit} against Shopify ${a.shopify_fit}).` : d <= -12 ? `The Shopify leg is the short one (${a.shopify_fit} against Anatta ${a.anatta_fit}).` : `Neither leg is strong yet (Shopify ${a.shopify_fit}, Anatta ${a.anatta_fit}).`;
+  return `${leg} Weakest: ${weak.map(w => `${w.l} ${w.v}/${w.p}`).join('; ')}.`;
+}
+const sig = a => { const f = a.fire, out = []; if (f.score !== '') out.push('FIRE ' + f.score); if (f.signals) out.push(f.signals); if (f.intent && f.intent !== 'Unknown') out.push(f.intent + ' intent'); if (f.in_market) out.push('in-market'); return out; };
+const groupTag = a => a.group ? `<span class="tag" title="One buying centre: ${esc(a.group)}">${esc(a.group)} · shared decision</span>` : '';
+const recordNote = a => a.display !== a.name ? `<span class="small"> · record: ${esc(a.name)}</span>` : '';
+function chips(a){ return `<div class="chips"><span class="pill">Shopify ${a.shopify_fit}</span><span class="pill">Anatta ${a.anatta_fit}</span>${sig(a).map(s => `<span class="tag">${esc(s)}</span>`).join('')}${groupTag(a)}<span class="tag">confidence ${esc(a.confidence)}</span></div>`; }
+function play(a){ return `<article class="card pad play"><div class="top"><div style="min-width:0"><h3 style="margin:0"><span class="tierpill ${a.tier}">${a.tier}</span> ${nm(a)}</h3><div class="small" style="margin-top:3px">${esc(a.category)} · ${esc(a.model)} · ${esc(a.plat)}${recordNote(a)}</div></div><div class="score"><b>${a.triangle}</b><span class="lbl">Triangle</span></div></div>
+  <div><div class="lbl">Why this account</div><div class="tx">${esc(a.story)}</div></div>
+  <div class="angles"><div style="border-left:2px solid var(--s1)"><div class="lbl">Shopify's angle</div><div class="tx">${esc(a.shopify_angle)}</div></div><div style="border-left:2px solid var(--s2)"><div class="lbl">Anatta's angle</div><div class="tx">${esc(a.anatta_angle)}</div></div></div>
+  ${a.flags.length ? `<div>${a.flags.map(f => `<div class="flag">${esc(f)}</div>`).join('')}</div>` : ''}
+  ${chips(a)}<div><button class="linkbtn" data-focus="${esc(a.name)}">Open the full record →</button></div></article>`; }
+function miniPlay(a){ return `<article class="card pad play"><div class="top"><div style="min-width:0"><h3 style="margin:0">${nm(a)}</h3><div class="small" style="margin-top:3px">${esc(a.category)} · ${esc(a.plat)}${recordNote(a)}</div></div><div class="score"><b>${a.triangle}</b><span class="lbl">Triangle</span></div></div><div class="tx">${esc(a.story)}</div>${chips(a)}<div><button class="linkbtn" data-focus="${esc(a.name)}">Open the full record →</button></div></article>`; }
+const firstSentence = s => { const m = String(s || '').match(/^.*?[.!?](?=\s|$)/); return m ? m[0] : String(s || ''); };
+
+// ---------- overview ----------
+const BOOK = S.book_label, WHEN = new Date(S.as_of + 'T12:00:00').toLocaleDateString('en-US', {month: 'long', year: 'numeric'});
+$('bookLabel').textContent = '· ' + BOOK;
+$('ov-eyebrow').textContent = `Partner GTM triangulation · Anatta × Shopify · ${BOOK} · ${WHEN}`;
+const centres = S.buying_centres;
+$('ov-h1').textContent = T1.length
+  ? `${S.accounts} accounts in the book. ${T1.length === 1 ? 'One is' : T1.length + ' are'} worth walking into together now.`
+  : `${S.accounts} accounts in the book. None clears both bars yet; ${T2.length} come close.`;
+$('ov-lede').textContent = `Anatta builds and optimises Shopify Plus and headless storefronts; Shopify sells the platform underneath them. A brand on a legacy platform should hear one replatform story from both, not two cold pitches. This page scores all ${S.accounts} accounts in ${BOOK} against both ICPs. ${S.accounts} rows come down to ${centres} companies, and most of those are manufacturers, distributors and processors with no storefront to move: ${T1.length + T2.length} ${T1.length + T2.length === 1 ? 'account reaches' : 'accounts reach'} the top two tiers and ${X.length} ${X.length === 1 ? 'is' : 'are'} gated out with a stated reason.`;
+$('ov-kpis').innerHTML = [
+  [S.accounts, 'Accounts scored', `${centres} companies once shared rows are grouped`],
+  [T1.length, 'Golden triangles', 'strong for both sides'],
+  [T2.length, 'Strong candidates', 'triangle 48 or better'],
+  [T3.length, 'Develop', 'a fit on one leg, or no trigger yet'],
+  [EXP.length, 'Already on Shopify Plus', 'expansion, not replatform'],
+  [X.length, 'Disqualified', 'each with a stated reason'],
+].map(([v, k, s]) => `<div class="kpi"><span class="v">${v}</span><span class="k">${k}</span><div class="sub">${s}</div></div>`).join('');
+$('ov-note').innerHTML = `<strong style="color:var(--ink-2)">Where the Shopify leg comes from.</strong> The book was run through BuiltWith, so every account carries its detected commerce platform and stack. That makes platform whitespace, the heaviest subscore, a measured starting point that research then confirms or corrects. BuiltWith found Shopify Plus on none of the book's ${S.accounts - (S.no_builtwith || 0)} domains.`;
+$('ov-t1-eyebrow').textContent = `Tier 1 · ${plural(T1.length, 'account')}`;
+$('ov-plays').innerHTML = T1.length ? T1.map(miniPlay).join('') : '<p class="small" style="margin:0">No account clears both bars yet. The strongest candidates are in the next section.</p>';
+$('ov-t2-eyebrow').textContent = `Tier 2 · ${plural(T2.length, 'account')}`;
+$('ov-t2').innerHTML = T2.length ? `<table class="wide"><thead><tr><th>Account</th><th>The angle</th><th>What holds it back</th><th class="num">Shopify</th><th class="num">Anatta</th><th class="num">Triangle</th></tr></thead><tbody>${T2.map(a => `<tr class="row" data-focus="${esc(a.name)}"><td><strong>${nm(a)}</strong><div class="small">${esc(a.category)}</div>${a.group ? `<div style="margin-top:3px">${groupTag(a)}</div>` : ''}</td><td class="small" style="min-width:230px;color:var(--ink-2)">${esc(firstSentence(a.story))}</td><td class="small" style="min-width:220px;color:var(--ink-2)">${esc(holdsBack(a))}</td><td class="num">${a.shopify_fit}</td><td class="num">${a.anatta_fit}</td><td class="num"><b>${a.triangle}</b></td></tr>`).join('')}</tbody></table>` : '<p class="small pad" style="margin:0">No account in this tier.</p>';
+// buying centres
+const groups = {}; A.forEach(a => { if (a.group) (groups[a.group] = groups[a.group] || []).push(a); });
+const gNames = Object.keys(groups).sort((x, y) => Math.max(...groups[y].map(a => a.triangle ?? 0)) - Math.max(...groups[x].map(a => a.triangle ?? 0)));
+$('ov-centres-sec').hidden = !gNames.length;
+$('ov-centres-h2').textContent = `${S.grouped_rows} rows, ${gNames.length} decisions`;
+$('ov-centres').innerHTML = gNames.map(g => `<div class="card pad"><h3>${esc(g)}</h3><ul class="list2">${groups[g].sort((x, y) => (y.triangle ?? 0) - (x.triangle ?? 0)).map(a => `<li><button class="linkbtn" data-focus="${esc(a.name)}" style="font-size:13px;color:var(--ink);font-weight:600">${nm(a)}</button> <span class="tierpill ${a.tier}">${a.tier}</span> <span class="mono small">${a.missing ? '' : 'triangle ' + a.triangle}</span><div class="small">${esc(a.tier === 'X' ? a.gate_reason : a.plat || '')}</div></li>`).join('')}</ul></div>`).join('');
+$('ov-exp-sec').hidden = !EXP.length;
+$('ov-exp-eyebrow').textContent = `Reference · ${plural(EXP.length, 'account')}`;
+$('ov-exp').innerHTML = `<table class="wide"><thead><tr><th>Account</th><th>Category</th><th>What's live</th><th>Expansion angle</th><th class="num">Triangle</th></tr></thead><tbody>${EXP.map(a => `<tr class="row" data-focus="${esc(a.name)}"><td><strong>${nm(a)}</strong></td><td class="small">${esc(a.category)}</td><td class="small">${esc(a.platform)}</td><td class="small">${esc(a.shopify_angle)}</td><td class="num">${a.triangle}</td></tr>`).join('')}</tbody></table>`;
+// internal: our own signal
+$('ov-signal-sec').hidden = !INTERNAL;
+if (INTERNAL) {
+  const hot = a => a.fire.score !== '' && +a.fire.score > 0 || a.fire.in_market || a.fire.signals || ['Medium','High'].includes(a.fire.intent);
+  const fired = scored.filter(hot), cold = fired.filter(a => ['T4','X'].includes(a.tier)), kept = fired.filter(a => ['T1','T2'].includes(a.tier));
+  $('ov-signal-p').textContent = `${fired.length} accounts carry some signal of ours (a FIRE score, a named intent signal, Medium intent or an In-market flag). ${kept.length} of them reached the top two tiers and ${cold.length} ended in Watch or disqualified. Those ${cold.length} are listed here so nobody works them off the signal alone.`;
+  $('ov-signal').innerHTML = `<table class="wide"><thead><tr><th>Account</th><th>What our data says</th><th>Tier</th><th>What research found</th></tr></thead><tbody>${cold.map(a => `<tr class="row" data-focus="${esc(a.name)}"><td><strong>${nm(a)}</strong><div class="small">${esc(a.category)}</div></td><td class="small" style="color:var(--ink-2)">${sig(a).map(esc).join(' · ')}</td><td><span class="tierpill ${a.tier}">${a.tier}</span></td><td class="small" style="min-width:280px;color:var(--ink-2)">${esc(a.tier === 'X' ? a.gate_reason : firstSentence(a.story))}</td></tr>`).join('')}</tbody></table>`;
+  const F = S.fire, visits = A.filter(a => a.signals_raw.website_visit === 'true'), im = A.filter(a => a.fire.in_market), imTop = im.filter(a => ['T1','T2','T3'].includes(a.tier));
+  const w = S.fire.recency_window;
+  $('ov-trust').innerHTML = [
+    ['Thin', `${F.with_score} of ${S.accounts} accounts carry a FIRE score and ${F.with_signal} carry a named signal. ${S.not_in_sfdc} accounts are not in Salesforce. The GMV, mobile-score and headless columns are empty on every row.`],
+    ['Stale', `The newest signal in the book is ${F.newest_signal_days} days old.${w ? ` The recency labels only add up if scoring last ran between ${esc(w[0])} and ${esc(w[1])}, so an account labelled "&lt;7d" is about eight weeks cold.` : ''}`],
+    ['Misattributed', visits.length ? `The ${plural(visits.length, 'website visit')} in the book resolved to ${visits.map(a => `<strong>${nm(a)}</strong>`).join(', ')}: ${plural(visits.filter(a => a.model === 'Education').length, 'university', 'universities')} (a campus network, not a buyer) and ${plural(visits.filter(a => a.signal_misattributed).length, 'row')} where Apollo holds a different company from the one in the book.` : 'No website visits in the book.'],
+    ['Noisy', `${im.length} accounts carry the In-market flag. ${imTop.length} of them reached Develop or better; the rest include ${im.filter(a => !['T1','T2','T3'].includes(a.tier)).slice(0, 3).map(a => nm(a)).join(', ')}. Treat the flag as a prompt to look, not as a buying window.`],
+  ].map(([h, t]) => `<div class="card pad"><h3>${h}</h3><p style="margin:0;font-size:13.2px">${t}</p></div>`).join('');
+}
+// hygiene
+const mism = A.filter(a => a.domain_note), wrongCo = A.filter(a => a.signal_misattributed), bad = scored.filter(a => a.gate === 'bad_record');
+$('ov-hygiene').innerHTML = [
+  ['Two lists, one book', `The book's BuiltWith list holds ${S.accounts - (S.no_builtwith || 0)} domains and the Apollo view holds ${S.accounts} accounts. ${S.accounts - mism.length - (S.no_builtwith || 0)} match on domain, ${mism.length} match under a different domain, and ${S.no_builtwith_names && S.no_builtwith_names.length ? S.no_builtwith_names.map(esc).join(', ') + ' is in Apollo only' : 'every account has a BuiltWith row'}.`],
+  ['Records to merge or correct', (bad.length || wrongCo.length) ? `<ul class="list2">${bad.concat(wrongCo.filter(a => !bad.includes(a))).map(a => `<li><strong>${nm(a)}</strong>${recordNote(a)}<div class="small">${esc(a.gate === 'bad_record' ? a.gate_reason : a.adjustments[0] || '')}</div></li>`).join('')}</ul>` : 'No duplicate or placeholder records found.'],
+  ['No contacts in scope', `No contacts export came with this book, so there is no hub map and no named person on any play. A golden triangle without a name attached is a research task, not a play: pull contacts for the Tier 1 and Tier 2 accounts first.`],
+  ['Not scored', S.missing.length ? `${plural(S.missing.length, 'account')} returned no research record: ${S.missing.map(esc).join(', ')}.` : `Every account has a record. ${S.triaged} universities were gated by rule; the other ${S.accounts - S.triaged} were researched with sourced evidence.`],
+].map(([h, t]) => `<div class="card pad"><h3>${h}</h3><div style="margin:0;font-size:13.2px;color:var(--ink-2)">${t}</div></div>`).join('');
+$('ov-domains').hidden = !mism.length;
+$('ov-domains').innerHTML = `<h3>Domains to fix · ${mism.length}</h3><div class="notes">${mism.map(a => `<div><strong style="color:var(--ink)">${nm(a)}</strong><div class="small">${esc(a.domain_note)}</div></div>`).join('')}</div>`;
+
+// ---------- accounts page ----------
+$('ac-h1').textContent = `${S.accounts} accounts, two ICPs, one blended score.`;
+$('tbl-h2').textContent = `All ${S.accounts} accounts`;
+function rub(el, delEl, R){ $(el).innerHTML = R.map(([k, l, p, c]) => `<div style="flex:${p}"><div class="blk" style="background:${c}"></div><div class="l">${l}</div><div class="p">${p} pts</div></div>`).join(''); $(delEl).innerHTML = R.map(([k, l, p, c, d]) => `<div class="rubd"><span class="d" style="background:${c}"></span><div><b>${l} <span class="mono small">${p} pts</span></b><div>${d}</div></div></div>`).join(''); }
+rub('rub-shop', 'rub-shop-d', RUB_S); rub('rub-an', 'rub-an-d', RUB_A);
+const GATES = [['already_plus','Already on Shopify Plus','Expansion and reference, not a replatform prospect. Moved to the EXP tier.'],['gov','Government / military','Federal, state or military procurement; not a Shopify merchant.'],['distress','Financial distress or absorbed','Insolvency, wind-down, or a brand folded into a parent\'s store.'],['non_merchant','No commerce surface','Technology vendor, media, university, association, a manufacturer with nothing to sell on a storefront. Only bites when Shopify fit ends below 20.'],['bad_record','Not a real account record','A duplicate, a side domain or a placeholder standing in for a company.'],['restricted','Restricted category','A category Shopify cannot host at all.']];
+$('gates-note').textContent = `An account that hits a gate is set aside regardless of score. ${X.length} are disqualified here and ${EXP.length} moved to the expansion tier, each with a stated reason.`;
+$('gates').innerHTML = GATES.map(([k, h, t]) => { const c = scored.filter(a => a.gate === k).length; return `<div class="gate"><span class="x">&times;</span><div><b style="font-size:13.2px">${h} <span class="mono small">${c}</span></b><div style="font-size:12.8px;color:var(--ink-2)">${t}</div></div></div>`; }).join('');
+const plays = T1.concat(T2);
+$('ac-plays-eyebrow').textContent = `Tier 1 and Tier 2 · ${plural(plays.length, 'account')}`;
+$('ac-plays').innerHTML = plays.length ? plays.map(play).join('') : '<p class="small">No account reaches the top two tiers.</p>';
+
+// ---------- scatter: Shopify fit × Anatta fit, coloured by tier (ordinal ramp) ----------
+const legendHtml = () => TIERS.filter(t => t !== 'NA' && byTier(t).length).map(t => `<span class="k"><span class="sw ${t}"></span>${TIER_LABEL[t]} <span class="mono small">${byTier(t).length}</span></span>`).join('');
+$('scLegend').innerHTML = legendHtml(); $('bkLegend').innerHTML = legendHtml();
+let scatterDrawn = false;
+function drawScatter(){
+  if (scatterDrawn) return; scatterDrawn = true;
+  const W = 920, H = 470, m = {t: 18, r: 20, b: 46, l: 48};
+  const x = v => m.l + (W - m.l - m.r) * v / 100, y = v => H - m.b - (H - m.t - m.b) * v / 100;
+  const hash = s => { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+  const jit = (s, k) => ((hash(s + k) % 1000) / 1000 - .5) * 2.4;
+  const order = ['X','T4','T3','EXP','T2','T1'];
+  const ds = scored.slice().sort((a, b) => order.indexOf(a.tier) - order.indexOf(b.tier)).map(a => ({a, px: x(Math.max(0, Math.min(100, a.shopify_fit + jit(a.name, 'x')))), py: y(Math.max(0, Math.min(100, a.anatta_fit + jit(a.name, 'y')))), r: a.tier === 'T1' ? 6.5 : 5}));
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Scatter of ${scored.length} accounts by Shopify fit and Anatta fit. Every value is in the table below.">`;
+  // golden region: Shopify fit ≥ 63 and 0.55·S + 0.45·A ≥ 62
+  const reg = [[63, 100]]; for (let xv = 63; xv <= 100; xv++) reg.push([xv, Math.min(100, Math.max(0, (62 - 0.55 * xv) / 0.45))]); reg.push([100, 100]);
+  s += `<path d="M${reg.map(p => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join('L')}Z" fill="var(--s1)" fill-opacity=".09"/>`;
+  for (let t = 0; t <= 100; t += 10) {
+    s += `<line x1="${x(t)}" x2="${x(t)}" y1="${y(0)}" y2="${y(100)}" stroke="var(--grid)" stroke-width="1"/><line x1="${x(0)}" x2="${x(100)}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)" stroke-width="1"/>`;
+    s += `<text x="${x(t)}" y="${y(0) + 16}" text-anchor="middle" font-size="11" fill="var(--ink-3)">${t}</text><text x="${x(0) - 8}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="var(--ink-3)">${t}</text>`;
+  }
+  s += `<line x1="${x(0)}" x2="${x(100)}" y1="${y(0)}" y2="${y(0)}" stroke="var(--axis)"/><line x1="${x(0)}" x2="${x(0)}" y1="${y(0)}" y2="${y(100)}" stroke="var(--axis)"/>`;
+  s += `<text x="${x(99)}" y="${y(96.5)}" text-anchor="end" font-size="10.5" fill="var(--ink-3)" style="font-family:var(--mono);letter-spacing:.08em">GOLDEN TRIANGLE</text>`;
+  s += `<text x="${(x(0) + x(100)) / 2}" y="${H - 8}" text-anchor="middle" font-size="12" fill="var(--ink-2)">Shopify fit →</text><text transform="translate(14,${(y(0) + y(100)) / 2}) rotate(-90)" text-anchor="middle" font-size="12" fill="var(--ink-2)">Anatta fit →</text>`;
+  s += ds.map((d, i) => `<circle class="pt" data-i="${i}" cx="${d.px.toFixed(1)}" cy="${d.py.toFixed(1)}" r="${d.r}" fill="${tierVar(d.a.tier)}" fill-opacity="${d.a.tier === 'X' ? .55 : 1}"${['T1','T2','EXP'].includes(d.a.tier) ? ` tabindex="0" aria-label="${esc(d.a.display)}: ${TIER_NAME[d.a.tier]}, triangle ${d.a.triangle}, Shopify fit ${d.a.shopify_fit}, Anatta fit ${d.a.anatta_fit}"` : ''}/>`).join('');
+  // direct labels for the top tiers only, placed greedily so they never sit on a dot or on each other
+  const boxes = ds.map(d => ({x0: d.px - d.r - 2, x1: d.px + d.r + 2, y0: d.py - d.r - 2, y1: d.py + d.r + 2}));
+  const hit = (b, c) => b.x0 < c.x1 && b.x1 > c.x0 && b.y0 < c.y1 && b.y1 > c.y0;
+  const lab = ds.filter(d => d.a.tier === 'T1' || d.a.tier === 'T2' || d.a.tier === 'EXP').sort((p, q) => q.a.triangle - p.a.triangle).slice(0, 14);
+  lab.forEach(d => {
+    const t = d.a.display.length > 22 ? d.a.display.slice(0, 21) + '…' : d.a.display, w = t.length * 6.1 + 4, hh = 13;
+    const cands = [[d.px + d.r + 5, d.py + 4, 'start'], [d.px - d.r - 5, d.py + 4, 'end'], [d.px, d.py - d.r - 6, 'middle'], [d.px, d.py + d.r + 13, 'middle']];
+    for (const [lx, ly, anchor] of cands) {
+      const b = {x0: anchor === 'start' ? lx : anchor === 'end' ? lx - w : lx - w / 2, y0: ly - hh + 2, y1: ly + 3}; b.x1 = b.x0 + w;
+      if (b.x0 < x(0) + 2 || b.x1 > W - 4 || b.y0 < 4 || b.y1 > y(0) - 2) continue;
+      if (boxes.some((c, j) => ds[j] !== d && hit(b, c))) continue;
+      boxes.push(b); s += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" font-size="11" fill="var(--ink-2)" stroke="var(--surface)" stroke-width="3" paint-order="stroke" stroke-linejoin="round" pointer-events="none">${esc(t)}</text>`; break;
+    }
+  });
+  s += '</svg>';
+  const wrap = $('scatter'); wrap.innerHTML = s;
+  const svg = wrap.querySelector('svg'), pts = [...svg.querySelectorAll('.pt')];
+  const tipHtml = a => `<b>${nm(a)}</b> <span class="tierpill ${a.tier}">${a.tier}</span><br>${esc(a.category)} · ${esc(a.plat)}<br>Triangle <b>${a.triangle}</b> · Shopify <b>${a.shopify_fit}</b> · Anatta <b>${a.anatta_fit}</b>`;
+  let hotI = -1;
+  const setHot = i => { if (hotI >= 0) pts[hotI].classList.remove('hot'); hotI = i; if (i >= 0) pts[i].classList.add('hot'); };
+  const nearest = e => { const r = svg.getBoundingClientRect(), k = W / r.width, mx = (e.clientX - r.left) * k, my = (e.clientY - r.top) * k; let best = -1, bd = 24 * k; ds.forEach((d, i) => { const dd = Math.hypot(d.px - mx, d.py - my); if (dd < bd) { bd = dd; best = i; } }); return best; };
+  svg.addEventListener('pointermove', e => { const i = nearest(e); setHot(i); if (i >= 0) { tipShow(tipHtml(ds[i].a), e); svg.style.cursor = 'pointer'; } else { tipHide(); svg.style.cursor = ''; } });
+  svg.addEventListener('pointerleave', () => { setHot(-1); tipHide(); });
+  svg.addEventListener('click', e => { const i = nearest(e); if (i >= 0) focusAccount(ds[i].a.name); });
+  pts.forEach((p, i) => { if (!p.hasAttribute('tabindex')) return; p.addEventListener('focus', () => { setHot(i); tipAt(tipHtml(ds[i].a), p); }); p.addEventListener('blur', () => { setHot(-1); tipHide(); }); p.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focusAccount(ds[i].a.name); } }); });
+}
+
+// ---------- tier strips ----------
+$('strips').innerHTML = TIERS.filter(t => byTier(t).length || t === 'T1').map(t => { const L = byTier(t); return `<details class="strip" ${t === 'T1' || t === 'T2' ? 'open' : ''}><summary><span class="tierpill ${t}">${t}</span><b style="font-size:13.5px">${TIER_NAME[t]}</b><span class="small mono">${plural(L.length, 'account')}</span><span class="spacer"></span><span class="small">${TIER_RULE[t]}</span></summary><div class="list">${L.map(a => `<button class="it" data-focus="${esc(a.name)}"><span style="min-width:0"><b>${nm(a)}</b> <span class="small">· ${esc(a.category)}${t === 'X' ? ' · ' + esc(a.gate_reason) : ''}</span></span><span class="small">${esc(a.plat)}</span><span class="mono small">${a.triangle} · S ${a.shopify_fit} / A ${a.anatta_fit}</span></button>`).join('') || '<div class="small" style="padding:8px 14px">none</div>'}</div></details>`; }).join('');
+
+// ---------- breakdowns ----------
+function breakdown(el, key){
+  const g = new Map(); scored.forEach(a => { if (!g.has(a[key])) g.set(a[key], []); g.get(a[key]).push(a); });
+  const groups = [...g.entries()].sort((p, q) => q[1].length - p[1].length), max = groups[0][1].length;
+  $(el).innerHTML = groups.map(([name, L]) => `<div class="cat"><span class="nm" title="${esc(name)}">${esc(name)}</span><div><div class="stack" style="width:${(100 * L.length / max).toFixed(1)}%">${['T1','T2','T3','T4','EXP','X'].map(t => { const c = L.filter(a => a.tier === t).length; return c ? `<i class="${t}" style="flex:${c}" data-tip="${esc(name)} · ${TIER_NAME[t]}: ${c}"></i>` : ''; }).join('')}</div></div><span class="n mono">${L.length}</span></div>`).join('');
+  $(el).querySelectorAll('i[data-tip]').forEach(i => { const html = () => { const [a, b] = i.dataset.tip.split(': '); return `${esc(a)}: <b>${esc(b)}</b>`; }; i.addEventListener('pointermove', e => tipShow(html(), e)); i.addEventListener('pointerleave', tipHide); });
+}
+breakdown('bk-plat', 'plat'); breakdown('bk-model', 'model');
+
+// ---------- table ----------
+const fTier = $('fTier'), fPlat = $('fPlat'), fModel = $('fModel'), fSig = $('fSig'), q = $('q');
+fTier.innerHTML = '<option value="">All tiers</option>' + TIERS.filter(t => A.some(a => a.tier === t)).map(t => `<option value="${t}">${TIER_LABEL[t]} (${A.filter(a => a.tier === t).length})</option>`).join('');
+fPlat.innerHTML = '<option value="">All platforms</option>' + [...new Set(scored.map(a => a.plat))].sort().map(p => `<option>${esc(p)}</option>`).join('');
+fModel.innerHTML = '<option value="">All models</option>' + [...new Set(scored.map(a => a.model))].sort().map(p => `<option>${esc(p)}</option>`).join('');
+let sortK = 'triangle', sortDir = -1, openName = null;
+const subbars = (sub, R) => R.map(([k, l, p]) => { const v = sub[k] ?? 0; return `<div class="subbar"><span>${l}</span><div class="meter"><i style="width:${100 * Math.max(0, v) / p}%"></i></div><span class="mono" style="text-align:right">${v}/${p}</span></div>`; }).join('');
+function detail(a){
+  if (a.missing) return `<div class="det"><div><p class="small">No research record for this account.</p></div></div>`;
+  const bw = Object.entries(a.builtwith || {}).map(([k, v]) => `<div style="margin:2px 0"><span class="small">${esc(k)}:</span> ${esc(v)}</div>`).join('') || '<span class="small">no BuiltWith row</span>';
+  const f = a.fire, link = (u, t) => safeUrl(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>` : esc(t);
+  const fireLine = [`intent ${esc(f.intent || 'blank')}`, `score ${esc(f.score === '' ? 'blank' : f.score)}`, f.in_market ? 'in-market' : 'not in-market', f.signals ? esc(f.signals) : '', f.engagement ? `engagement ${esc(f.engagement)}` : '', f.last_signal ? `last signal ${esc(f.last_signal)} (${a.fire_days_since_signal} days before this build)` : '', f.recency ? `recency label "${esc(f.recency)}"` : ''].filter(Boolean).join(' · ');
+  const raw = a.signals_raw, extra = [raw.website_visit === 'true' ? 'website visit' : '', raw.key_page_visit === 'true' ? 'key-page visit' : '', raw.linkedin_engagement === 'true' ? 'LinkedIn engagement' : ''].filter(Boolean);
+  return `<div class="det"><div>
+    <h4>Why this account</h4><div class="tx" style="font-size:13.4px">${esc(a.story)}</div>
+    ${a.shopify_angle || a.anatta_angle ? `<div class="play" style="margin-top:10px"><div class="angles"><div style="border-left:2px solid var(--s1)"><h4>Shopify's angle</h4><div class="tx">${esc(a.shopify_angle || '—')}</div></div><div style="border-left:2px solid var(--s2)"><h4>Anatta's angle</h4><div class="tx">${esc(a.anatta_angle || '—')}</div></div></div></div>` : ''}
+    ${a.gate ? `<h4>Gate</h4><div class="tx"><span class="tierpill ${a.tier}">${a.tier}</span> ${esc(a.gate_reason)}</div>` : ''}
+    ${a.group ? `<h4>Buying centre</h4><div class="tx">${esc(a.group)}: one decision covers ${A.filter(b => b.group === a.group).map(b => nm(b)).join(', ')}.</div>` : ''}
+    ${a.flags.length ? `<h4>Flags</h4>${a.flags.map(x => `<div class="flag">${esc(x)}</div>`).join('')}` : ''}
+    ${a.domain_note ? `<h4>Domain</h4><div class="tx">${esc(a.domain_note)}</div>` : ''}
+    <h4>Evidence</h4>${a.evidence.length ? a.evidence.map(e => `<div class="tx" style="margin:3px 0">• ${esc(e.claim)} ${safeUrl(e.source) ? `<a href="${esc(e.source)}" target="_blank" rel="noopener" class="small">source ↗</a>` : ''}</div>`).join('') : '<div class="tx">Gated by rule; not researched.</div>'}
+    ${a.verification.length ? `<h4>Verification</h4>${a.verification.map(v => `<div class="tx" style="margin:3px 0"><span class="tag">${esc(v.lens)}</span> <b>${esc(v.verdict)}</b>: ${esc(v.reason)} ${(v.evidence || []).filter(e => safeUrl(e.source)).map(e => `<a href="${esc(e.source)}" target="_blank" rel="noopener" class="small" title="${esc(e.claim)}">source ↗</a>`).join(' ')}</div>`).join('')}` : ''}
+    ${a.adjustments.length ? `<h4>Adjustments</h4>${a.adjustments.map(x => `<div class="tx">↳ ${esc(x)}</div>`).join('')}` : ''}
+  </div><div>
+    <h4>Shopify fit · ${a.shopify_fit}</h4>${subbars(a.shopify_sub, RUB_S)}${a.shopify_sub.penalties ? `<div class="subbar"><span>Penalties</span><div></div><span class="mono" style="text-align:right">${a.shopify_sub.penalties}</span></div><div class="small">${esc(a.penalty_reason)}</div>` : ''}
+    <h4>Anatta fit · ${a.anatta_fit}</h4>${subbars(a.anatta_sub, RUB_A)}
+    <div class="small" style="margin-top:6px">Triangle = round(0.55 × ${a.shopify_fit} + 0.45 × ${a.anatta_fit}${a.bonus ? ` + ${a.bonus} bonus` : ''}) = <b style="color:var(--ink)">${a.triangle}</b></div>
+    <h4>Company</h4><div class="tx">${esc(a.size_est)}${a.hq ? ` · HQ ${esc(a.hq)}` : ''}${a.ownership ? ` · ${esc(a.ownership)}` : ''}<br>${link(a.website, a.domain)}${a.book_domain && a.book_domain !== a.domain ? ` · book lists ${esc(a.book_domain)}` : ''}${safeUrl(a.linkedin) ? ` · ${link(a.linkedin, 'LinkedIn')}` : ''}${a.display !== a.name ? `<br>Record name: ${esc(a.name)}` : ''}</div>
+    <h4>Platform as researched</h4><div class="tx">${esc(a.platform)}</div>
+    <h4>Our signal (FIRE), exactly as exported</h4><div class="tx">${fireLine}${extra.length ? '<br>Also on the row: ' + extra.join(', ') : ''}${INTERNAL ? `<br>${a.in_sfdc ? 'In Salesforce' : 'Not in Salesforce'}` : ''}</div>
+    <h4>Detected stack (BuiltWith)</h4><div class="tx" style="font-size:12px">${bw}</div>
+  </div></div>`;
+}
+function renderTable(){
+  const term = q.value.trim().toLowerCase();
+  const sigOk = a => !fSig.value || (fSig.value === 'score' ? a.fire.score !== '' : fSig.value === 'market' ? a.fire.in_market : !!a.fire.signals);
+  const rows = A.filter(a => (!fTier.value || a.tier === fTier.value) && (!fPlat.value || a.plat === fPlat.value) && (!fModel.value || a.model === fModel.value) && sigOk(a) && (!term || [a.name, a.display, a.category, a.platform, a.model, a.hq, a.ownership, a.group].join(' ').toLowerCase().includes(term)));
+  rows.sort((p, r) => { let a = p[sortK], b = r[sortK]; if (sortK === 'tier') { a = TIERS.indexOf(a); b = TIERS.indexOf(b); } if (a == null && b == null) return 0; if (a == null) return 1; if (b == null) return -1; if (typeof a === 'string') return sortDir * a.localeCompare(b); return sortDir * (a - b); });
+  $('tbl-count').textContent = `${rows.length} of ${A.length}`;
+  $('tbody').innerHTML = rows.map(a => `<tr class="row" data-n="${esc(a.name)}" tabindex="0" aria-expanded="${openName === a.name}"><td><strong>${nm(a)}</strong>${a.group ? ` <span class="tag">${esc(a.group)}</span>` : ''}<div class="small">${esc(a.category || '')}</div></td><td><span class="tierpill ${a.tier}">${a.tier}</span></td><td class="num"><b>${dash(a.triangle)}</b></td><td class="num">${dash(a.shopify_fit)}</td><td class="num">${dash(a.anatta_fit)}</td><td class="small"><div class="clip" title="${esc(a.platform || '')}">${esc(a.plat || '')}</div></td><td class="small">${esc(a.model || '')}</td><td class="num">${a.fire_num == null ? '—' : a.fire_num}</td><td class="small">${esc(a.confidence || '—')}</td></tr>${openName === a.name ? `<tr class="det"><td colspan="9">${detail(a)}</td></tr>` : ''}`).join('') || '<tr><td colspan="9" class="small" style="padding:18px 12px">No account matches these filters.</td></tr>';
+}
+function openRow(name, scroll){
+  openName = openName === name && !scroll ? null : name;
+  if (scroll) { q.value = ''; fTier.value = ''; fPlat.value = ''; fModel.value = ''; fSig.value = ''; }
+  renderTable();
+  if (scroll) { const r = [...document.querySelectorAll('#tbody tr.row')].find(el => el.dataset.n === name); if (r) r.scrollIntoView({block: 'start'}), window.scrollBy(0, -70); }
+}
+$('tbody').addEventListener('click', e => { if (e.target.closest('a')) return; const r = e.target.closest('tr.row'); if (r) openRow(r.dataset.n); });
+$('tbody').addEventListener('keydown', e => { const r = e.target.closest('tr.row'); if (r && e.target === r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openRow(r.dataset.n); const again = [...document.querySelectorAll('#tbody tr.row')].find(el => el.dataset.n === r.dataset.n); if (again) again.focus(); } });
+[q, fTier, fPlat, fModel, fSig].forEach(el => el.addEventListener('input', renderTable));
+document.querySelectorAll('#tbl th.s').forEach(th => th.onclick = () => { const k = th.dataset.k; if (sortK === k) sortDir = -sortDir; else { sortK = k; sortDir = ['display','tier','plat','model','confidence'].includes(k) ? 1 : -1; } renderTable(); });
+renderTable();
+
+// ---------- methodology ----------
+const D = S.research_depth || {};
+$('method').innerHTML = `<p><b>Sources.</b> One Apollo accounts export (${S.accounts} rows) carrying the FIRE fields Anatta maintains, and one BuiltWith technology export of the book (${S.accounts - (S.no_builtwith || 0)} domains: commerce platform, CMS, CRM, marketing automation, payments, and first and last detected dates for tracked apps). Both were pulled on ${esc(S.as_of)}. ${S.domain_mismatches} accounts carry a different domain in the two files and were matched by hand; the reason is on each record. No contacts export was in scope.</p>
+<p><b>Research.</b> ${S.triaged} universities were gated by rule without web research. Every other account was researched from the two rubrics with web search: ${D.full ?? '—'} accounts with a visible commerce surface got a full pass (platform confirmation, scale, ownership, timing, distress) and ${D.light ?? '—'} manufacturers, processors and dealers with none got a one-search pass. Each record carries sourced evidence, a confidence rating and a written story. ${S.verified} provisional top-tier accounts were then challenged by adversarial verifiers (platform and scale; business model and gates). Where a verifier moved a score by 8 points or more the final value is the average of the two views, and the adjustment is shown on the record. Storefronts could not be opened directly from the research environment, so platform confirmation rests on press, job posts, agency case studies and the BuiltWith rows.</p>
+<p><b>Book-specific handling.</b> ${A.filter(a => a.signal_misattributed).map(a => `<b>${nm(a)}</b>`).join(', ') || 'No account'}: the Apollo row is a different company from the one in the book, so its FIRE fields are shown as exported but not scored. ${S.grouped_rows} rows are marked as sharing ${Object.keys(groups).length} buying centres; each is still scored on its own storefront. The CRuX traffic rank in the BuiltWith export is unreliable for this book (several national retailers show the lowest band), so scale is scored from revenue, store counts and headcount.</p>
+<p><b>Formula.</b> Shopify fit = Σ six subscores + penalties, clamped 0–100. Anatta fit = Σ four research subscores + FIRE intent (max 20), clamped 0–100. Triangle = round(0.55 × Shopify + 0.45 × Anatta + bonus), capped at 100, where bonus = +3 in-market, +3 FIRE intent High, +4 explicit Shopify intent signal. Tiers: T1 if triangle ≥ 62 and Shopify fit ≥ 63; T2 ≥ 48; T3 ≥ 36; T4 otherwise. Gates override tiers: Shopify Plus live → EXP; government, distress, no commerce surface (only when Shopify fit &lt; 20), bad record, restricted → X.</p>
+<p><b>The age of our signal.</b> The newest FIRE signal in the book is ${S.fire.newest_signal_days} days older than this build, so researchers counted a FIRE signal or an In-market flag as a soft timing signal unless public evidence backed it. The 20-point intent subscore is still computed from the export exactly as written.</p>
+<p style="margin:0"><b>What the numbers are not.</b> A prioritisation aid built from detected stack evidence, FIRE signals and desk research. It is not a substitute for a conversation with the account. Confidence is low where platform, scale or model could not all be sourced.</p>`;
+
+// ---------- CSV ----------
+function csvText(){ const cols = ['name','display','group','domain','tier','triangle','shopify_fit','anatta_fit','gate','gate_reason','category','model','plat','platform','size_est','hq','ownership','confidence','fire_score','fire_intent','fire_in_market','fire_signals','fire_last_signal','story','shopify_angle','anatta_angle','flags']; const val = (a, k) => k.startsWith('fire_') ? a.fire[k.slice(5)] : k === 'flags' ? (a.flags || []).join(' | ') : a[k]; const qq = v => `"${String(v ?? '').replace(/"/g, '""')}"`; return [cols.join(','), ...A.map(a => cols.map(k => qq(val(a, k))).join(','))].join('\n'); }
+const csvBtn = $('csvbtn');
+if (TARGET === 'file') {
+  csvBtn.textContent = 'Accounts CSV'; csvBtn.title = 'Download the full scored book as CSV';
+  csvBtn.onclick = () => { const el = document.createElement('a'); el.href = URL.createObjectURL(new Blob([csvText()], {type: 'text/csv'})); el.download = S.slug + '-accounts.csv'; el.click(); };
+} else {
+  csvBtn.textContent = 'Copy accounts CSV'; csvBtn.title = 'Copy the full scored book as CSV';
+  csvBtn.onclick = () => { const text = csvText(); const done = () => { csvBtn.textContent = 'Copied'; setTimeout(() => { csvBtn.textContent = 'Copy accounts CSV'; }, 1600); };
+    const fallback = () => { location.hash = '#overview'; const box = $('csvbox'), ta = $('csvta'); box.hidden = false; ta.value = text; ta.focus(); ta.select(); };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); } };
+}
+$('foot').innerHTML = `<p style="margin:0 0 6px">Anatta &times; Shopify partner triangulation for ${esc(S.book_label)} &middot; built ${esc(S.as_of)} from an Apollo accounts export and a BuiltWith technology export pulled the same day. ${INTERNAL ? 'Internal copy: it shows which accounts are in Salesforce and how far our own signal can be trusted. Do not forward outside Anatta.' : 'Salesforce record IDs and internal CRM notes are stripped; this copy is safe to share with Shopify.'}</p><p class="small" style="margin:0">Scores are a prioritisation aid built from detected stack evidence, FIRE signals and desk research. Single self-contained file: all data is embedded.</p>`;
+route();
+})();
+</script>
