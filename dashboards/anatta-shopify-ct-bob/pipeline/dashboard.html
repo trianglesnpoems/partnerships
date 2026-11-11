@@ -565,10 +565,13 @@ $('method').innerHTML = `<p><b>Sources.</b> One Apollo accounts export (${S.acco
 // ---------- CSV ----------
 function csvText(){ const cols = ['name','display','group','domain','tier','triangle','shopify_fit','anatta_fit','gate','gate_reason','category','model','plat','platform','size_est','hq','ownership','confidence','fire_score','fire_intent','fire_in_market','fire_signals','fire_last_signal','story','shopify_angle','anatta_angle','flags']; const val = (a, k) => k.startsWith('fire_') ? a.fire[k.slice(5)] : k === 'flags' ? (a.flags || []).join(' | ') : a[k]; const qq = v => `"${String(v ?? '').replace(/"/g, '""')}"`; return [cols.join(','), ...A.map(a => cols.map(k => qq(val(a, k))).join(','))].join('\n'); }
 const csvBtn = $('csvbtn');
-if (TARGET === 'file') {
+/*FILEONLY*/
+if (TARGET === 'file') {   // a standalone file can save the CSV; a published page cannot, so that build copies it instead
   csvBtn.textContent = 'Accounts CSV'; csvBtn.title = 'Download the full scored book as CSV';
   csvBtn.onclick = () => { const el = document.createElement('a'); el.href = URL.createObjectURL(new Blob([csvText()], {type: 'text/csv'})); el.download = S.slug + '-accounts.csv'; el.click(); };
-} else {
+}
+/*/FILEONLY*/
+if (TARGET !== 'file') {
   csvBtn.textContent = 'Copy accounts CSV'; csvBtn.title = 'Copy the full scored book as CSV';
   csvBtn.onclick = () => { const text = csvText(); const done = () => { csvBtn.textContent = 'Copied'; setTimeout(() => { csvBtn.textContent = 'Copy accounts CSV'; }, 1600); };
     const fallback = () => { location.hash = '#overview'; const box = $('csvbox'), ta = $('csvta'); box.hidden = false; ta.value = text; ta.focus(); ta.select(); };

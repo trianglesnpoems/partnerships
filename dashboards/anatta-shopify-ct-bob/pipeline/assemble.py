@@ -47,6 +47,10 @@ def build(internal, target):
         tpl_body = re.sub(r"<!--INTERNAL-->.*?<!--/INTERNAL-->\n?", "", tpl_body, flags=re.S)
         tpl_body = re.sub(r"/\*INTERNAL\*/.*?/\*/INTERNAL\*/\n?", "", tpl_body, flags=re.S)
         assert "ov-signal" not in tpl_body and "INTERNAL-->" not in tpl_body
+    if target == "artifact":   # a published page cannot start a download, so the save-to-file code is left out of that build
+        tpl_body = re.sub(r"/\*FILEONLY\*/.*?/\*/FILEONLY\*/\n?", "", tpl_body, flags=re.S)
+        assert ".download" not in tpl_body and "createObjectURL" not in tpl_body
+    tpl_body = tpl_body.replace("/*FILEONLY*/\n", "").replace("/*/FILEONLY*/\n", "")
     page = tpl_body.replace("<!--INTERNAL-->\n", "").replace("<!--/INTERNAL-->\n", "").replace("/*INTERNAL*/\n", "").replace("/*/INTERNAL*/\n", "").replace("__DATA__", blob)
     assert "__DATA__" not in page and page.count('id="data"') == 1
     if not internal:
