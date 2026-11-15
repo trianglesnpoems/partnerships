@@ -56,5 +56,8 @@
   },
   "contacts_wrong_company": {
     "Account Name As Exported": "Why the people exported under this name are not this account's people (they are left out and counted)."
+  },
+  "not_pursued": {
+    "Account Name As Exported": "Why we no longer pursue it. The row keeps its scores, moves to tier X and is not counted."
   }
 }

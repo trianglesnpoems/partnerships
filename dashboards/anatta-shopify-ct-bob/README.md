@@ -16,9 +16,12 @@ generated HTML are **not** committed here; the code needed to regenerate them is
 (T2), 13 develop (T3), 31 watch (T4), 14 disqualified (X), none already on Shopify Plus. 27 accounts got a second
 look and 9 records carry a documented adjustment.
 
-Contacts (added 15 Nov 2026): 656 people in the export, 643 kept, 590 placed in 73 metro hubs of 120 km. 240 of them
-sit at Tier 1 and Tier 2 accounts and 222 at disqualified accounts (184 at the four universities), so the hub map
-opens filtered to the top two tiers.
+Update 15 Nov 2026: one Tier 1 account was set aside because Anatta no longer pursues it. The book now reads 7
+golden-triangle rows across 4 companies (T1), 13 strong, 13 develop, 31 watch and 15 set aside (X).
+
+Contacts (added 15 Nov 2026): 656 people in the export, 643 kept, 590 placed in 73 metro hubs of 120 km. 195 of them
+sit at Tier 1 and Tier 2 accounts and 267 at accounts that are set aside (184 at the four universities, 45 at the
+account we no longer pursue), so the hub map opens filtered to the top two tiers.
 
 ## Inputs
 
@@ -90,6 +93,9 @@ government, distress, no commerce surface (only when Shopify fit < 20), bad reco
   searches), so the two verifiers checked each top-tier record and each judgment-call gate against its own sourced
   evidence and the rubric's wording instead of searching again (`"verification": "consistency"` in `book.json`).
   They pulled five Shopify scores down and removed three distress gates that did not meet the rubric's test.
+- **An account we no longer pursue.** `not_pursued` in `book.json` names it with the reason. It is our decision, not
+  a judgment on fit: the row keeps its scores for the record, moves to tier X, and is not counted in the tiers, the
+  plays or the top-tier people on the hub map. It is applied last, so no score or verifier verdict can undo it.
 - **Internal vs shareable.** The internal copy shows which accounts are in Salesforce and a section on how far to
   trust our own signal. The shareable copy drops both from the data and the page, along with notes that correct our
   own earlier review of the book.

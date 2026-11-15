@@ -64,6 +64,7 @@ GATE_TEXT = {
     "non_merchant": "No plausible commerce surface",
     "bad_record": "Not a real account record",
     "restricted": "Category Shopify cannot host",
+    "not_pursued": "Not pursued by Anatta",
 }
 clamp = lambda v, lo, hi: max(lo, min(hi, v))
 BLANK_FIRE = {"intent": "", "score": "", "in_market": False, "signals": "", "recency": "", "engagement": "", "last_signal": ""}
@@ -77,11 +78,14 @@ SIGNAL_MISATTRIBUTED = book.get("signal_misattributed", {})   # account name -> 
 # is capped. The rubric's top band is for LEGACY platforms. The uncapped score stays on the record.
 WHITESPACE_CAP = book.get("whitespace_cap", {})               # account name -> {"cap": n, "reason": "..."}
 ACCOUNT_NOTES = book.get("account_notes", {})                 # account name -> a caveat added to the record's flags
+# Accounts we have taken off our own pursuit list. This is our decision, not a judgment on fit: the row keeps its scores
+# for the record, moves to tier X with the reason given, and is not counted in the tiers or among top-tier people.
+NOT_PURSUED = book.get("not_pursued", {})                     # account name -> reason
 # Rows that roll up to one buying centre: one decision covers all of them.
 GROUPS = book.get("groups", {})                               # centre -> [account names]
 group_of = {n: g for g, names in GROUPS.items() for n in names}
 assert all(n in inputs for n in group_of), [n for n in group_of if n not in inputs]
-assert all(n in inputs for n in list(WHITESPACE_CAP) + list(ACCOUNT_NOTES) + list(SIGNAL_MISATTRIBUTED)), "book.json names an account that is not in the book"
+assert all(n in inputs for n in list(WHITESPACE_CAP) + list(ACCOUNT_NOTES) + list(SIGNAL_MISATTRIBUTED) + list(NOT_PURSUED)), "book.json names an account that is not in the book"
 
 # Record names that are a domain string or a label artefact get a readable display name; the record name is always shown beside it.
 DISPLAY = book.get("display", {})                             # account name -> readable name
@@ -204,6 +208,11 @@ for name, a in inputs.items():
     elif tri >= 48: tier = "T2"
     elif tri >= 36: tier = "T3"
     else: tier = "T4"
+    set_aside = None
+    if name in NOT_PURSUED:   # applied last, so no score and no verdict can undo it
+        set_aside = {"tier": tier, "gate": gate}
+        adj_notes.append(f"Set aside at Anatta's decision. On score alone this row would be {tier} (triangle {tri}); the scores are kept for the record and not counted.")
+        gate, gate_reason, tier = "not_pursued", NOT_PURSUED[name], "X"
     bw = a["builtwith"]
     out.append({
         **common, "missing": False,
@@ -221,7 +230,7 @@ for name, a in inputs.items():
         "story": plain(r["story"]), "shopify_angle": plain(r["shopify_angle"]), "anatta_angle": plain(r["anatta_angle"]),
         "evidence": [{"claim": plain(e["claim"]), "source": e["source"]} for e in r["evidence"]], "flags": clean_flags(r["flags"]) + ([ACCOUNT_NOTES[name]] if name in ACCOUNT_NOTES else []), "confidence": r["confidence"],
         "verification": [{"lens": v["lens"], "verdict": v["verdict"], "reason": v["reason"], "evidence": v.get("evidence", [])} for v in vs],
-        "adjustments": adj_notes, "signal_misattributed": name in SIGNAL_MISATTRIBUTED,
+        "adjustments": adj_notes, "signal_misattributed": name in SIGNAL_MISATTRIBUTED, "set_aside": set_aside,
         "storeleads": a["storeleads"], "builtwith": {k: v for k, v in bw.items() if k != "note"},
         "source": sources.get(name),
     })
@@ -266,6 +275,7 @@ summary = {"accounts": len(out), "scored": len(scored), "missing": [x["name"] fo
                     "intent": dict(collections.Counter(x["fire"]["intent"] or "(blank)" for x in out)),
                     "newest_signal_days": min((x["fire_days_since_signal"] for x in out if x["fire_days_since_signal"] is not None), default=None)},
            "as_of": AS_OF.isoformat(), "book_label": book["label"], "title": book["title"], "slug": book["slug"],
+           "not_pursued": [x["display"] for x in out if x.get("gate") == "not_pursued"],
            "verification": book.get("verification", "web")}   # "web" = verifiers searched; "consistency" = checked each record against its own evidence
 no_bw = [a["name"] for a in inputs.values() if "note" in a["builtwith"]]
 summary["no_builtwith"], summary["no_builtwith_names"] = len(no_bw), [DISPLAY.get(n, n) for n in no_bw]
