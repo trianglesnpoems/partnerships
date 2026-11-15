@@ -50,5 +50,11 @@
   },
   "account_notes": {
     "Account Name As Exported": "A caveat to show among the record's flags."
+  },
+  "contact_company_alias": {
+    "Company name in the contacts export": "Account Name As Exported"
+  },
+  "contacts_wrong_company": {
+    "Account Name As Exported": "Why the people exported under this name are not this account's people (they are left out and counted)."
   }
 }

@@ -6,7 +6,7 @@
 /* Layout: one sticky nav and two views. Overview answers "who do we walk in on together"; Accounts shows the working. */
 *,*::before,*::after{box-sizing:border-box}
 :root{color-scheme:light;
-  --bg:#f9f9f7;--surface:#fcfcfb;--surface-2:#f0efec;--line:#e4e2dc;--line-2:#d3d0c7;
+  --bg:#f9f9f7;--surface:#fcfcfb;--surface-2:#f0efec;--land:#ecebe5;--water:#f9f9f7;--line:#e4e2dc;--line-2:#d3d0c7;
   --ink:#0b0b0b;--ink-2:#52514e;--ink-3:#898781;--grid:#e1e0d9;--axis:#c3c2b7;--border:rgba(11,11,11,.10);
   --s1:#2a78d6;--s1-soft:#cde2fb;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--s5:#e87ba4;--s6:#008300;
   --t1:#104281;--t2:#256abf;--t3:#5598e7;--t4:#86b6ef;--exp:#1baf7a;--dq:#8a8a85;
@@ -14,13 +14,13 @@
   --shadow:0 1px 2px rgba(11,11,11,.05),0 8px 24px -12px rgba(11,11,11,.14);
   --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;--sans:system-ui,-apple-system,"Segoe UI",sans-serif}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
-  --bg:#0d0d0d;--surface:#1a1a19;--surface-2:#232322;--line:#2c2c2a;--line-2:#3f3f3b;
+  --bg:#0d0d0d;--surface:#1a1a19;--surface-2:#232322;--land:#262624;--water:#141413;--line:#2c2c2a;--line-2:#3f3f3b;
   --ink:#f0efec;--ink-2:#c3c2b7;--ink-3:#898781;--grid:#2c2c2a;--axis:#383835;--border:rgba(255,255,255,.10);
   --s1:#3987e5;--s1-soft:#184f95;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;
   --t1:#b7d3f6;--t2:#6da7ec;--t3:#2a78d6;--t4:#184f95;--exp:#199e70;--dq:#6e6e69;
   --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 24px -12px rgba(0,0,0,.7)}}
 :root[data-theme="dark"]{color-scheme:dark;
-  --bg:#0d0d0d;--surface:#1a1a19;--surface-2:#232322;--line:#2c2c2a;--line-2:#3f3f3b;
+  --bg:#0d0d0d;--surface:#1a1a19;--surface-2:#232322;--land:#262624;--water:#141413;--line:#2c2c2a;--line-2:#3f3f3b;
   --ink:#f0efec;--ink-2:#c3c2b7;--ink-3:#898781;--grid:#2c2c2a;--axis:#383835;--border:rgba(255,255,255,.10);
   --s1:#3987e5;--s1-soft:#184f95;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;
   --t1:#b7d3f6;--t2:#6da7ec;--t3:#2a78d6;--t4:#184f95;--exp:#199e70;--dq:#6e6e69;
@@ -36,6 +36,7 @@ button,select,input,textarea{font:inherit;color:inherit}
 /* nav */
 .nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:60;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
 .nav .wrap{display:flex;align-items:center;gap:6px;min-height:54px;flex-wrap:wrap;padding-block:8px}
+@media (max-width:640px){.nav{position:static}}   /* the wrapped nav is too tall to pin on a phone */
 .brand{font-weight:650;letter-spacing:-.015em;margin-right:14px;display:flex;align-items:center;gap:9px;color:var(--ink);white-space:nowrap}
 .brand .tri{width:15px;height:14px;flex:none}
 .tab{color:var(--ink-2);padding:6px 11px;border-radius:7px;font-size:13.5px;font-weight:500;white-space:nowrap;cursor:pointer;border:none;background:none}
@@ -151,12 +152,87 @@ i.T1,.sw.T1{background:var(--t1)}i.T2,.sw.T2{background:var(--t2)}i.T3,.sw.T3{ba
 .list2{list-style:none;padding:0;margin:0;font-size:13px;color:var(--ink-2)}
 .list2 li{padding:7px 0;border-top:1px solid var(--line)}.list2 li:first-child{border-top:none}
 @media (prefers-reduced-motion:no-preference){.tip{transition:opacity .1s}}
+/* people */
+.tbars{display:grid;gap:7px}
+.tbar{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) 40px;gap:10px;align-items:center;font-size:12.5px;color:var(--ink-2)}
+.tbar .tr{height:12px}.tbar .tr i{display:block;height:100%;border-radius:0 4px 4px 0;min-width:2px}
+.tbar .n{text-align:right;color:var(--ink)}
+.plist{margin:0;padding:0;list-style:none;font-size:12.6px;color:var(--ink-2)}
+.plist li{padding:3px 0;overflow-wrap:anywhere}.plist b{color:var(--ink);font-weight:600}
+/* hub map: filters and ranking left, map centre, hub detail right; stacks to one column when narrow */
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:14px;align-items:start}
+.layout>*{min-width:0}
+.wrap.wide{max-width:1500px}
+@media (min-width:1440px){.layout.has-detail{grid-template-columns:300px minmax(0,1fr) 400px}}
+@media (min-width:1101px) and (max-width:1439.98px){.layout.has-detail{grid-template-rows:auto 1fr}.layout.has-detail>:first-child{grid-row:1 / span 2}.layout.has-detail .detail{grid-column:2;grid-row:2}}
+@media (max-width:1100px){.layout,.layout.has-detail{grid-template-columns:minmax(0,1fr)}}
+.cap{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);margin:0;padding:12px 14px 8px;font-weight:600}
+.filters{padding:0 14px 14px}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{border:1px solid var(--line-2);background:var(--surface-2);border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--ink)}
+.chip:hover{border-color:var(--s1)}.chip.on{background:var(--s1);color:#fff;border-color:var(--s1)}
+.rule{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin-bottom:6px}
+.rule .rw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px}
+.rule select,.rule input{width:100%;border:1px solid var(--line-2);background:var(--surface);border-radius:6px;padding:5px 6px;min-width:0;color:var(--ink)}
+.rule .x{border:none;background:transparent;color:var(--ink-3);cursor:pointer;font-size:16px;padding:0 4px}
+.combine{display:flex;gap:8px;align-items:center;color:var(--ink-2);font-size:12px;margin:8px 0;flex-wrap:wrap}
+.combine select{border:1px solid var(--line-2);background:var(--surface);border-radius:6px;padding:3px 6px;color:var(--ink)}
+.ranking{max-height:460px;overflow:auto;padding:0 6px 8px}
+.hubrow{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 8px;border-radius:8px;cursor:pointer;width:100%;background:none;border:none;text-align:left;color:inherit;font:inherit}
+.hubrow:hover{background:var(--surface-2)}.hubrow.sel{background:var(--s1-soft)}
+.hubrow .rk{color:var(--ink-3);font-size:11px;font-variant-numeric:tabular-nums}
+.hubrow .nm{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hubrow .hb{height:4px;margin-top:3px}.hubrow .hb i{display:block;height:100%;border-radius:0 2px 2px 0;background:var(--s1);min-width:2px}
+.hubrow .n{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink-2);text-align:right}.hubrow .n b{color:var(--ink);font-size:13px}
+.hubrow.dim{opacity:.45}
+.mapcard{position:relative;overflow:hidden}
+.maphead{display:flex;justify-content:space-between;align-items:center;padding:10px 14px 0;gap:10px;flex-wrap:wrap}
+.maphead .hint{color:var(--ink-3);font-size:12px}
+#map{display:block;width:100%;height:auto;background:var(--water);border-radius:0 0 12px 12px;cursor:grab;touch-action:pan-x pan-y}
+.land{fill:var(--land);stroke:none}
+.border{fill:none;stroke:var(--axis);stroke-width:.8px;vector-effect:non-scaling-stroke}
+.state{fill:none;stroke:var(--grid);stroke-width:.6px;vector-effect:non-scaling-stroke}
+.hub{fill:var(--s1);fill-opacity:.8;stroke:var(--surface);stroke-width:2px;pointer-events:none}
+.hub.sel{fill:var(--s2);fill-opacity:.95}.hub.off{fill:var(--ink-3);fill-opacity:.2}
+.hubhit{fill:transparent;cursor:pointer}
+.mlbl{font-size:11px;fill:var(--ink-2);pointer-events:none;paint-order:stroke;stroke:var(--water);stroke-width:3px;stroke-linejoin:round}
+.mlbl.off{display:none}
+.insets{position:absolute;left:12px;bottom:12px;display:flex;gap:8px}
+.inset{background:var(--surface);border:1px solid var(--line-2);border-radius:8px;padding:4px;box-shadow:var(--shadow)}
+.inset .t{font-size:10px;color:var(--ink-3);padding:0 4px}.inset svg{display:block}
+.maplegend{position:absolute;right:12px;top:44px;background:var(--surface);border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--ink-2);display:flex;gap:10px;align-items:flex-end}
+.maplegend .lg{display:flex;flex-direction:column;align-items:center;gap:2px}
+.maplegend circle{fill:var(--s1);fill-opacity:.8;stroke:var(--surface)}
+.detail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 66px);max-height:calc(100vh - 80px);display:flex;flex-direction:column}
+@media (max-width:1439.98px){.detail{position:static;max-height:none}}
+@media (max-width:1100px){.maplegend{top:auto;bottom:12px}}
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr));gap:0 16px}
+.detail .hd{padding:12px 14px;border-bottom:1px solid var(--line);position:relative}
+.detail .hd h3{margin:0;font-size:17px;padding-right:34px}.detail .hd .m{color:var(--ink-2);font-size:12px;margin-top:2px}
+.detail .hd .close{position:absolute;right:10px;top:10px}
+.detail .dbody{overflow:auto;padding:8px 14px 14px}
+.acct{margin:10px 0 4px;padding-top:10px;border-top:1px solid var(--grid)}.acct:first-child{border-top:none;padding-top:0;margin-top:4px}
+.acct .an{font-weight:600;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.acct .meta{font-size:11.5px;color:var(--ink-2);margin-top:2px}
+.person{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;padding:6px 0 6px 10px;border-left:2px solid var(--grid);margin:4px 0}
+.person .pn{font-weight:500}.person .pt{font-size:12px;color:var(--ink-2)}
+.person .pl{font-size:11px;color:var(--ink-3);grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap;overflow-wrap:anywhere}
+.person .sen{font-size:10px;color:var(--ink-3);align-self:start;white-space:nowrap}
+.intl{padding:0 14px 12px;font-size:12.5px;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));gap:0 24px}
+.intl .it{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border:none;border-bottom:1px solid var(--line);cursor:pointer;width:100%;background:none;color:inherit;font:inherit;text-align:left}
+.intl .it:hover{color:var(--s1)}.intl .it.dim{opacity:.45}
+details.plain summary{cursor:pointer;color:var(--ink);font-weight:500;padding:10px 14px}
+.in{padding:0 14px 14px;color:var(--ink-2);font-size:13px;overflow-x:auto}
+.in table{font-size:12px}.in td{vertical-align:top}
 </style>
 <!--/HEAD-->
 <nav class="nav"><div class="wrap">
   <span class="brand"><svg class="tri" viewBox="0 0 16 15" aria-hidden="true"><path d="M8 1.4 L15 13.6 L1 13.6 Z" fill="none" stroke="var(--s1)" stroke-width="1.7" stroke-linejoin="round"/></svg>Anatta <span style="color:var(--ink-3);font-weight:400">&times;</span> Shopify <span id="bookLabel" style="color:var(--ink-3);font-weight:400"></span></span>
   <button class="tab" data-view="overview">Overview</button>
   <button class="tab" data-view="accounts">Account Dashboard</button>
+<!--MAP-->
+  <button class="tab" data-view="map">Hub Map</button>
+<!--/MAP-->
   <span class="spacer"></span>
   <button class="btn" id="csvbtn"></button>
   <button class="btn tgl" id="themeBtn" aria-label="Toggle colour theme" title="Toggle light / dark" hidden><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.8a6.2 6.2 0 0 1 0 12.4z" fill="currentColor"/></svg></button>
@@ -183,6 +259,16 @@ i.T1,.sw.T1{background:var(--t1)}i.T2,.sw.T2{background:var(--t2)}i.T3,.sw.T3{ba
   <p>Triangle score of 48 or better. Each has a reason it is not golden yet; the open record says what would change that.</p></header>
   <div class="tblwrap" id="ov-t2"></div>
 </div></section>
+<!--MAP-->
+<section class="sec"><div class="wrap">
+  <header><p class="eyebrow" id="ov-people-eyebrow"></p><h2 id="ov-people-h2"></h2><p id="ov-people-p"></p></header>
+  <div class="grid cols w" style="align-items:start">
+    <div class="card pad"><h3>People by account tier</h3><div class="tbars" id="ov-tbars"></div><p class="small" id="ov-tbars-note" style="margin:10px 0 0"></p></div>
+    <div class="card pad"><h3>Where the top-tier people are</h3><ul class="list2" id="ov-tophubs"></ul><div style="margin-top:10px"><a href="#map" style="font-size:12.5px">Open the hub map →</a></div></div>
+    <div class="card pad"><h3>Top-tier accounts with thin coverage</h3><ul class="list2" id="ov-thin"></ul></div>
+  </div>
+</div></section>
+<!--/MAP-->
 <section class="sec" id="ov-centres-sec"><div class="wrap">
   <header><p class="eyebrow">Read the book as decisions, not rows</p><h2 id="ov-centres-h2"></h2>
   <p>Several rows in the book belong to one company. One conversation covers all of them, so they are grouped here and marked on every record.</p></header>
@@ -280,14 +366,55 @@ i.T1,.sw.T1{background:var(--t1)}i.T2,.sw.T2{background:var(--t2)}i.T3,.sw.T3{ba
 </div></section>
 </div>
 
+<!--MAP-->
+<!-- ============ HUB MAP ============ -->
+<div class="view" id="v-map" hidden>
+<section class="sec"><div class="wrap wide">
+  <p class="eyebrow">Hub map</p>
+  <h1 id="mp-h1"></h1>
+  <p class="lede" id="mp-lede"></p>
+  <div class="grid kpis" id="mp-kpis" style="margin:20px 0 16px"></div>
+  <div class="layout" id="layout">
+    <div>
+      <div class="card"><h2 class="cap">Filter · show hubs where people match</h2>
+        <div class="filters"><div class="presets" id="presets"></div><div id="rules"></div>
+          <div class="combine"><button class="btn" id="addrule" style="padding:3px 8px">+ Add rule</button><span>match</span><select id="combine" aria-label="How rules combine"><option value="all">ALL rules</option><option value="any">ANY rule</option></select><button class="btn" id="clear" style="padding:3px 8px;margin-left:auto">Clear</button></div>
+          <div class="small" id="fcount" style="margin-top:8px"></div><div style="margin-top:8px"><button class="btn" id="dl"></button></div>
+          <div class="csvbox" id="dlbox" hidden><p class="small" style="margin:0 0 6px">Your browser blocked the copy. The CSV is selected below: copy it from here.</p><textarea id="dlta" readonly aria-label="Filtered people CSV"></textarea></div></div></div>
+      <div class="card" style="margin-top:14px"><h2 class="cap">Hub ranking <span id="rankmeta" style="font-weight:400;text-transform:none;letter-spacing:0"></span></h2><div class="ranking" id="ranking"></div></div>
+    </div>
+    <div>
+    <div class="card mapcard" id="mapcard">
+      <div class="maphead"><h2 class="cap" style="padding:0" id="maptitle"></h2><span class="hint">Scroll to zoom · drag to pan · pick a hub · <button class="linkbtn" id="reset" style="font-size:12px">reset view</button></span></div>
+      <svg id="map" viewBox="0 0 1000 640" role="img" aria-label="Map of people hubs across North America. The hub ranking beside the map lists every hub with its counts."></svg>
+      <div class="insets" id="insets"></div><div class="maplegend" id="legend"></div>
+    </div>
+    <div class="card" id="intlcard" style="margin-top:14px"><h2 class="cap">Outside North America</h2><div class="intl" id="intl"></div></div>
+    </div>
+    <div class="card detail" id="detail" hidden><div class="hd"><h3 id="dname"></h3><div class="m" id="dmeta"></div><button class="btn close" id="dclose" aria-label="Close hub details">✕</button></div><div class="dbody" id="dbody"></div></div>
+  </div>
+  <div class="card" style="margin-top:16px"><details class="plain"><summary id="unsum"></summary><div class="in" id="unmapped"></div></details></div>
+  <div class="card" style="margin-top:12px"><details class="plain"><summary>How the hubs were built</summary><div class="in" id="mp-method"></div></details></div>
+</div></section>
+</div>
+<!--/MAP-->
+
 <footer><div class="wrap" id="foot"></div></footer>
 
 <script id="data" type="application/json">__DATA__</script>
+<!--MAP-->
+<script id="topo-countries" type="application/json">__COUNTRIES__</script>
+<script id="topo-states" type="application/json">__STATES__</script>
+__LIBS__
+<!--/MAP-->
 <script>
 (function(){
 'use strict';
 const DATA = JSON.parse(document.getElementById('data').textContent);
 const A = DATA.accounts, S = DATA.summary, INTERNAL = DATA.internal, TARGET = DATA.target;
+const HUBS = DATA.hubs || null, C = DATA.contacts || [], HS = DATA.hub_summary || null, MASKED = !!DATA.masked;   // contacts layer, when the book has one
+const cById = new Map(C.map(c => [c.id, c]));
+let onMapView = null;   // set by the contacts layer
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeUrl = u => /^https?:\/\//i.test(u || '') ? u : '';
@@ -319,10 +446,11 @@ function tipAt(html, el){ const r = el.getBoundingClientRect(); tipShow(html, {c
 function tipHide(){ TIP.hidden = true; }
 let pendingFocus = null;
 function route(){
-  const h = (location.hash || '#overview').slice(1); const v = ['overview','accounts'].includes(h) ? h : 'overview';
+  const h = (location.hash || '#overview').slice(1); const v = (HUBS ? ['overview','accounts','map'] : ['overview','accounts']).includes(h) ? h : 'overview';
   document.querySelectorAll('.view').forEach(el => { el.hidden = el.id !== 'v-' + v; });
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.view === v));
   if (v === 'accounts') drawScatter();
+  if (v === 'map' && onMapView) onMapView();
   if (v === 'accounts' && pendingFocus) { const n = pendingFocus; pendingFocus = null; openRow(n, true); } else window.scrollTo(0, 0);
 }
 function focusAccount(name){ pendingFocus = name; if (location.hash === '#accounts') route(); else location.hash = '#accounts'; }
@@ -344,7 +472,7 @@ function holdsBack(a){
 const sig = a => { const f = a.fire, out = []; if (f.score !== '') out.push('FIRE ' + f.score); if (f.signals) out.push(f.signals); if (f.intent && f.intent !== 'Unknown') out.push(f.intent + ' intent'); if (f.in_market) out.push('in-market'); return out; };
 const groupTag = a => a.group ? `<span class="tag" title="One buying centre: ${esc(a.group)}">${esc(a.group)} · shared decision</span>` : '';
 const recordNote = a => a.display !== a.name ? `<span class="small"> · record: ${esc(a.name)}</span>` : '';
-function chips(a){ return `<div class="chips"><span class="pill">Shopify ${a.shopify_fit}</span><span class="pill">Anatta ${a.anatta_fit}</span>${sig(a).map(s => `<span class="tag">${esc(s)}</span>`).join('')}${groupTag(a)}<span class="tag">confidence ${esc(a.confidence)}</span></div>`; }
+function chips(a){ return `<div class="chips"><span class="pill">Shopify ${a.shopify_fit}</span><span class="pill">Anatta ${a.anatta_fit}</span>${sig(a).map(s => `<span class="tag">${esc(s)}</span>`).join('')}${groupTag(a)}${HUBS ? `<span class="tag">${plural(a.contacts, 'person', 'people')} in the book</span>` : ''}<span class="tag">confidence ${esc(a.confidence)}</span></div>`; }
 function play(a){ return `<article class="card pad play"><div class="top"><div style="min-width:0"><h3 style="margin:0"><span class="tierpill ${a.tier}">${a.tier}</span> ${nm(a)}</h3><div class="small" style="margin-top:3px">${esc(a.category)} · ${esc(a.model)} · ${esc(a.plat_label)}${recordNote(a)}</div></div><div class="score"><b>${a.triangle}</b><span class="lbl">Triangle</span></div></div>
   <div><div class="lbl">Why this account</div><div class="tx">${esc(a.story)}</div></div>
   <div class="angles"><div style="border-left:2px solid var(--s1)"><div class="lbl">Shopify's angle</div><div class="tx">${esc(a.shopify_angle)}</div></div><div style="border-left:2px solid var(--s2)"><div class="lbl">Anatta's angle</div><div class="tx">${esc(a.anatta_angle)}</div></div></div>
@@ -376,7 +504,7 @@ $('ov-kpis').innerHTML = [
   [T3.length, 'Develop', 'a fit on one leg, or no trigger yet'],
   [EXP.length, 'Already on Shopify Plus', 'expansion, not replatform'],
   [X.length, 'Disqualified', 'each with a stated reason'],
-].map(([v, k, s]) => `<div class="kpi"><span class="v">${v}</span><span class="k">${k}</span><div class="sub">${s}</div></div>`).join('');
+].concat(HUBS ? [[HS.kept, 'People in the book', `${HS.mapped} placed in ${HS.hubs} metro hubs`]] : []).map(([v, k, s]) => `<div class="kpi"><span class="v">${v}</span><span class="k">${k}</span><div class="sub">${s}</div></div>`).join('');
 $('ov-note').innerHTML = `<strong style="color:var(--ink-2)">Where the Shopify leg comes from.</strong> The book was run through BuiltWith, so every account carries its detected commerce platform and stack. That makes platform whitespace, the heaviest subscore, a measured starting point that research then confirms or corrects. BuiltWith found Shopify Plus on none of the book's ${S.accounts - (S.no_builtwith || 0)} domains.`;
 $('ov-t1-eyebrow').textContent = `Tier 1 · ${plural(T1.length, 'account')}${t1Centres.length === T1.length ? '' : ' · ' + plural(t1Centres.length, 'company', 'companies')}`;
 function centreCard(c){
@@ -418,7 +546,8 @@ const mism = A.filter(a => a.domain_note), wrongCo = A.filter(a => a.signal_misa
 $('ov-hygiene').innerHTML = [
   ['Two lists, one book', `The book's BuiltWith list holds ${S.accounts - (S.no_builtwith || 0)} domains and the Apollo view holds ${S.accounts} accounts. ${S.accounts - mism.length - (S.no_builtwith || 0)} match on domain, ${mism.length} match under a different domain, and ${S.no_builtwith_names && S.no_builtwith_names.length ? S.no_builtwith_names.map(esc).join(', ') + ' is in Apollo only' : 'every account has a BuiltWith row'}.`],
   ['Records to merge or correct', (bad.length || wrongCo.length) ? `<ul class="list2">${bad.concat(wrongCo.filter(a => !bad.includes(a))).map(a => `<li><strong>${nm(a)}</strong>${recordNote(a)}<div class="small">${esc(a.gate === 'bad_record' ? a.gate_reason : a.adjustments[0] || '')}</div></li>`).join('')}</ul>` : 'No duplicate or placeholder records found.'],
-  ['No contacts in scope', `No contacts export came with this book, so there is no hub map and no named person on any play. A golden triangle without a name attached is a research task, not a play: pull contacts for the Tier 1 and Tier 2 accounts first.`],
+  HUBS ? ['Contacts', `${HS.unique_contacts} people in the contacts export, none duplicated. ${Object.entries(HS.left_out).map(([n, k]) => `${k} exported under "${esc(n)}" are left out: ${esc(HS.left_out_reason[n])}`).join(' ')} ${HS.kept - HS.with_email} of the ${HS.kept} kept have no usable email. ${HS.unmapped} cannot be placed on the map (${HS.unmapped_no_city} have no city on record, ${HS.unresolved} list a town too small for the gazetteer). ${HS.accounts_without_contacts.length} accounts have nobody in the export.`]
+       : ['No contacts in scope', `No contacts export came with this book, so there is no hub map and no named person on any play. A golden triangle without a name attached is a research task, not a play: pull contacts for the Tier 1 and Tier 2 accounts first.`],
   ['Not scored', S.missing.length ? `${plural(S.missing.length, 'account')} returned no research record: ${S.missing.map(esc).join(', ')}.` : `Every account has a record. ${S.triaged} universities were gated by rule; the other ${S.accounts - S.triaged} were researched with sourced evidence.`],
 ].map(([h, t]) => `<div class="card pad"><h3>${h}</h3><div style="margin:0;font-size:13.2px;color:var(--ink-2)">${t}</div></div>`).join('');
 $('ov-domains').hidden = !mism.length;
@@ -501,6 +630,12 @@ breakdown('bk-plat', 'plat'); breakdown('bk-model', 'model');
 
 // ---------- table ----------
 const fTier = $('fTier'), fPlat = $('fPlat'), fModel = $('fModel'), fSig = $('fSig'), q = $('q');
+const NCOLS = HUBS ? 10 : 9;
+if (HUBS) {   // a People column and two coverage filters, only when the book has contacts
+  const th = document.createElement('th'); th.className = 's num'; th.dataset.k = 'contacts'; th.textContent = 'People';
+  const hr = document.querySelector('#tbl thead tr'); hr.insertBefore(th, hr.lastElementChild);
+  fSig.insertAdjacentHTML('beforeend', '<option value="people">Has people in the book</option><option value="nopeople">Nobody in the book</option>');
+}
 fTier.innerHTML = '<option value="">All tiers</option>' + TIERS.filter(t => A.some(a => a.tier === t)).map(t => `<option value="${t}">${TIER_LABEL[t]} (${A.filter(a => a.tier === t).length})</option>`).join('');
 fPlat.innerHTML = '<option value="">All platforms</option>' + [...new Set(scored.map(a => a.plat))].sort().map(p => `<option>${esc(p)}</option>`).join('');
 fModel.innerHTML = '<option value="">All models</option>' + [...new Set(scored.map(a => a.model))].sort().map(p => `<option>${esc(p)}</option>`).join('');
@@ -529,16 +664,17 @@ function detail(a){
     <h4>Company</h4><div class="tx">${esc(a.size_est)}${a.hq ? ` · HQ ${esc(a.hq)}` : ''}${a.ownership ? ` · ${esc(a.ownership)}` : ''}<br>${link(a.website, a.domain)}${a.book_domain && a.book_domain !== a.domain ? ` · book lists ${esc(a.book_domain)}` : ''}${safeUrl(a.linkedin) ? ` · ${link(a.linkedin, 'LinkedIn')}` : ''}${a.display !== a.name ? `<br>Record name: ${esc(a.name)}` : ''}</div>
     <h4>Platform as researched</h4><div class="tx">${esc(a.platform)}</div>
     <h4>Our signal (FIRE), exactly as exported</h4><div class="tx">${fireLine}${extra.length ? '<br>Also on the row: ' + extra.join(', ') : ''}${a.crm_note ? '<br>' + esc(a.crm_note) : ''}</div>
+    ${HUBS ? `<h4>People in the book · ${a.contacts}</h4>${a.contacts ? `<ul class="plist">${a.people.slice(0, 8).map(id => { const c = cById.get(id); return `<li><b>${esc(c.first)} ${esc(c.last)}</b> · ${esc(c.title)}${c.city ? ` · ${esc(c.city)}` : ''}</li>`; }).join('')}</ul>${a.contacts > 8 ? `<div class="small">${a.contacts - 8} more</div>` : ''}<div style="margin-top:4px"><button class="linkbtn" data-onmap="${esc(a.name)}">See them on the hub map →</button></div>` : '<div class="tx">Nobody at this account is in the contacts export.</div>'}` : ''}
     <h4>Detected stack (BuiltWith)</h4><div class="tx" style="font-size:12px">${bw}</div>
   </div></div>`;
 }
 function renderTable(){
   const term = q.value.trim().toLowerCase();
-  const sigOk = a => !fSig.value || (fSig.value === 'score' ? a.fire.score !== '' : fSig.value === 'market' ? a.fire.in_market : !!a.fire.signals);
+  const sigOk = a => !fSig.value || (fSig.value === 'score' ? a.fire.score !== '' : fSig.value === 'market' ? a.fire.in_market : fSig.value === 'people' ? a.contacts > 0 : fSig.value === 'nopeople' ? !a.contacts : !!a.fire.signals);
   const rows = A.filter(a => (!fTier.value || a.tier === fTier.value) && (!fPlat.value || a.plat === fPlat.value) && (!fModel.value || a.model === fModel.value) && sigOk(a) && (!term || [a.name, a.display, a.category, a.platform, a.model, a.hq, a.ownership, a.group].join(' ').toLowerCase().includes(term)));
   rows.sort((p, r) => { let a = p[sortK], b = r[sortK]; if (sortK === 'tier') { a = TIERS.indexOf(a); b = TIERS.indexOf(b); } if (a == null && b == null) return 0; if (a == null) return 1; if (b == null) return -1; if (typeof a === 'string') return sortDir * a.localeCompare(b); return sortDir * (a - b); });
   $('tbl-count').textContent = `${rows.length} of ${A.length}`;
-  $('tbody').innerHTML = rows.map(a => `<tr class="row" data-n="${esc(a.name)}" tabindex="0" aria-expanded="${openName === a.name}"><td><strong>${nm(a)}</strong>${a.group ? ` <span class="tag">${esc(a.group)}</span>` : ''}<div class="small">${esc(a.category || '')}</div></td><td><span class="tierpill ${a.tier}">${a.tier}</span></td><td class="num"><b>${dash(a.triangle)}</b></td><td class="num">${dash(a.shopify_fit)}</td><td class="num">${dash(a.anatta_fit)}</td><td class="small"><div class="clip" title="${esc(a.platform || '')}">${esc(a.plat_label || '')}</div></td><td class="small">${esc(a.model || '')}</td><td class="num">${a.fire_num == null ? '—' : a.fire_num}</td><td class="small">${esc(a.confidence || '—')}</td></tr>${openName === a.name ? `<tr class="detrow"><td colspan="9">${detail(a)}</td></tr>` : ''}`).join('') || '<tr><td colspan="9" class="small" style="padding:18px 12px">No account matches these filters.</td></tr>';
+  $('tbody').innerHTML = rows.map(a => `<tr class="row" data-n="${esc(a.name)}" tabindex="0" aria-expanded="${openName === a.name}"><td><strong>${nm(a)}</strong>${a.group ? ` <span class="tag">${esc(a.group)}</span>` : ''}<div class="small">${esc(a.category || '')}</div></td><td><span class="tierpill ${a.tier}">${a.tier}</span></td><td class="num"><b>${dash(a.triangle)}</b></td><td class="num">${dash(a.shopify_fit)}</td><td class="num">${dash(a.anatta_fit)}</td><td class="small"><div class="clip" title="${esc(a.platform || '')}">${esc(a.plat_label || '')}</div></td><td class="small">${esc(a.model || '')}</td><td class="num">${a.fire_num == null ? '—' : a.fire_num}</td>${HUBS ? `<td class="num">${a.contacts}</td>` : ''}<td class="small">${esc(a.confidence || '—')}</td></tr>${openName === a.name ? `<tr class="detrow"><td colspan="${NCOLS}">${detail(a)}</td></tr>` : ''}`).join('') || '<tr><td colspan="${NCOLS}" class="small" style="padding:18px 12px">No account matches these filters.</td></tr>';
 }
 function openRow(name, scroll){
   openName = openName === name && !scroll ? null : name;
@@ -555,7 +691,7 @@ renderTable();
 // ---------- methodology ----------
 const D = S.research_depth || {}, starved = scored.filter(a => a.flags.some(f => /search budget/i.test(f))).length;
 const live = scored.filter(a => /fetched \d{4}-\d\d-\d\d/i.test(a.platform)).length, unconf = scored.filter(a => /^unconfirmed/i.test(a.platform)).length;
-$('method').innerHTML = `<p><b>Sources.</b> One Apollo accounts export (${S.accounts} rows) carrying the FIRE fields Anatta maintains, and one BuiltWith technology export of the book (${S.accounts - (S.no_builtwith || 0)} domains: commerce platform, CMS, CRM, marketing automation, payments, and first and last detected dates for tracked apps). Both were pulled on ${esc(S.as_of)}. ${S.domain_mismatches} accounts carry a different domain in the two files and were matched by hand; the reason is on each record. No contacts export was in scope.</p>
+$('method').innerHTML = `<p><b>Sources.</b> One Apollo accounts export (${S.accounts} rows) carrying the FIRE fields Anatta maintains, and one BuiltWith technology export of the book (${S.accounts - (S.no_builtwith || 0)} domains: commerce platform, CMS, CRM, marketing automation, payments, and first and last detected dates for tracked apps). Both were pulled on ${esc(S.as_of)}. ${S.domain_mismatches} accounts carry a different domain in the two files and were matched by hand; the reason is on each record. ${HUBS ? `A contacts export of ${HS.unique_contacts} people was joined to the accounts by company name (${HS.company_aliases} names needed a manual match).` : 'No contacts export was in scope.'}</p>
 <p><b>Research.</b> ${S.triaged} universities were gated by rule without web research. Every other account was researched from the two rubrics with web search: ${D.full ?? '—'} accounts with a visible commerce surface got a full pass (platform confirmation, scale, ownership, timing, distress) and ${D.light ?? '—'} manufacturers, processors and dealers with none got a one-search pass. Each record carries sourced evidence, a confidence rating and a written story. ${S.verified} accounts (the provisional top two tiers and every judgment-call gate) then got an adversarial second look through two lenses: platform and scale; business model and gates. ${S.verification === 'consistency' ? 'The research pass used the whole web-search budget for this run, so that second look was a consistency check of each record against its own sourced evidence and the rubric, not fresh research. Every verdict says so.' : 'Verifiers searched for their own evidence.'} Where a verifier moved a score by 8 points or more the final value is the average of the two views, and the adjustment is shown on the record. ${starved ? `${plural(starved, 'account')} carry a flag naming a check that was not done because the search budget ran out.` : ''} Platform confirmation: for ${live} accounts the researcher loaded the live site and read the platform from the page itself (the record says "fetched" with the date); for the rest it rests on press, job posts, agency case studies and the BuiltWith row, and the record says "unconfirmed" where BuiltWith is the only source (${unconf} accounts).</p>
 <p><b>Book-specific handling.</b> ${A.filter(a => a.signal_misattributed).map(a => `<b>${nm(a)}</b>`).join(', ') || 'No account'}: the Apollo row is a different company from the one in the book, so its FIRE fields are shown as exported but not scored. ${A.filter(a => a.whitespace_capped).map(a => `<b>${nm(a)}</b>`).join(', ') || 'No account'}: platform whitespace is capped at 15 of 25 because the platform is new rather than legacy (the reason and the uncapped score are on the record). This is the same documented cap the October build applied to platforms Shopify cannot convert in a quarter. ${S.grouped_rows} rows are marked as sharing ${Object.keys(groups).length} buying centres; each is still scored on its own storefront. The CRuX traffic rank in the BuiltWith export is unreliable for this book (several national retailers show the lowest band), so scale is scored from revenue, store counts and headcount.</p>
 <p><b>Formula.</b> Shopify fit = Σ six subscores + penalties, clamped 0–100. Anatta fit = Σ four research subscores + FIRE intent (max 20), clamped 0–100. Triangle = round(0.55 × Shopify + 0.45 × Anatta + bonus), capped at 100, where bonus = +3 in-market, +3 FIRE intent High, +4 explicit Shopify intent signal. Tiers: T1 if triangle ≥ 62 and Shopify fit ≥ 63; T2 ≥ 48; T3 ≥ 36; T4 otherwise. Gates override tiers: Shopify Plus live → EXP; government, distress, no commerce surface (only when Shopify fit &lt; 20), bad record, restricted → X.</p>
@@ -577,6 +713,200 @@ if (TARGET !== 'file') {
     const fallback = () => { location.hash = '#overview'; const box = $('csvbox'), ta = $('csvta'); box.hidden = false; ta.value = text; ta.focus(); ta.select(); };
     try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); } };
 }
+/*MAP*/
+// ---------- contacts layer: who we can reach, and the hub map ----------
+(function contactsLayer(){
+  if (!HUBS) return;
+  const acctOf = c => byName.get(c.acct);
+  const groupBy = (arr, fn) => { const m = new Map(); arr.forEach(x => { const k = fn(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); }); return [...m.entries()]; };
+  const uniq = arr => [...new Set(arr)].filter(Boolean).sort((a, b) => String(a).localeCompare(String(b)));
+  const SENR = ['C-level','Founder / Owner','VP','Director','Manager / Staff','Other'], rank = c => { const i = SENR.indexOf(c.seniority); return i < 0 ? 9 : i; };
+  const isTop = c => ['T1','T2'].includes(acctOf(c).tier);
+  HUBS.forEach(h => { h.list = h.contacts.map(id => cById.get(id)); h.match = h.n; h.top = h.list.filter(isTop).length; });
+  const topC = C.filter(isTop), xC = C.filter(c => acctOf(c).tier === 'X'), eduC = xC.filter(c => acctOf(c).model === 'Education');
+  const bestHub = HUBS.slice().sort((a, b) => b.top - a.top || b.n - a.n)[0], bigHub = HUBS[0];
+
+  // ----- overview section -----
+  $('ov-people-eyebrow').textContent = `Contacts · ${HS.kept} people at ${HS.accounts_with_contacts} accounts`;
+  $('ov-people-h2').textContent = `${topC.length} of the ${HS.kept} people sit at Tier 1 and Tier 2 accounts`;
+  $('ov-people-p').textContent = `${xC.length} people (${Math.round(100 * xC.length / HS.kept)}%) work at disqualified accounts${eduC.length ? `, ${eduC.length} of them at the ${plural(new Set(eduC.map(c => c.acct)).size, 'university', 'universities')}` : ''}. ${bigHub !== bestHub ? `So the biggest hub by headcount, ${bigHub.name} with ${bigHub.n} people, has ${bigHub.top ? 'only ' + bigHub.top : 'nobody'} at a top-tier account, while ${bestHub.name} has ${bestHub.top}.` : `The biggest hub, ${bigHub.name}, is also the one with the most top-tier people (${bigHub.top}).`} The hub map opens filtered to the top two tiers for that reason.`;
+  const tierRows = ['T1','T2','T3','T4','EXP','X'].map(t => [t, C.filter(c => acctOf(c).tier === t).length]).filter(([t, n]) => n || byTier(t).length), tmax = Math.max(...tierRows.map(r => r[1]), 1);
+  $('ov-tbars').innerHTML = tierRows.map(([t, n]) => `<div class="tbar"><span>${TIER_LABEL[t]}</span><div class="tr"><i class="${t}" style="width:${(100 * n / tmax).toFixed(1)}%"></i></div><span class="n mono">${n}</span></div>`).join('');
+  $('ov-tbars-note').textContent = `${HS.kept} people after ${Object.values(HS.left_out).reduce((s, n) => s + n, 0)} were left out as belonging to a different company.`;
+  $('ov-tophubs').innerHTML = HUBS.filter(h => h.top).sort((a, b) => b.top - a.top || b.n - a.n).slice(0, 6).map(h => { const acc = groupBy(h.list.filter(isTop), c => c.company).sort((a, b) => b[1].length - a[1].length); return `<li><button class="linkbtn" data-hub="${h.id}" style="font-size:13px;color:var(--ink);font-weight:600">${esc(h.name)}</button> <span class="mono small">${h.top} top-tier of ${h.n}</span><div class="small">${acc.slice(0, 4).map(([co, cs]) => `${esc(co)} ${cs.length}`).join(' · ')}${acc.length > 4 ? ` · ${acc.length - 4} more` : ''}</div></li>`; }).join('') || '<li class="small">No hub holds anyone at a top-tier account.</li>';
+  const thin = T1.concat(T2).filter(a => a.contacts < 3).sort((a, b) => a.contacts - b.contacts || b.triangle - a.triangle);
+  $('ov-thin').innerHTML = thin.length ? thin.map(a => `<li><button class="linkbtn" data-focus="${esc(a.name)}" style="font-size:13px;color:var(--ink);font-weight:600">${nm(a)}</button> <span class="tierpill ${a.tier}">${a.tier}</span> <span class="mono small">${a.contacts ? plural(a.contacts, 'person', 'people') : 'nobody'}</span>${a.signal_misattributed ? '<div class="small">The people Apollo exported under this name belong to a different company.</div>' : ''}</li>`).join('') : '<li class="small">Every Tier 1 and Tier 2 account has at least three people.</li>';
+
+  // ----- hub map page: headline numbers -----
+  const naHubs = HUBS.filter(h => h.region === 'NA'), intlHubs = HUBS.filter(h => h.region !== 'NA');
+  $('mp-h1').textContent = `${HS.mapped} people, ${HS.hubs} hubs, one filter.`;
+  $('mp-lede').textContent = `Every person in the contacts export, placed in a metro hub of ${HS.radius_km} km and joined to the account scores. Use the filter to answer one question: if we hosted something in this city, who from which tier would be in the room?`;
+  $('mp-kpis').innerHTML = [[HS.kept, 'people', `${HS.unique_contacts} in the export`], [HS.mapped, 'placed in a hub', `${HS.unmapped} could not be placed`], [naHubs.length, 'North American hubs', `${naHubs.filter(h => h.n >= 10).length} with 10 or more people`], [topC.length, 'at Tier 1 and Tier 2 accounts', 'the people worth putting in a room'], [xC.length, 'at disqualified accounts', eduC.length ? `${eduC.length} at universities` : 'set aside with a reason']].map(([v, k2, s]) => `<div class="kpi"><span class="v">${v}</span><span class="k">${k2}</span><div class="sub">${s}</div></div>`).join('');
+  $('maptitle').textContent = `North America · hub = people within ${HS.radius_km} km`;
+  $('intlcard').hidden = !intlHubs.length;
+
+  // ----- rule-based filter -----
+  const num = k => c => { const v = acctOf(c)[k]; return v == null ? null : v; };
+  const FIELDS = {
+    tier: {label: 'Account tier', type: 'select', get: c => acctOf(c).tier, values: TIERS.filter(t => A.some(a => a.tier === t))},
+    triangle: {label: 'Triangle score', type: 'number', get: num('triangle')},
+    sfit: {label: 'Shopify fit', type: 'number', get: num('shopify_fit')},
+    afit: {label: 'Anatta fit', type: 'number', get: num('anatta_fit')},
+    plat: {label: 'Current platform', type: 'select', get: c => acctOf(c).plat || 'Other / unclear', values: uniq(scored.map(a => a.plat))},
+    model: {label: 'Business model', type: 'select', get: c => acctOf(c).model || 'Other', values: uniq(scored.map(a => a.model))},
+    seniority: {label: 'Seniority', type: 'select', get: c => c.seniority, values: SENR.filter(s => C.some(c => c.seniority === s))},
+    func: {label: 'Job function', type: 'select', get: c => c.func, values: uniq(C.map(c => c.func))},
+    company: {label: 'Company', type: 'select', get: c => c.company, values: uniq(C.map(c => c.company))},
+    country: {label: 'Country', type: 'select', get: c => c.country || '(none on record)', values: uniq(C.map(c => c.country || '(none on record)'))},
+    state: {label: 'State / province', type: 'select', get: c => c.state || '(none on record)', values: uniq(C.map(c => c.state || '(none on record)'))},
+    intent: {label: 'FIRE intent', type: 'select', get: c => acctOf(c).fire.intent || 'Unknown', values: ['High','Medium','Low','Unknown']},
+    inmarket: {label: 'Account in-market', type: 'boolean', get: c => acctOf(c).fire.in_market},
+    title: {label: 'Title contains', type: 'text', get: c => c.title},
+    name: {label: 'Name contains', type: 'text', get: c => c.first + ' ' + c.last},
+  };
+  const OPS = {select: {'is': (a, b) => a === b, 'is not': (a, b) => a !== b}, boolean: {'is true': a => !!a, 'is false': a => !a},
+    number: {'≥': (a, b) => a !== null && a >= +b, '≤': (a, b) => a !== null && a <= +b, '=': (a, b) => a !== null && a === +b, 'is missing': a => a === null},
+    text: {'contains': (a, b) => a.toLowerCase().includes(String(b ?? '').toLowerCase()), 'does not contain': (a, b) => !a.toLowerCase().includes(String(b ?? '').toLowerCase())}};
+  const T12 = [{f: 'tier', o: 'is', v: 'T1'}, {f: 'tier', o: 'is', v: 'T2'}];
+  // [name, rules, how they combine, optional second group that must also match (any of)]
+  const PRESETS = [['Everyone', []], ['Top two tiers', T12, 'any'], ['Golden triangles only', [{f: 'tier', o: 'is', v: 'T1'}]],
+    ['Top-tier decision makers', T12, 'any', [{f: 'seniority', o: 'is', v: 'C-level'}, {f: 'seniority', o: 'is', v: 'Founder / Owner'}, {f: 'seniority', o: 'is', v: 'VP'}]],
+    ['Top-tier ecommerce, digital and marketing', [{f: 'func', o: 'is', v: 'Ecommerce / Digital'}, {f: 'func', o: 'is', v: 'Marketing / Brand'}], 'any', T12],
+    ['Shopify fit ≥ 60', [{f: 'sfit', o: '≥', v: 60}]], ['Canada', [{f: 'country', o: 'is', v: 'Canada'}]]];
+  let selected = null, matchSet = new Set(), rules = [], combine = 'all', secondary = null, activePreset = null;
+  let paintMap = () => {};
+  const presetsEl = $('presets');
+  const setPreset = i => { const [, rs, comb, extra] = PRESETS[i]; rules = rs.map(r => ({...r})); combine = comb || 'all'; secondary = extra ? extra.map(r => ({...r})) : null; $('combine').value = combine; activePreset = i; renderRules(); apply(); };
+  PRESETS.forEach(([name], i) => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = name; b.onclick = () => setPreset(i); presetsEl.appendChild(b); });
+  function renderRules(){
+    const el = $('rules'); el.innerHTML = '';
+    rules.forEach((r, i) => {
+      const F = FIELDS[r.f], ops = Object.keys(OPS[F.type]); if (!ops.includes(r.o)) r.o = ops[0];
+      if (F.type === 'select' && (r.v === undefined || !F.values.includes(r.v))) r.v = F.values[0];
+      const d = document.createElement('div'); d.className = 'rule';
+      const fieldSel = `<select data-k="f" aria-label="Field">${Object.entries(FIELDS).map(([k, f]) => `<option value="${k}" ${k === r.f ? 'selected' : ''}>${f.label}</option>`).join('')}</select>`;
+      const opSel = `<select data-k="o" aria-label="Condition">${ops.map(o => `<option ${o === r.o ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
+      let val = '';
+      if (F.type === 'select') val = `<select data-k="v" aria-label="Value">${F.values.map(v => `<option ${v === r.v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>`;
+      else if (F.type === 'number') val = r.o === 'is missing' ? '' : `<input data-k="v" type="number" value="${esc(r.v ?? '')}" placeholder="e.g. 60" aria-label="Value">`;
+      else if (F.type === 'text') val = `<input data-k="v" type="text" value="${esc(r.v ?? '')}" placeholder="keyword" aria-label="Value">`;
+      d.innerHTML = `<div><div class="rw">${fieldSel}${opSel}</div>${val ? `<div style="margin-top:6px">${val}</div>` : ''}</div><button class="x" title="Remove rule" aria-label="Remove rule">×</button>`;
+      d.querySelectorAll('[data-k]').forEach(inp => inp.addEventListener('change', e => { const k = e.target.dataset.k; r[k] = e.target.value; if (k === 'f') { r.v = undefined; r.o = Object.keys(OPS[FIELDS[r.f].type])[0]; } activePreset = null; secondary = null; renderRules(); apply(); }));
+      d.querySelectorAll('input[type=text]').forEach(inp => inp.addEventListener('input', e => { r.v = e.target.value; activePreset = null; apply(); }));
+      d.querySelector('.x').onclick = () => { rules.splice(i, 1); activePreset = null; secondary = null; renderRules(); apply(); };
+      el.appendChild(d);
+    });
+    if (secondary) { const d = document.createElement('div'); d.className = 'small'; d.style.margin = '4px 0'; d.textContent = 'AND (' + secondary.map(r => `${FIELDS[r.f].label} ${r.o} ${r.v}`).join(' OR ') + ')'; el.appendChild(d); }
+    [...presetsEl.children].forEach((b, i) => b.classList.toggle('on', i === activePreset || (activePreset === null && !rules.length && i === 0)));
+  }
+  $('addrule').onclick = () => { rules.push({f: 'tier', o: 'is', v: 'T1'}); activePreset = null; renderRules(); apply(); };
+  $('clear').onclick = () => { rules = []; secondary = null; activePreset = null; renderRules(); apply(); };
+  $('combine').onchange = e => { combine = e.target.value; activePreset = null; renderRules(); apply(); };
+  const testRules = (c, rs, comb) => { if (!rs.length) return true; const res = rs.map(r => { const F = FIELDS[r.f], fn = OPS[F.type][r.o]; return fn ? fn(F.get(c), r.v) : true; }); return comb === 'all' ? res.every(Boolean) : res.some(Boolean); };
+  const test = c => testRules(c, rules, combine) && (!secondary || testRules(c, secondary, 'any'));
+  const matched = h => h.list.filter(c => matchSet.has(c.id));
+
+  // ----- ranking, hubs outside North America, hub detail -----
+  function selectHub(h){ selected = selected === h ? null : h; renderDetail(); paint(); if (selected && matchMedia('(max-width:1439.98px)').matches) $('detail').scrollIntoView({block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'}); }
+  function renderRanking(){
+    const shown = naHubs.slice().sort((a, b) => b.match - a.match || b.n - a.n || a.name.localeCompare(b.name)), max = Math.max(...shown.map(h => h.match), 1);
+    $('rankmeta').textContent = `· ${shown.filter(h => h.match > 0).length} hubs with matches`;
+    $('ranking').innerHTML = shown.map((h, i) => { const accts = new Set(matched(h).map(c => c.acct)).size; return `<button class="hubrow ${selected === h ? 'sel' : ''} ${h.match === 0 ? 'dim' : ''}" data-hub="${h.id}"><span class="rk">${i + 1}</span><span style="min-width:0;display:block"><span class="nm" style="display:block">${esc(h.name)}</span><span class="hb" style="display:block"><i style="width:${(100 * h.match / max).toFixed(1)}%${h.match ? '' : ';min-width:0'}"></i></span></span><span class="n"><b>${h.match}</b>${h.match !== h.n ? ` of ${h.n}` : ''}<br>${accts} co.</span></button>`; }).join('');
+    $('intl').innerHTML = intlHubs.slice().sort((a, b) => b.match - a.match || b.n - a.n).map(h => `<button class="it ${h.match === 0 ? 'dim' : ''}" data-hub="${h.id}"><span>${esc(h.name)}</span><span class="mono small">${h.match}${h.match !== h.n ? ' of ' + h.n : ''}</span></button>`).join('');
+  }
+  const emailHtml = c => !c.email ? '<span>no email</span>' : (MASKED || TARGET !== 'file') ? `<span${MASKED ? ' title="Email masked in this copy"' : ''}>${esc(c.email)}</span>` : `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`;
+  function renderDetail(){
+    const det = $('detail'), lay = $('layout');
+    if (!selected) { det.hidden = true; lay.classList.remove('has-detail'); return; }
+    const h = selected, list = matched(h); lay.classList.add('has-detail'); det.hidden = false;
+    const groups = groupBy(list, c => c.acct).map(([name, cs]) => ({a: byName.get(name), cs})).sort((x, y) => TIERS.indexOf(x.a.tier) - TIERS.indexOf(y.a.tier) || y.cs.length - x.cs.length);
+    $('dname').textContent = h.name;
+    $('dmeta').textContent = `${list.length}${list.length !== h.n ? ` of ${h.n}` : ''} people · ${plural(groups.length, 'company', 'companies')} · ${h.cities.join(' · ')}`;
+    $('dbody').innerHTML = groups.length ? groups.map(({a, cs}) => `<div class="acct"><div class="an"><span class="tierpill ${a.tier}">${a.tier}</span>${nm(a)} <span class="pill">${cs.length}</span>${a.triangle != null ? `<span class="pill">triangle ${a.triangle}</span>` : ''}${a.fire.in_market ? '<span class="tag">in-market</span>' : ''}</div><div class="meta">${esc(a.plat_label || '')} · ${esc(a.tier === 'X' ? firstSentence(a.gate_reason) : lead(a.story))} <button class="linkbtn" data-focus="${esc(a.name)}" style="font-size:11.5px">record →</button></div><div class="people">${cs.slice().sort((x, y) => rank(x) - rank(y) || x.last.localeCompare(y.last)).map(c => `<div class="person"><div><div class="pn">${esc(c.first)} ${esc(c.last)}</div><div class="pt">${esc(c.title)}</div></div><div class="sen">${esc(c.seniority)}</div><div class="pl"><span>${esc(c.city || '—')}${c.state ? ', ' + esc(c.state) : ''}</span>${emailHtml(c)}${safeUrl(c.linkedin) ? `<a href="${esc(c.linkedin)}" target="_blank" rel="noopener">LinkedIn</a>` : ''}</div></div>`).join('')}</div></div>`).join('') : '<p class="small">Nobody in this hub matches the current filter.</p>';
+  }
+  $('dclose').onclick = () => selectHub(selected);
+  document.addEventListener('click', e => {
+    const hb = e.target.closest('[data-hub]'); if (hb) { const h = HUBS[+hb.dataset.hub]; if (location.hash !== '#map') { selected = null; location.hash = '#map'; } if (selected !== h) selectHub(h); else if (hb.classList.contains('hubrow') || hb.classList.contains('it')) selectHub(h); return; }
+    const om = e.target.closest('[data-onmap]'); if (om) { const a = byName.get(om.dataset.onmap); rules = [{f: 'company', o: 'is', v: a.display}]; combine = 'all'; secondary = null; activePreset = null; selected = null; renderRules(); apply(); location.hash = '#map'; }
+  });
+  function apply(){
+    matchSet = new Set(C.filter(test).map(c => c.id)); HUBS.forEach(h => { h.match = matched(h).length; });
+    const inHubs = HUBS.reduce((s, h) => s + h.match, 0);
+    $('fcount').textContent = (rules.length || secondary) ? `${matchSet.size} of ${HS.kept} people match · ${inHubs} of them in a hub` : `Showing all ${HS.kept} people · ${HS.mapped} in a hub`;
+    renderDetail(); paint();
+  }
+  function paint(){ paintMap(); renderRanking(); }
+
+  // ----- people CSV (filtered) -----
+  const peopleCsv = () => { const cols = ['first','last','title','company','tier','triangle','email','linkedin','city','state','country','hub_name','seniority','func']; const rows = C.filter(c => matchSet.has(c.id)).map(c => { const a = acctOf(c); return {...c, tier: a.tier, triangle: a.triangle, hub_name: c.hub === null ? '' : HUBS[c.hub].name}; }); const qq = v => `"${String(v ?? '').replace(/"/g, '""')}"`; return [cols.join(','), ...rows.map(r => cols.map(k => qq(r[k])).join(','))].join('\n'); };
+  const dl = $('dl');
+/*FILEONLY*/
+  if (TARGET === 'file') { dl.textContent = 'Download filtered people CSV'; dl.onclick = () => { const el = document.createElement('a'); el.href = URL.createObjectURL(new Blob([peopleCsv()], {type: 'text/csv'})); el.download = `${S.slug}-people${MASKED ? '-masked' : ''}.csv`; el.click(); }; }
+/*/FILEONLY*/
+  if (TARGET !== 'file') { dl.textContent = 'Copy filtered people CSV'; dl.onclick = () => { const text = peopleCsv(), done = () => { dl.textContent = 'Copied'; setTimeout(() => { dl.textContent = 'Copy filtered people CSV'; }, 1600); }, fallback = () => { const box = $('dlbox'), ta = $('dlta'); box.hidden = false; ta.value = text; ta.focus(); ta.select(); }; try { navigator.clipboard.writeText(text).then(done, fallback); } catch (err) { fallback(); } }; }
+
+  // ----- people who could not be placed, and how the hubs were built -----
+  const un = C.filter(c => c.hub === null);
+  $('unsum').textContent = `${plural(un.length, 'person', 'people')} not on the map (${HS.unmapped_no_city} with no city on record, ${HS.unresolved} in a town too small for the gazetteer)`;
+  $('unmapped').innerHTML = `<p>These people are in the export but cannot be placed in a hub. Those with a state are still useful for regional planning.</p><table><tr><th>Location on record</th><th>People</th></tr>${groupBy(un, c => c.city ? `${c.city}, ${c.state || c.country}` : c.state ? `${c.state}, ${c.country}` : `${c.country || 'Unknown'} (no state)`).sort((a, b) => b[1].length - a[1].length).map(([k, cs]) => `<tr><td><b>${esc(k)}</b> <span class="tag">${cs.length}</span></td><td>${cs.map(c => `${esc(c.first)} ${esc(c.last)} <span class="small">· ${esc(c.title)} · ${esc(c.company)}</span>`).join('<br>')}</td></tr>`).join('')}</table>`;
+  $('mp-method').innerHTML = `<ul style="padding-left:18px;margin:6px 0"><li><b>Dedupe.</b> One Apollo contacts export (${HS.raw_rows} rows) deduplicated on lowercase email, then LinkedIn address, then name and company: ${HS.unique_contacts} unique people. CRM record IDs are dropped.</li><li><b>Account join.</b> Each person is joined to an account row by company name (${HS.company_aliases} names needed a manual match) and carries that account's tier and scores, so the filter can ask for top-tier decision makers directly. ${Object.entries(HS.left_out).map(([n, k]) => `${k} people exported under "${esc(n)}" are left out: ${esc(HS.left_out_reason[n])}`).join(' ')}</li><li><b>Seniority and function</b> are read from the job title by rule. Treat them as a first sort, not a fact.</li><li><b>Geocode.</b> City, state and country against GeoNames places with 500 or more people, disambiguated by state or province. ${HS.unmapped_no_city} people have no city on record and ${HS.unresolved} list a town the gazetteer does not carry (${esc(HS.unresolved_places.join('; '))}); they stay off the map and are listed above.</li><li><b>Cluster.</b> Deterministic greedy radius method: cities sorted by headcount; each city joins the nearest existing hub within ${HS.radius_km} km, otherwise it seeds a new hub.</li><li><b>Emails</b> are ${MASKED ? 'masked to first initial and domain in this copy.' : 'shown in full in this copy. Treat the file as internal.'} ${HS.kept - HS.with_email} people have no usable email in the export.</li></ul>`;
+
+  // ----- the map itself (needs d3 and topojson; everything above works without them) -----
+  let mapBuilt = false;
+  function buildMap(){
+    if (mapBuilt) return; mapBuilt = true;
+    if (typeof d3 === 'undefined' || typeof topojson === 'undefined') { const p = document.createElement('p'); p.className = 'small pad'; p.style.margin = '0'; p.textContent = 'The map library did not load, so the map cannot be drawn here. The hub ranking, the filter and the hub details still work.'; $('map').replaceWith(p); $('legend').hidden = true; return; }
+    const COUNTRIES = JSON.parse($('topo-countries').textContent), STATES = JSON.parse($('topo-states').textContent);
+    const svg = d3.select('#map'), W = 1000, H = 640, g = svg.append('g');
+    const projection = d3.geoAlbers().rotate([96, 0]).center([0, 0]).parallels([29.5, 45.5]);
+    projection.fitExtent([[10, 10], [W - 10, H - 10]], {type: 'MultiPoint', coordinates: [[-126, 24.5], [-60, 24.5], [-60, 54], [-126, 54], [-93, 55], [-93, 23]]});
+    const path = d3.geoPath(projection), countries = topojson.feature(COUNTRIES, COUNTRIES.objects.countries), states = topojson.feature(STATES, STATES.objects.states);
+    g.append('g').selectAll('path').data(countries.features).join('path').attr('class', 'land').attr('d', path);
+    g.append('path').datum(topojson.mesh(STATES, STATES.objects.states, (a, b) => a !== b)).attr('class', 'state').attr('d', path);
+    g.append('path').datum(topojson.mesh(COUNTRIES, COUNTRIES.objects.countries, (a, b) => a !== b)).attr('class', 'border').attr('d', path);
+    const rScale = d3.scaleSqrt().domain([1, d3.max(HUBS, h => h.n)]).range([4, 28]);
+    const mainHubs = naHubs.filter(h => !h.inset); mainHubs.forEach(h => { h.p = projection([h.lng, h.lat]); });
+    const drawn = mainHubs.filter(h => h.p), hubG = g.append('g'); let k = 1;
+    const circles = hubG.selectAll('circle.hub').data(drawn).join('circle').attr('class', 'hub').attr('cx', h => h.p[0]).attr('cy', h => h.p[1]);
+    const labels = hubG.selectAll('text').data(drawn).join('text').attr('class', 'mlbl').text(h => h.name);
+    const hits = hubG.selectAll('circle.hubhit').data(drawn).join('circle').attr('class', 'hubhit').attr('cx', h => h.p[0]).attr('cy', h => h.p[1])
+      .on('click', (e, h) => selectHub(h)).on('pointermove', (e, h) => tip(e, h)).on('pointerleave', tipHide);
+    const rad = h => rScale(Math.max(h.match, 1)) / Math.sqrt(k);
+    function placeLabels(){   // label the hubs with the most matches; a label goes right, else left, else below, never on another hub
+      const shown = drawn.filter(h => h.match > 0).sort((a, b) => b.match - a.match).slice(0, 16), set = new Set(shown), boxes = drawn.filter(h => h.match > 0).map(h => ({h, x0: h.p[0] - rad(h), x1: h.p[0] + rad(h), y0: h.p[1] - rad(h), y1: h.p[1] + rad(h)}));
+      const hit = (b, self) => boxes.some(o => o.h !== self && o.x0 < b.x1 && o.x1 > b.x0 && o.y0 < b.y1 && o.y1 > b.y0);
+      shown.forEach(h => { const r = rad(h), w = h.name.length * 6.2 / k, hh = 12 / k, [x, y] = h.p; const opts = [{x: x + r + 3 / k, y: y + 4 / k, a: 'start', b: {x0: x + r + 3 / k, x1: x + r + 3 / k + w, y0: y - hh / 2, y1: y + hh / 2}}, {x: x - r - 3 / k, y: y + 4 / k, a: 'end', b: {x0: x - r - 3 / k - w, x1: x - r - 3 / k, y0: y - hh / 2, y1: y + hh / 2}}, {x, y: y + r + 12 / k, a: 'middle', b: {x0: x - w / 2, x1: x + w / 2, y0: y + r + 2 / k, y1: y + r + 14 / k}}]; const o = opts.find(o => !hit(o.b, h) && o.b.x0 > 2 && o.b.x1 < W - 2) || null; h.lp = o; if (o) boxes.push({h: null, ...o.b}); });
+      labels.classed('off', h => !set.has(h) || !h.lp).attr('text-anchor', h => h.lp ? h.lp.a : 'start').attr('x', h => h.lp ? h.lp.x : 0).attr('y', h => h.lp ? h.lp.y : 0).attr('font-size', 11 / k).attr('stroke-width', 3 / k);
+    }
+    const zoom = d3.zoom().scaleExtent([1, 10]).translateExtent([[-200, -200], [W + 200, H + 200]])
+      .filter(e => !e.button && !(e.type.startsWith('touch') && e.touches.length < 2))   // one finger scrolls the page; two fingers move the map
+      .on('zoom', e => { k = e.transform.k; g.attr('transform', e.transform); paintMap(); });
+    svg.call(zoom); $('reset').onclick = () => svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity);
+    const insetSets = [];
+    [{key: 'HI', title: 'Hawaiʻi', feat: {type: 'FeatureCollection', features: states.features.filter(f => f.id === '15')}}, {key: 'AK', title: 'Alaska', feat: {type: 'FeatureCollection', features: states.features.filter(f => f.id === '02')}}, {key: 'MX', title: 'Mexico', feat: {type: 'FeatureCollection', features: countries.features.filter(f => f.properties.name === 'Mexico')}}].forEach(ins => {
+      const hs = HUBS.filter(h => h.inset === ins.key); if (!hs.length || !ins.feat.features.length) return;
+      const d = document.createElement('div'); d.className = 'inset'; d.innerHTML = `<div class="t">${ins.title}</div>`; $('insets').appendChild(d);
+      const s = d3.select(d).append('svg').attr('width', 150).attr('height', 100), pr = (ins.key === 'AK' ? d3.geoConicEqualArea().rotate([154, 0]).parallels([55, 65]) : d3.geoMercator()).fitExtent([[6, 6], [144, 94]], ins.feat), pp = d3.geoPath(pr);
+      s.append('g').selectAll('path').data(ins.feat.features).join('path').attr('class', 'land').attr('d', pp); s.append('path').datum(ins.feat).attr('class', 'border').attr('d', pp);
+      const vis = s.selectAll('circle.hub').data(hs).join('circle').attr('class', 'hub').attr('cx', h => pr([h.lng, h.lat])[0]).attr('cy', h => pr([h.lng, h.lat])[1]);
+      s.selectAll('circle.hubhit').data(hs).join('circle').attr('class', 'hubhit').attr('cx', h => pr([h.lng, h.lat])[0]).attr('cy', h => pr([h.lng, h.lat])[1]).attr('r', 12).on('click', (e, h) => selectHub(h)).on('pointermove', (e, h) => tip(e, h)).on('pointerleave', tipHide);
+      insetSets.push(vis);
+    });
+    const steps = [1, 10, 50].filter(s => s <= d3.max(HUBS, h => h.n)), LS = .55, big = rScale(steps[steps.length - 1]);
+    $('legend').innerHTML = '<span style="margin-right:2px">people</span>' + steps.map(s => `<div class="lg"><svg width="${(big * 2 * LS + 4).toFixed(0)}" height="${(rScale(s) * 2 * LS + 4).toFixed(0)}"><circle cx="${(big * LS + 2).toFixed(1)}" cy="${(rScale(s) * LS + 2).toFixed(1)}" r="${(rScale(s) * LS).toFixed(1)}" stroke-width="1"/></svg><span>${s}</span></div>`).join('');
+    function tip(e, h){ const list = matched(h), top = groupBy(list, c => c.acct).sort((a, b) => b[1].length - a[1].length).slice(0, 4).map(([name, cs]) => { const a = byName.get(name); return `${nm(a)} <span class="tierpill ${a.tier}">${a.tier}</span> <b>${cs.length}</b>`; }).join('<br>'); tipShow(`<b>${esc(h.name)}</b><br>${list.length}${list.length !== h.n ? ` of ${h.n}` : ''} people · ${plural(new Set(list.map(c => c.acct)).size, 'company', 'companies')}${top ? '<div style="margin-top:4px">' + top + '</div>' : ''}`, e); }
+    paintMap = () => {
+      circles.attr('r', rad).attr('stroke-width', 2 / k).classed('off', h => h.match === 0).classed('sel', h => h === selected);
+      hits.attr('r', h => Math.max(rad(h), 12 / k));
+      insetSets.forEach(c => c.attr('r', h => rScale(Math.max(h.match, 1)) * .7).classed('off', h => h.match === 0).classed('sel', h => h === selected));
+      placeLabels();
+    };
+    paintMap();
+  }
+  onMapView = buildMap;
+  setPreset(1);   // open on the top two tiers: that is who a hub is worth hosting for
+})();
+/*/MAP*/
 $('foot').innerHTML = `<p style="margin:0 0 6px">Anatta &times; Shopify partner triangulation for ${esc(S.book_label)} &middot; built ${esc(S.as_of)} from an Apollo accounts export and a BuiltWith technology export pulled the same day. ${S.copy_note}</p><p class="small" style="margin:0">Scores are a prioritisation aid built from detected stack evidence, FIRE signals and desk research. Single self-contained file: all data is embedded.</p>`;
 route();
 })();

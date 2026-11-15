@@ -5,10 +5,10 @@ Anatta's services motion — blends them into a triangle score, gates and tiers 
 and gates as the October 2026 Anatta × Shopify build (`dashboards/anatta-shopify-triangulation`), so the two books
 compare directly.
 
-The deliverable is a single self-contained HTML file with two views (Overview, Account Dashboard) in two variants:
-an internal copy and a copy that is safe to share with Shopify, each with a CSV of the scored book. No contacts
-export was in scope, so there is no hub map. Data files, the book config and the generated HTML are **not**
-committed here; the code needed to regenerate them is in `pipeline/`.
+The deliverable is a single self-contained HTML file in two variants: an internal copy and a copy that is safe to
+share with Shopify, each with a CSV of the scored book. It has two views (Overview, Account Dashboard), plus a Hub
+Map view and named people on every account when a contacts export is supplied. Data files, the book config and the
+generated HTML are **not** committed here; the code needed to regenerate them is in `pipeline/`.
 
 ## Result (11 Nov 2026)
 
@@ -16,12 +16,17 @@ committed here; the code needed to regenerate them is in `pipeline/`.
 (T2), 13 develop (T3), 31 watch (T4), 14 disqualified (X), none already on Shopify Plus. 27 accounts got a second
 look and 9 records carry a documented adjustment.
 
+Contacts (added 15 Nov 2026): 656 people in the export, 643 kept, 590 placed in 73 metro hubs of 120 km. 240 of them
+sit at Tier 1 and Tier 2 accounts and 222 at disqualified accounts (184 at the four universities), so the hub map
+opens filtered to the top two tiers.
+
 ## Inputs
 
 | File | What it is |
 |---|---|
 | Apollo accounts export (79 rows) | Account name, website and the FIRE fields Anatta maintains |
 | BuiltWith export of the book (78 domains) | Detected commerce platform and stack, with first/last-detected dates for tracked apps |
+| Apollo contacts export (optional, 656 rows) | Name, title, company, email, LinkedIn address, city, state, country |
 
 ## Pipeline (run in this order)
 
@@ -34,7 +39,8 @@ look and 9 records carry a documented adjustment.
 | 4 | research agents + `validate_batch.py` | One agent per batch scores both legs per `rubric.md` with sourced web evidence and writes `results/batch_NN.json`; the validator enforces names, schema and ranges. |
 | 5 | `make_verify.py`, verifier agents + `validate_verify.py` | Provisional T1 accounts get two adversarial lenses (platform & scale; business model & gates), T2 gets the platform lens, and every judgment-call gate (distress, gov, already_plus) gets the model lens. |
 | 6 | `score.py` | **Single source of truth** for every number: merges research, triage and verifier verdicts; computes Shopify fit, Anatta fit (with the deterministic FIRE intent subscore), triangle, gates and tiers; asserts subscore sums, source-exact FIRE values, a written play for every T1 and that no Salesforce ID is present. |
-| 7 | `assemble.py` | Embeds the scored book into `dashboard.html`. Writes the internal and shareable copies, each as a standalone file, as a page fragment for publishing and as a CSV; removes the internal-only section from the shareable copy and asserts it carries no internal-only field, CRM note or record ID. |
+| 7 | `build_hubs.py` (optional) | Contacts layer: dedupes the contacts export, joins each person to an account row, reads seniority and function off the title, geocodes against GeoNames places of 500+ people and clusters them into 120 km hubs. Drops CRM record IDs and leaves out people exported under a wrong-company match. Needs the `geonamescache` package. |
+| 8 | `assemble.py` | Embeds the scored book (and the contacts layer, if built) into `dashboard.html`. Writes the internal and shareable copies, each as a standalone file, as a page fragment for publishing and as a CSV; removes the internal-only section from the shareable copy and asserts it carries no internal-only field, CRM note or record ID. Contact emails are shown in full only in the internal standalone file; every other output masks them, and the build asserts the exact masked count. |
 
 ```bash
 # book.json (see pipeline/book.example.json) holds everything that names an account; it lives with the data
@@ -47,6 +53,13 @@ python3 pipeline/make_verify.py <build> <build>/scored.json
 # verifier agents write <build>/verify/<part>__<lens>.json; check each with validate_verify.py
 python3 pipeline/score.py <build> <apollo_accounts.csv> <build>/book.json <build>/scored.json
 python3 pipeline/assemble.py <build>/scored.json <out>
+
+# with a contacts export: hub map and people on each account
+pip install geonamescache
+npm install d3@7.9.0 topojson-client@3.1.0 topojson-server@3.0.1 us-atlas@3.0.1 world-atlas@2.0.2      # in <libs>
+TRI_LIBS=<libs>/node_modules node pipeline/prune_countries.js <libs>/node_modules/world-atlas/countries-50m.json <libs>/na-countries-50m.json
+python3 pipeline/build_hubs.py <apollo_contacts.csv> <build>/scored.json <build>/book.json <build>/hubs.json
+python3 pipeline/assemble.py <build>/scored.json <out> <build>/hubs.json <libs>
 ```
 
 ## Scoring in one paragraph
@@ -80,3 +93,8 @@ government, distress, no commerce surface (only when Shopify fit < 20), bad reco
 - **Internal vs shareable.** The internal copy shows which accounts are in Salesforce and a section on how far to
   trust our own signal. The shareable copy drops both from the data and the page, along with notes that correct our
   own earlier review of the book.
+- **Contacts under the wrong company.** The people Apollo exported under the misattributed account belong to other
+  companies of the same name, so they are left out and counted (`contacts_wrong_company` in `book.json`). Four
+  company names in the contacts export needed a manual match to an account row (`contact_company_alias`).
+- **Emails.** Full addresses appear only in the internal standalone file. The shareable copy and both published
+  page fragments show first initial and domain.
