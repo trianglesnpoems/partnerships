@@ -7,6 +7,8 @@ playbook, "Why a partner moves"). This step only states what three scans saw. It
   BuiltWith detect export   first and last detected date per technology, and the host it was seen on
   Store Leads               the technologies and installed apps it lists for the storefront (no dates)
   Live check                what the page itself loaded on the day of the build (live_check.py)
+  Browser scan              what a real browser called when it loaded the store and ran a search (browser_scan.js).
+                            It joins the live check as the "Live site" source.
 
 Who is a partner is not decided here: it is read from the partner registry (the Golden Triangle Console's export,
 partner_registry.json). A vendor the registry marks "rel": true is a partner. LANES below only says which lane a vendor
@@ -18,12 +20,16 @@ Rules, each from a lesson in the Heartbeat Source:
     the live page shows the same vendor.
   - Live means seen within 75 days of the export, or on the live page. Anything older is "removed", with its dates.
   - A DNS record (mail, name server) is weaker than a tag on the page, so it is marked "dns".
+  - A search tool that only BuiltWith lists is "not confirmed", and not counted, at a store whose search page the browser
+    scan ran without the page calling it: an export can keep listing a tool after the store has stopped using it. For
+    other lanes the same finding is only flagged ("unseen_in_browser"), because a tag can sit behind a consent banner or
+    on a page the scan did not open.
 
 A row is read at the domain the book lists for it, which is the storefront the book means. Where the book lists a
 corporate site and the store sits elsewhere, --store-domains names the store ({"Account Name As Exported": "store.com"}).
 
 Usage: partner_facts.py <builtwith zip|dir> <accounts_input.json> <partner_registry.json> <out.json> [--live live.json]
-                        [--store-domains map.json] [--as-of YYYY-MM-DD]
+                        [--browser browser.json] [--store-domains map.json] [--as-of YYYY-MM-DD]
 """
 import csv, io, json, os, re, sys, zipfile, datetime, collections
 
@@ -32,7 +38,7 @@ def opt(flag, default=None):
     if flag in args:
         i = args.index(flag); v = args[i + 1]; del args[i:i + 2]; return v
     return default
-LIVE_PATH, AS_OF_ARG, STORE_DOMAINS = opt("--live"), opt("--as-of"), opt("--store-domains")
+LIVE_PATH, AS_OF_ARG, STORE_DOMAINS, BROWSER_PATH = opt("--live"), opt("--as-of"), opt("--store-domains"), opt("--browser")
 BW, ACC, REG, OUT = args[:4]
 LIVE_DAYS, HISTORY_DAYS = 75, 60
 STORE_SUBS = ("shop.", "store.", "checkout.", "buy.")
@@ -177,13 +183,18 @@ if LIVE_PATH:
         live_read.add(dom(host))
         live_apps.setdefault(dom(host), set()).update({vendor_of(a) for a in (v.get("apps") or [])} - {None})
 
+browser = {}                                  # domain -> {"read", "search_read", "seen": {vendor: how}}
+if BROWSER_PATH:
+    for d, v in json.load(open(BROWSER_PATH, encoding="utf-8"))["stores"].items(): browser[dom(d)] = v
+
 def split_list(s): return [x.strip() for x in re.split(r",\s{1,2}(?=[A-Z0-9])", s or "") if x.strip()]
 
 def facts_for(domain, storeleads):
     """Every lane vendor seen at one storefront, with where and when."""
     bw_dom = next((p for p in parents(domain) if p in seen), None)
     sl = {vendor_of(t) for t in split_list(storeleads.get("Technologies")) + split_list(storeleads.get("Apps"))} - {None}
-    lv = live_apps.get(domain, set())
+    br = browser.get(domain) or {}
+    lv = live_apps.get(domain, set()) | {v for v in (br.get("seen") or {}) if v in LANE}
     out, side = {}, []
     for (v, where), e in (seen.get(bw_dom) or {}).items():
         if where != "store":
@@ -204,7 +215,10 @@ def facts_for(domain, storeleads):
         elif recent: state = "brief sighting"            # not counted: under 60 days of history and no second scan
         else: state = "removed"
         if e["dns"] and state == "live" and not corroborated: state = "live (dns only)"
-        rows.append({k: v2 for k, v2 in {**e, "state": state}.items() if not k.startswith("_")})
+        # what the browser scan adds: a tool only the export lists, at a store the browser read without seeing it
+        unseen = e["sources"] == ["BuiltWith"] and bool(br.get("read"))
+        if unseen and state == "live" and e["lane"] == "search" and br.get("search_read"): state = "not confirmed"
+        rows.append({k: v2 for k, v2 in {**e, "state": state, "unseen_in_browser": unseen}.items() if not k.startswith("_")})
     rows.sort(key=lambda r: (not r["partner"], r["lane"], r["vendor"]))
     return rows, sorted(side)
 
@@ -220,7 +234,8 @@ for a in acc:
         extra.append({"label": o.get("label", ""), "domain": o["domain"], "vendors": r2})
     res.append({"name": a["name"], "domain": a["domain"], "vendors": rows, "side_hosts": side, "other_storefronts": extra,
                 "scans": {"builtwith": any(p in seen for p in parents(a["domain"])), "storeleads": bool((a.get("storeleads") or {}).get("Technologies")),
-                          "live": a["domain"] in live_read}})
+                          "live": a["domain"] in live_read or bool((browser.get(a["domain"]) or {}).get("read")),
+                          "search_page": bool((browser.get(a["domain"]) or {}).get("search_read"))}})
 json.dump({"as_of": AS_OF.isoformat(), "rules": {"live_days": LIVE_DAYS, "history_days": HISTORY_DAYS, "store_subdomains": STORE_SUBS},
            "partners": sorted(v for v in LANE if is_partner(v)), "accounts": res}, open(OUT, "w", encoding="utf-8"), indent=0, ensure_ascii=False)
 

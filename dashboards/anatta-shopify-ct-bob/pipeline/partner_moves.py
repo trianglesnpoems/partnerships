@@ -93,7 +93,7 @@ for g, rows in groups.items():
     seen = collections.defaultdict(dict)        # vendor -> row name -> fact
     for r in stores:
         for v in (facts.get(r["name"]) or {}).get("vendors", []):
-            if v["state"] != "brief sighting": seen[v["vendor"]][nm(r)] = v
+            if v["state"] in ("live", "live (dns only)", "removed"): seen[v["vendor"]][nm(r)] = v    # a brief sighting, or a tool the browser scan could not confirm, is not a fact to build on
     live_at = lambda vendor: {n: v for n, v in seen.get(vendor, {}).items() if v["state"] == "live"}
     rivals = collections.defaultdict(dict)      # displacement lane -> rival -> [row names]
     for vendor, at in seen.items():
@@ -127,7 +127,8 @@ for g, rows in groups.items():
     since = lambda at: ", ".join(f"{n} since {mon(v['first'])}" if v["first"] else n for n, v in sorted(at.items(), key=lambda kv: kv[1]["first"] or "9999"))
     def scans(at):          # which scans saw it; a tool seen by one scan only says so, because it is the claim to confirm first
         srcs = [x for x in ("BuiltWith", "Store Leads", "Live site") if any(x in v["sources"] for v in at.values())]
-        return ", ".join(srcs).replace("Live site", "the live site") + (", one scan only" if len(srcs) == 1 else "")
+        unseen = all(v.get("unseen_in_browser") for v in at.values())
+        return ", ".join(srcs).replace("Live site", "the live site") + (", one scan only" if len(srcs) == 1 else "") + (", and not seen when a browser loaded the store" if unseen else "")
     stop = lambda t: t if t.endswith(".") else t + "."
     moves = {}
     # 1. every partner that is live somewhere in the group
