@@ -30,7 +30,7 @@ Do not tell a researcher that "another step handles" a judgment unless that step
 
 ```json
 {"date": "YYYY-MM", "text": "<one fact, with its day where known>", "source": "https://...", "kind": "...",
- "signal": "decision | mandate | tech-lead | leader | growth | frozen | none", "first_hand": true, "read": "YYYY-MM-DD"}
+ "signal": "decision | mandate | tech-lead | leader | growth | frozen | rebuilding | staffing | none", "first_hand": true, "read": "YYYY-MM-DD"}
 ```
 
 | `signal` | What it is |
@@ -41,6 +41,8 @@ Do not tell a researcher that "another step handles" a judgment unless that step
 | `leader` | Another senior change |
 | `growth` | New stores, markets or lines on the platform it has |
 | `frozen` | The store runs software its vendor has stopped building on, read on the store itself |
+| `rebuilding` | Evidence against: a rebuild or a replatform is in flight, seen on the store itself or said by the company. The company is set aside as "not now" |
+| `staffing` | Evidence against: it is hiring, or has just hired, people to build on the platform it has. When this is as recent as the signal the opening rests on, the research share of the opening is halved |
 | `none` | Dated and true, and not a reason to re-open a platform choice. A move that has finished belongs in `reach`, not here |
 
 - A posting counts for the seat it fills, not for the duties it lists. A Chief Technology Officer posting is
@@ -52,15 +54,20 @@ Do not tell a researcher that "another step handles" a judgment unless that step
   their plans: check the newest source, not the first one found.
 - A reading from an intent tool is not an event. It is counted separately, once.
 
-## 3. `against`: what argues the other way
+## 3. Look for what argues the other way, every time
 
-```json
-"against": [{"date": "YYYY-MM", "text": "...", "source": "https://..."}]
-```
+A score that only counts evidence for a move ranks hope. Before a record is done, open the company's own job board (or a
+dated copy of it) and the store's page source, and record what argues against as events with the two classes above:
 
-First-hand facts that argue against a move or an open decision: hiring engineers for the platform it has, a vendor deal
-renewed, a rebuild in progress, a sale that freezes decisions. The challenge of the first ten will look for these. It
-costs less to record them now.
+- `staffing`: a posting for engineers, architects or managers to build on or run the platform it has. Give the date it
+  was posted and whether it is still open.
+- `rebuilding`: a new front end being rolled out, a migration in progress, a company statement that a rebuild has begun.
+  Class by what the source shows: a posting for developers is `staffing`, and it is `rebuilding` only when the rebuild
+  itself is in evidence.
+
+Anything else that argues against (a vendor deal renewed, a sale or a court case that freezes decisions, another
+programme that everything waits for) goes in `"against": [{"date", "text", "source"}]`. It is shown on the record.
+When this was first checked on a ranking's first ten, 8 of the 10 had such evidence and none of it had been recorded.
 
 ## What happens to these fields
 

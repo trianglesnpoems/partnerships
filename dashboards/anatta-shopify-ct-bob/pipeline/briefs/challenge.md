@@ -41,7 +41,7 @@ Write one JSON file to the output path you were given, and nothing else there:
    "verdict": "holds | weaker | wrong",
    "summary": "<one or two plain sentences: what you found and what it does to the company's place>",
    "signals": [{"date": "<as in the input>", "status": "confirmed | changed | not found", "note": "<what the source says, with the date you read it>", "source": "<the link you read>"}],
-   "against": [{"date": "YYYY-MM", "text": "<a first-hand fact that argues against a move or an open decision>", "source": "https://..."}],
+   "against": [{"date": "YYYY-MM", "kind": "rebuilding | staffing | renewal | freeze | other", "text": "<a first-hand fact that argues against a move or an open decision>", "source": "https://..."}],
    "for": [{"date": "YYYY-MM", "text": "<a first-hand fact that strengthens the case, not already in the file>", "source": "https://..."}],
    "not_checked": ["<anything you could not read, and why>"]}
 ]}
@@ -52,6 +52,11 @@ Write one JSON file to the output path you were given, and nothing else there:
 - `wrong`: the store cannot move, or the decision the place rests on is not open.
 - `signals` has one entry for each signal in the input, in the same order.
 - Every `against` and `for` entry needs a link you opened yourself and a date.
+- Give each `against` entry its `kind`. `rebuilding`: a rebuild or a replatform is in flight, seen on the store itself or
+  said by the company. `staffing`: the company is hiring, or has just hired, people to build on the platform it has.
+  `renewal`: a vendor deal announced or renewed. `freeze`: a sale, a merger, a court case or another programme that holds
+  decisions up. `other`: anything else. Class by what the source shows, not by what it suggests: a posting for developers
+  on the current platform is `staffing`, and it is `rebuilding` only when the rebuild itself is in evidence.
 - Plain words. One fact per sentence. Mark anything you could not verify as not verified. Do not name any firm that builds or
   runs stores for the company. No em dashes.
 

@@ -9,6 +9,7 @@ import json, re, sys
 
 VERDICTS = ("holds", "weaker", "wrong")
 STATUS = ("confirmed", "changed", "not found")
+AGAINST = ("rebuilding", "staffing", "renewal", "freeze", "other")
 
 
 def problems(inp, out):
@@ -48,6 +49,8 @@ def problems(inp, out):
             for r in rows:
                 if not re.fullmatch(r"20\d\d-(0[1-9]|1[0-2])", r.get("date") or ""):
                     bad.append(f'{g}: an entry under "{k}" needs a date as YYYY-MM')
+                if k == "against" and r.get("kind") is not None and r["kind"] not in AGAINST:
+                    bad.append(f'{g}: an entry under "against" has kind {r["kind"]!r}; it must be one of {AGAINST}')
                 if not r.get("text") or not re.match(r"https?://", r.get("source") or ""):
                     bad.append(f'{g}: an entry under "{k}" needs its text and the link that was read')
         if not isinstance(c.get("not_checked"), list):

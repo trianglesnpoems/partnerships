@@ -245,7 +245,7 @@ if REACHM and A.reach and A.signals and A.as_of:
             check(bool(re.fullmatch(r'20\d\d', rc.get('again') or '')), f'{g}: a company set aside for now says when to look again', rc.get('again'))
         check(r['signals'] == sig, f'{g}: the signals on the page are the signals on file')
         for s in sig:
-            check(s.get('cls') in CLS or s.get('cls') == 'frozen', f'{g}: a signal has a known class', s.get('cls'))
+            check(s.get('cls') in CLS or s.get('cls') in ('frozen', 'rebuilding', 'staffing'), f'{g}: a signal has a known class', s.get('cls'))
             check(bool(re.fullmatch(r'20\d\d-(0[1-9]|1[0-2])', s.get('date') or '')), f'{g}: a signal is dated YYYY-MM', s.get('date'))
             check(bool(s.get('text')) and re.search(r'20\d\d', s['text']) is not None, f'{g}: a signal names the year it happened', s.get('text'))
             check(s.get('source') is None or re.match(r'https?://', s['source']), f'{g}: a signal\'s source is a link or is named in its text', s.get('source'))
@@ -253,12 +253,16 @@ if REACHM and A.reach and A.signals and A.as_of:
         live = sorted((CLS[s['cls']] * (1.0 if -9 <= now - mi(s['date']) <= 9 else 0.5 if 9 < now - mi(s['date']) <= 12 else 0.0), s['cls']) for s in sig if s['cls'] in CLS)
         live = [v for v in reversed(live) if v[0] > 0]
         first_hand = min(1.0, (live[0][0] if live else 0) + (0.25 * live[1][0] if len(live) > 1 else 0) + (0.15 if any(s['cls'] == 'frozen' for s in sig) else 0))
+        inside9 = lambda s: -9 <= now - mi(s['date']) <= 9
+        fresh_pos = [s for s in sig if s['cls'] in CLS and inside9(s)]
+        lead_pos = max(fresh_pos, key=lambda s: CLS[s['cls']]) if fresh_pos else None
+        halved = bool(lead_pos) and any(s['cls'] == 'staffing' and inside9(s) and mi(s['date']) >= mi(lead_pos['date']) for s in sig)      # evidence against, as recent as the evidence for
+        first_hand = first_hand * 0.5 if halved else first_hand
         intent = lead['anatta_sub']['intent']; research_pts = 60 * first_hand; fire_pts = 40 * max(0, intent - 2) / 18; lift = pot.LIFT[e.get('shopPay', 'no')]
         opening = min(100, up(research_pts + fire_pts) + lift)
-        fresh = [s['cls'] for s in sig if s['cls'] in CLS and -9 <= now - mi(s['date']) <= 9]       # a signal older than 9 months adds points and names nothing
-        lead_cls = max(fresh, key=CLS.get) if fresh else None
+        lead_cls = lead_pos['cls'] if lead_pos else None       # a signal older than 9 months adds points and names nothing
         window = 'open' if lead_cls == 'decision' else 'changing' if lead_cls in ('mandate', 'tech-lead') else 'fire' if intent >= 10 else 'quiet'
-        check(r['intent'] == intent and r['opening_parts'] == {'first_hand': round(research_pts, 1), 'fire': round(fire_pts, 1), 'shop_pay': lift}, f'{g}: the parts of the opening recompute', r['opening_parts'])
+        check(r['intent'] == intent and r['opening_parts'] == {'first_hand': round(research_pts, 1), 'fire': round(fire_pts, 1), 'shop_pay': lift, 'halved': halved}, f'{g}: the parts of the opening recompute', r['opening_parts'])
         check(r['window'] == window, f'{g}: what the opening rests on', (r['window'], window))
         trig = any(s['cls'] in ('decision', 'mandate', 'tech-lead', 'leader') and -9 <= now - mi(s['date']) <= 9 for s in sig)
         def mscore(m):
@@ -274,6 +278,8 @@ if REACHM and A.reach and A.signals and A.as_of:
         check((r['first'] or None) == ([best['partner'], mscore(best)] if best else None), f'{g}: partner to move first, under the first-hand trigger rule', r['first'])
         sc = min(100, (35 * path + 30 * x['fit'] + 20 * opening + 15 * x['potential'] + 50) // 100 + pot.bonus(e))
         rescored[g] = (sc, opening, path, x['fit'])
+        if rc.get('state') == 'open':
+            check(not any(s['cls'] == 'rebuilding' and 0 <= now - mi(s['date']) <= 9 for s in sig), f'{g}: ranked, and no rebuild in flight is on file')
         if rc.get('state') in ('open', 'long'):
             check(r['timing'] == opening and r['motion'] == path, f'{g}: opening and way in recompute', ((r['timing'], opening), (r['motion'], path)))
             check(r['priority'] == sc, f'{g}: score recomputes, halves up', (r['priority'], sc))
@@ -348,7 +354,7 @@ if REACHM:
                 continue
             c, asked = verdicts[g]
             shown = onpage[g].get('challenge') or {}
-            now_sig = sorted((s['date'], s['cls']) for s in onpage[g]['signals']); then_sig = sorted((s['date'], s['cls']) for s in (asked.get('claim_opening') or {}).get('signals', []))
+            now_sig = sorted((s['date'], s['cls']) for s in onpage[g]['signals'] if s.get('origin') != 'challenge'); then_sig = sorted((s['date'], s['cls']) for s in (asked.get('claim_opening') or {}).get('signals', []))
             check(c['verdict'] != 'wrong' or bool(shown.get('settled')), f'{g}: not overturned by its challenge, or the page says how that was settled', c.get('summary'))
             check(now_sig == then_sig or bool(shown.get('settled')), f'{g}: challenged on the signals it is ranked on now, or the page says what changed since', (then_sig, now_sig))
             check(shown.get('verdict') == c['verdict'], f'{g}: the page shows the verdict of its challenge', (shown.get('verdict'), c['verdict']))

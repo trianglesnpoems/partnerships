@@ -205,7 +205,7 @@ earned the cap in one pass earned 23 of 25 for "platform move" in the next. The 
 up as a footnote under the ranking. QA recomputed every number and passed. Each step did its own job, and no step owned
 the question.
 
-So the steps below are built on seven rules:
+So the steps below are built on eight rules:
 
 1. **A conclusion lives in a field the ranking reads.** Prose may explain it. Prose may not be the only place it lives.
 2. **A brief never says another step handles a judgment** unless that step exists and its output is checked.
@@ -215,12 +215,15 @@ So the steps below are built on seven rules:
    A third party's claim about a date is re-read against the newest source before it is used.
 6. **A contradiction between the research and the rank stops the release.** It is never a footnote.
 7. **The first ten are challenged by a reader who did not build them**, before anyone else sees them.
+8. **Evidence against is looked for and counted like evidence for.** The first challenge found it at 8 of 10 companies:
+   mostly a company hiring people to build on the platform it has, and once a rebuild already live on the store. None
+   of it had been recorded, because the research was only asked for reasons to move.
 
 | Step | Script | What it does |
 |---|---|---|
 | H10 | research, to `briefs/reach_and_signals.md` | Each company's record carries a `reach` call (can the store move in 18 months: open, later or out, with the fact and its source), a `signal` class on every dated event, whether each source is first-hand, and what argues against. |
 | H11 | `reach_infer.py` | Derives the same calls by rule from the rest of the record: the first pass's hard-to-move mark, a finished platform move, a store an operator runs, online sales above the largest company on the list the score was built on (`--reference`). Where the research made the call itself, this is the second opinion: every difference is listed and stops the run until a person settles it in the overrides file, with a reason. The report says which rule or which person made each call. On research written before H10 existed, the rules alone reproduced 66 of 69 calls made by hand, and two of the three differences were the hand being inconsistent. |
-| H12 | `reach_rank.py` | Ranks only the companies that can move. The score keeps the Heartbeat's weights and its fit, potential, Shop Pay lift and subscription rule. The opening keeps the Heartbeat's split of timing (60% research, 40% FIRE), with the research share built from classed first-hand signals. The way in is partner motion with one change: a FIRE reading is not a trigger. It also writes the first ten under four weightings of the opening. |
+| H12 | `reach_rank.py` | Ranks only the companies that can move. A `staffing` signal as recent as the signal the opening rests on halves the research share of the opening; a `rebuilding` signal sets the company aside in H11. The score keeps the Heartbeat's weights and its fit, potential, Shop Pay lift and subscription rule. The opening keeps the Heartbeat's split of timing (60% research, 40% FIRE), with the research share built from classed first-hand signals. The way in is partner motion with one change: a FIRE reading is not a trigger. It also writes the first ten under four weightings of the opening. |
 | H13 | readers, to `briefs/challenge.md`; `validate_challenge.py` | An independent reader is given the first ten and asked to knock each one out: open every cited source, then look for first-hand evidence that the store cannot move or that the signal is stale. Verdict per company: holds, weaker or wrong, with what was found for and against. |
 | H14 | `assemble.py --openings openings.json --challenge <folder> [--challenge-settled settled.json] [--fixes fixes.json]` | Leads the page with the ranking, lists the companies set aside with the reason for each, keeps the score the Heartbeat alone gave every company, and puts each challenge on its record. `--fixes` applies corrections found after the research was written; one that matches nothing stops the build. |
 | H15 | `qa.py --reach ... --signals ... --as-of ... --reference ... --challenge <folder>` | Arithmetic, in a second implementation: the opening, the way in, the score, the order. Then three checks of sense. Range: no company above the reference list's largest is ranked as in reach, and without the reach test such a list fails outright. Agreement: no ranked company carries the hard-to-move mark, a platform move finished inside two years, or a sentence in its own record that argues it cannot move. Challenge: each of the first ten was challenged on the signals it is ranked on now, and none was overturned without the page saying how that was settled. |

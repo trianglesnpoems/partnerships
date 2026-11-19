@@ -510,7 +510,7 @@ const HB_MEAS = REACH ? [['motion', 'Way in', 'hb-motion', ''], ['fit', 'Anatta 
 const HB_ASIDE = HB ? [...(HB.long || []), ...(HB.later || []), ...(HB.out || [])] : [];      // inside the ICP and not ranked: the reason is on each row
 const WINDOW = Object.fromEntries(REACH ? REACH.groups : []);
 const REACH_WORD = {open: 'In reach', long: 'Long odds', later: 'Not now', out: 'Out of reach'};
-const SIG_WORD = {decision: 'Decision', mandate: 'New owner or chief', 'tech-lead': 'Technology or e-commerce chief', leader: 'Senior change', growth: 'Growth', frozen: 'Frozen software'};
+const SIG_WORD = {decision: 'Decision', mandate: 'New owner or chief', 'tech-lead': 'Technology or e-commerce chief', leader: 'Senior change', growth: 'Growth', frozen: 'Frozen software', rebuilding: 'Rebuilding', staffing: 'Hiring for its platform'};
 const hbOf = new Map();          // account name -> its company's Heartbeat row
 if (HB) { [...HB.ranked, ...HB_ASIDE, ...HB.outside].forEach(r => r.rows.forEach(n => hbOf.set(n, r))); }
 const hbPct = k => Math.round(HB.weights[k] * 100);
@@ -913,11 +913,14 @@ function hbDetail(a){
   const sigHtml = () => (r.signals || []).map(s => `<div class="hbmove"><span class="tag">${esc(SIG_WORD[s.cls] || s.cls)}</span> ${esc(s.text)}${safeUrl(s.source) ? ` <a href="${esc(s.source)}" target="_blank" rel="noopener">source ↗</a>` : ''}</div>`).join('');
   const subHtml = head => `<h4>${head}</h4><div class="tx">${esc(r.subscriptionNote || 'No subscription, recurring delivery or paid membership found')}</div>${sub && (sub.programs || []).length ? sub.programs.map(progHtml).join('') : ''}${ia && ia.sub_looked ? `<div class="small" style="margin-top:4px">Looked: ${esc(ia.sub_looked.join('; '))}</div>` : ''}`;
   const alone = () => `The Heartbeat score alone gave ${r.hb.priority}, rank ${r.hb.rank} of ${REACH.scored}.`;
+  const challengeHtml = () => `<h4>Challenged · ${esc(r.challenge.verdict)}</h4><div class="tx">${esc(r.challenge.summary)}</div>${r.challenge.settled ? `<div class="tx"><span class="tag">Since then</span> ${esc(r.challenge.settled)}</div>` : ''}
+      ${[['against', 'Against'], ['for', 'For']].map(([k, l]) => (r.challenge[k] || []).map(x => `<div class="hbmove"><span class="tag">${l}</span> ${esc(x.text)}${safeUrl(x.source) ? ` <a href="${esc(x.source)}" target="_blank" rel="noopener">source ↗</a>` : ''}</div>`).join('')).join('')}
+      ${(r.challenge.not_checked || []).length ? `<div class="small" style="margin-top:4px">Not checked: ${esc(r.challenge.not_checked.map(x => x.replace(/[.;]\s*$/, '')).join('; '))}.</div>` : ''}`;
   if (r.reach && (r.reach.state === 'later' || r.reach.state === 'out')) return `<div class="hbrec"><h4>Not ranked · ${REACH_WORD[r.reach.state]}</h4>
     <div class="tx">${esc(r.reach.why)}${r.reach.again ? ` Look again in ${esc(r.reach.again)}.` : ''}</div>${r.reach.note ? `<div class="tx">${esc(r.reach.note)}</div>` : ''}
     <div class="small" style="margin-top:6px">${alone()} That score has no measure for whether a store can be won. ${fireLine()}</div>
     ${r.reach.basis ? `<div class="small" style="margin-top:4px">How this call was made: ${esc(r.reach.basis)}.</div>` : ''}
-    ${sigHtml() ? `<h4>Dated signals on record</h4>${sigHtml()}` : ''}${ia && ia.read ? `<h4>The read</h4>${ln(ia.read)}` : ''}
+    ${sigHtml() ? `<h4>Dated signals on record</h4>${sigHtml()}` : ''}${r.challenge ? challengeHtml() : ''}${ia && ia.read ? `<h4>The read</h4>${ln(ia.read)}` : ''}
     ${subHtml(`Subscription${r.bonus ? ' · live' : ''}`)}</div>`;
   const P = r.parts, pp = r.potentialParts;
   const meter = ([k, l, c, m]) => `<div class="subbar"><span>${l} · ${hbPct(k)}%</span><div class="meter ${m}"><i style="width:${r[k]}%"></i></div><span class="mono" style="text-align:right">${r[k]}</span></div>`;
@@ -940,11 +943,9 @@ function hbDetail(a){
     ${r.rows.length > 1 ? `<div class="small" style="margin-bottom:4px">Scored once for ${esc(r.display)}: ${plural(r.rows.length, 'row')}, one buying centre.</div>` : ''}
     ${HB_MEAS.map(meter).join('')}
     <div class="small" style="margin-top:6px">Score = round(${HB_MEAS.map(([k]) => `${HB.weights[k]} × ${r[k]}`).join(' + ')})${r.bonus ? ` + ${r.bonus} for a live subscription` : ''} = <b style="color:var(--ink)">${r.priority}</b></div>
-    <h4>Opening · ${r.timing} · ${esc(WINDOW[r.window])}</h4><div class="tx">${op.first_hand} of ${SH.research} from the company's own dated actions and ${op.fire} of ${SH.fire} from FIRE${op.shop_pay ? `, plus ${op.shop_pay} for the Shop Pay wedge` : ''}${Math.round(op.first_hand + op.fire) + op.shop_pay > 100 ? ', capped at 100' : ''}. Shop Pay: ${(SHOPPAY[r.shopPay] || '').toLowerCase()}${r.shopPayWhy ? ` (${esc(r.shopPayWhy)})` : ''}.</div>
+    <h4>Opening · ${r.timing} · ${esc(WINDOW[r.window])}</h4><div class="tx">${op.first_hand} of ${SH.research} from the company's own dated actions and ${op.fire} of ${SH.fire} from FIRE${op.shop_pay ? `, plus ${op.shop_pay} for the Shop Pay wedge` : ''}${Math.round(op.first_hand + op.fire) + op.shop_pay > 100 ? ', capped at 100' : ''}.${op.halved ? ' The first figure is halved: the company is hiring to build on the platform it has, as recently as the signal the opening rests on.' : ''} Shop Pay: ${(SHOPPAY[r.shopPay] || '').toLowerCase()}${r.shopPayWhy ? ` (${esc(r.shopPayWhy)})` : ''}.</div>
     ${sigHtml() || '<div class="tx">No dated sign of a decision in the last 12 months.</div>'}<div class="small" style="margin-top:4px">${fireLine()}</div>
-    ${r.challenge ? `<h4>Challenged · ${esc(r.challenge.verdict)}</h4><div class="tx">${esc(r.challenge.summary)}</div>${r.challenge.settled ? `<div class="tx"><span class="tag">Since then</span> ${esc(r.challenge.settled)}</div>` : ''}
-      ${[['against', 'Against'], ['for', 'For']].map(([k, l]) => (r.challenge[k] || []).map(x => `<div class="hbmove"><span class="tag">${l}</span> ${esc(x.text)}${safeUrl(x.source) ? ` <a href="${esc(x.source)}" target="_blank" rel="noopener">source ↗</a>` : ''}</div>`).join('')).join('')}
-      ${(r.challenge.not_checked || []).length ? `<div class="small" style="margin-top:4px">Not checked: ${esc(r.challenge.not_checked.join('; '))}</div>` : ''}` : ''}
+    ${r.challenge ? challengeHtml() : ''}
     <h4>Way in · ${r.motion}</h4><div class="small">${pa.motion} from partner motion${pa.family ? `, plus ${pa.family} because Shopify already runs a store for the same owner (${esc(r.family.join(', '))})` : ''}. ${pa.trigger ? 'A dated signal above gives a partner its reason to move now.' : 'No dated signal yet, so a partner has no dated reason to move.'}</div>${moves || noMoves}
     ${fitHtml}
     ${potHtml}

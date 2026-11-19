@@ -18,6 +18,8 @@ Reach, first rule that applies:
   long   long odds                either of the two above, with a decision signal inside 9 months
   later  just decided             the first pass capped it as "Recently replatformed", or a "platform-done" event is on file
                                   inside 24 months; "again" is the year of that decision plus two
+  later  building on what it has  a "rebuilding" signal is on file inside 9 months: a rebuild is in flight on the platform it
+                                  has, or onto another vendor's
   open                            none of these
 
 Signals, from the dated events the research recorded (a "platform-done" event is not a signal: it closes a door):
@@ -25,6 +27,10 @@ Signals, from the dated events the research recorded (a "platform-done" event is
   ownership     mandate when the company itself changed hands, growth when it bought another
   leadership    mandate for a new chief executive or chair, tech-lead for a technology or e-commerce chief, leader otherwise
   store-opening, launch   growth
+Evidence against a move is a signal too, and no rule can read it off the record: the research supplies it (the "against"
+list in briefs/reach_and_signals.md), or the challenge of the first ten finds it and it is added in the overrides.
+  rebuilding    a rebuild or a replatform is in flight. It sets the company aside (see reach, above).
+  staffing      it is hiring people to build on the platform it has. reach_rank.py halves the research share of the opening.
 
 Overrides (each needs "reason"; the report lists every one):
   {"reach":   {company: {"state": ..., "kind": ..., "why": ..., "again": ..., "reason": "..."}},
@@ -48,7 +54,7 @@ CHIEF = re.compile(r"(?:became|named|appointed|as)\s+(?:the\s+)?(?:new\s+)?(?:In
 FROZEN = re.compile(r"\bstill runs?\b|\bfrozen\b|no new features|stopped (?:building|developing)", re.I)
 CHANGED_HANDS = re.compile(r"emerged from|under new ownership|new owner|taken private|controlling interest", re.I)
 BOUGHT = r"(?:purchase of|acquisition of|to acquire|acquired|bought)\s+(?:the\s+)?[^.;]{0,40}?"
-CLASSES = ("decision", "mandate", "tech-lead", "leader", "growth", "frozen")
+CLASSES = ("decision", "mandate", "tech-lead", "leader", "growth", "frozen", "rebuilding", "staffing")
 
 
 def mi(s):
@@ -135,14 +141,15 @@ def main():
                 used.add(id(over)); rule = f'classed by hand as {over["cls"]} (the rule said {cls}): {over["reason"]}'; cls = over["cls"]
             elif given is not None:
                 assert given in CLASSES + ("none",), f"{g}: unknown signal class {given!r}"
-                if given != (cls or "none"):
+                if given != (cls or "none") and given not in ("rebuilding", "staffing"):      # evidence against is the research's to find: no rule has a view on it
                     unsettled.append(f'{g}, event of {e["date"]}: the research classed it {given}, the rule says {cls or "none"}')
-                rule = f"classed by the research as {given}" + ("" if given == (cls or "none") else f" (the rule says {cls or 'none'})"); cls = None if given == "none" else given
+                rule = f"classed by the research as {given}" + ("" if given == (cls or "none") or given in ("rebuilding", "staffing") else f" (the rule says {cls or 'none'})"); cls = None if given == "none" else given
             if cls:
                 out.append({"cls": cls, "date": e["date"], "text": e["text"], "source": e.get("source")}); sig_basis.setdefault(g, []).append((e["date"], cls, rule))
         for x in OV.get("add", {}).get(g, []):
             assert x["cls"] in CLASSES and re.fullmatch(r"20\d\d-(0[1-9]|1[0-2])", x["date"]) and x.get("text"), x
-            out.append({"cls": x["cls"], "date": x["date"], "text": x["text"], "source": x.get("source")}); sig_basis.setdefault(g, []).append((x["date"], x["cls"], f'added by hand: {x["reason"]}'))
+            out.append({k: v for k, v in (("cls", x["cls"]), ("date", x["date"]), ("text", x["text"]), ("source", x.get("source")), ("origin", x.get("origin"))) if k != "origin" or v})
+            sig_basis.setdefault(g, []).append((x["date"], x["cls"], f'added by hand: {x["reason"]}'))
         if out:
             signals[g] = out
     for o in OV.get("class", []) + OV.get("drop", []):
@@ -162,6 +169,7 @@ def main():
         online = POT[g].get("online")
         done = sorted((e for e in events.get(g, []) if e.get("kind") == "platform-done" and 0 <= now - mi(e["date"]) <= 24), key=lambda e: e["date"])
         deciding = [s for s in signals.get(g, []) if s["cls"] == "decision" and -9 <= now - mi(s["date"]) <= 9]
+        building = sorted((s for s in signals.get(g, []) if s["cls"] == "rebuilding" and 0 <= now - mi(s["date"]) <= 9), key=lambda s: s["date"])
         if not cov.get("stores") and cov.get("operator_run"):
             r = {"state": "out", "kind": "no store of its own", "why": "Its online store runs on an outside operator's storefront."}
             why = f'the scans found no store the company runs itself, only stores an outside operator runs ({", ".join(cov["operator_run"][:3])})'
@@ -174,6 +182,9 @@ def main():
             else:
                 r = {"state": "out", "kind": kind, "why": line}
                 why = ("the first research pass marked it hard to move, as an in-house platform at national scale" if ih else f"it sells ${online:,.0f}M a year online, above the largest company on the reference list (${ceiling:,.0f}M)") + "; no decision signal inside 9 months is on file"
+        elif building:
+            r = {"state": "later", "kind": "building on what it has", "why": building[-1]["text"], "again": str(int(building[-1]["date"][:4]) + 2)}
+            why = f'a rebuild in flight is on file, dated {building[-1]["date"]}'
         elif rc or done:
             years = [int(done[-1]["date"][:4])] if done else []
             years += [int(y) for y in re.findall(r"\b(20\d\d)\b", rc or "") if int(y) <= today.year][:1]

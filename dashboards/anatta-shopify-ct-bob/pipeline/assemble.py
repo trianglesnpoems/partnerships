@@ -196,8 +196,8 @@ if BEAT_P:
         import glob
         settled = json.load(open(SETTLED_P, encoding="utf-8")) if SETTLED_P else {}
         answers = {c["group"]: c for p in sorted(glob.glob(os.path.join(CHAL_P, "out_*.json"))) for c in json.load(open(p, encoding="utf-8"))["companies"]}
-        by_g = {r["group"]: r for r in beat["ranked"] + beat.get("long", [])}
-        assert all(g in by_g for g in settled), f"a settled challenge names a company that is not ranked: {[g for g in settled if g not in by_g]}"
+        by_g = {r["group"]: r for k in ("ranked", "long", "later", "out") for r in beat.get(k, [])}
+        assert all(g in by_g for g in settled), f"a settled challenge names a company that is not inside the ICP: {[g for g in settled if g not in by_g]}"
         for g, c in answers.items():
             if g not in by_g: continue
             ch = {"verdict": c["verdict"], "summary": c["summary"], "against": c.get("against") or [], "for": c.get("for") or [],

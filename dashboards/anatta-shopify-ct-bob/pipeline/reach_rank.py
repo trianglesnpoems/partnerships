@@ -22,7 +22,10 @@ company fills every scale and comes first, although nothing says it can be won. 
               growth     0.15   new stores, markets or lines on the platform it has
             The strongest counts in full and the next at a quarter; 0.15 more when the store runs on software its
             vendor has frozen; capped at 1. A signal counts in full for 9 months (the Heartbeat's own window), at half
-            from 10 to 12, and not after. FIRE keeps the Heartbeat's share and scale, and is counted here once: it no
+            from 10 to 12, and not after.
+            Evidence against a move is a signal too. "staffing" (it is hiring people to build on the platform it has)
+            halves the research share when it is inside 9 months and no older than the signal the opening rests on.
+            "rebuilding" (a rebuild is in flight) is not scored here: reach_infer.py sets such a company aside. FIRE keeps the Heartbeat's share and scale, and is counted here once: it no
             longer also serves as the trigger on partner moves. The Shop Pay lift is the Heartbeat's own (+15, +7).
 
   Way in    the Heartbeat's partner motion, with one change: a FIRE reading is not a trigger. A move's trigger is a
@@ -77,12 +80,16 @@ def opening(sigs, intent, shop, now):
     second = 0.25 * live[1][0] if len(live) > 1 else 0
     frozen = FROZEN if any(s["cls"] == "frozen" for s in sigs) else 0
     first_hand = min(1.0, top + second + frozen)
+    full = [s for s in sigs if s["cls"] in CLS and recency(s["date"], now) == 1.0]      # only a signal inside 9 months names what the opening rests on
+    lead_sig = max(full, key=lambda s: CLS[s["cls"]]) if full else None
+    halved = bool(lead_sig) and any(s["cls"] == "staffing" and recency(s["date"], now) == 1.0 and mi(s["date"]) >= mi(lead_sig["date"]) for s in sigs)
+    if halved:
+        first_hand *= 0.5
     research = RESEARCH_SHARE * first_hand; fire = FIRE_SHARE * max(0, intent - 2) / 18; lift = LIFT.get(shop or "no", 0)
     total = min(100, half_up(research + fire) + lift)
-    full = [s["cls"] for s in sigs if s["cls"] in CLS and recency(s["date"], now) == 1.0]      # only a signal inside 9 months names what the opening rests on
-    lead = max(full, key=lambda c: CLS[c]) if full else None
+    lead = lead_sig["cls"] if lead_sig else None
     group = "open" if lead == "decision" else "changing" if lead in ("mandate", "tech-lead") else "fire" if intent >= FIRE_ONLY else "quiet"
-    return total, {"first_hand": round(research, 1), "fire": round(fire, 1), "shop_pay": lift}, group
+    return total, {"first_hand": round(research, 1), "fire": round(fire, 1), "shop_pay": lift, "halved": halved}, group
 
 
 def move_score(m, company_trigger, now):

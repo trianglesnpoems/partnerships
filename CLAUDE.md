@@ -10,7 +10,7 @@ job and no step owned the question: the research wrote the conclusion in prose, 
 another step would handle it, the score never read it, and QA checked the arithmetic. The full account is in
 `dashboards/anatta-shopify-ct-bob/README.md`, under "A list nobody pre-qualified: reach first".
 
-Seven rules came out of it. They apply to every list and every score, not only that one.
+Eight rules came out of it. They apply to every list and every score, not only that one.
 
 1. **A conclusion lives in a field the ranking reads.** Prose may explain it. Prose may not be the only place it lives.
 2. **A brief never says another step handles a judgment** unless that step exists and its output is checked.
@@ -22,6 +22,8 @@ Seven rules came out of it. They apply to every list and every score, not only t
 6. **A contradiction between the research and the rank stops the release.** It is never a footnote. Tell the person
    whose list it is, with the evidence.
 7. **The first ten are challenged by a reader who did not build them**, before anyone else sees them.
+8. **Evidence against is looked for and counted like evidence for.** A company hiring people to build on the platform it
+   has, or rebuilding it, is telling you something. A score that only adds up reasons to move ranks hope.
 
 ## In practice
 
