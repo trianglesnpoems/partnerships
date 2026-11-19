@@ -237,7 +237,7 @@ if REACHM and A.reach and A.signals and A.as_of:
     for g, r in onpage.items():
         rc = REACH_IN.get(g) or {}; sig = SIG_IN.get(g, [])
         check(rc.get('state') in want_list and where[g] == want_list.get(rc.get('state')), f'{g}: listed where its reach call puts it', (rc.get('state'), where[g]))
-        check(r['reach'].get('state') == rc.get('state') and r['reach'].get('why') == rc.get('why') and r['reach'].get('again') == rc.get('again') and r['reach'].get('note') == rc.get('note'), f'{g}: the reach call on the page is the one on file')
+        check(r['reach'].get('state') == rc.get('state') and r['reach'].get('why') == rc.get('why') and r['reach'].get('again') == rc.get('again') and r['reach'].get('note') == rc.get('note') and r['reach'].get('basis') == rc.get('basis'), f'{g}: the reach call on the page is the one on file, with how it was made')
         check(bool(rc.get('basis')), f'{g}: the reach call says which rule or which person made it')
         if rc.get('state') != 'open':
             check(bool(rc.get('why')) and len(rc['why']) <= 330, f'{g}: a company that is not ranked says why, in a line or two', rc.get('why'))

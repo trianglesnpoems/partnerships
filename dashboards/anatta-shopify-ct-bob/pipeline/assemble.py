@@ -178,7 +178,7 @@ if BEAT_P:
         def reach_row(x):
             d = hb_rows[x["group"]]
             d["hb"] = {k: d[k] for k in ("rank", "priority", "motion", "timing", "timingBase")}       # the Heartbeat's own numbers, kept for comparison
-            d["reach"] = {k: x[k] for k in ("state", "kind", "why", "again", "note") if x.get(k)}
+            d["reach"] = {k: x[k] for k in ("state", "kind", "why", "again", "note", "basis") if x.get(k)}       # basis: which rule or which person made the call
             d.update({k: x[k] for k in ("window", "signals", "opening_parts", "path_parts", "family", "intent", "first")})
             d["fire"] = {k: v for k, v in x["fire"].items() if k != "signals"}      # the exported topic labels stay on the first pass's record, shown as exported
             if x["state"] in ("open", "long"):

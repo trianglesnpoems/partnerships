@@ -137,7 +137,7 @@ def main():
         family = sorted({x["name"] for a in rows[g] for x in (a.get("shopify_in_family") or [])})
         mo = motion(r["moves"], company_trigger, now); p = min(100, mo + (FAMILY if family else 0))
         best = max(r["moves"], key=lambda m: move_score(m, company_trigger, now)) if r["moves"] else None        # the first of equals, as in the Heartbeat
-        row = {"group": g, "state": rc["state"], "kind": rc.get("kind"), "why": rc.get("why"), "again": rc.get("again"), "note": rc.get("note"),
+        row = {"group": g, "state": rc["state"], "kind": rc.get("kind"), "why": rc.get("why"), "again": rc.get("again"), "note": rc.get("note"), "basis": rc.get("basis"),
                "opening": w, "opening_parts": wparts, "window": grp, "signals": sigs, "intent": intent,
                "fire": {k: fire.get(k) for k in ("intent", "signals", "last_signal", "in_market") if fire.get(k) not in (None, "")},
                "path": p, "path_parts": {"motion": mo, "family": FAMILY if family else 0, "trigger": company_trigger}, "family": family,

@@ -916,6 +916,7 @@ function hbDetail(a){
   if (r.reach && (r.reach.state === 'later' || r.reach.state === 'out')) return `<div class="hbrec"><h4>Not ranked · ${REACH_WORD[r.reach.state]}</h4>
     <div class="tx">${esc(r.reach.why)}${r.reach.again ? ` Look again in ${esc(r.reach.again)}.` : ''}</div>${r.reach.note ? `<div class="tx">${esc(r.reach.note)}</div>` : ''}
     <div class="small" style="margin-top:6px">${alone()} That score has no measure for whether a store can be won. ${fireLine()}</div>
+    ${r.reach.basis ? `<div class="small" style="margin-top:4px">How this call was made: ${esc(r.reach.basis)}.</div>` : ''}
     ${sigHtml() ? `<h4>Dated signals on record</h4>${sigHtml()}` : ''}${ia && ia.read ? `<h4>The read</h4>${ln(ia.read)}` : ''}
     ${subHtml(`Subscription${r.bonus ? ' · live' : ''}`)}</div>`;
   const P = r.parts, pp = r.potentialParts;

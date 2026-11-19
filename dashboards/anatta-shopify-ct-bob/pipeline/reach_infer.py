@@ -164,21 +164,21 @@ def main():
         deciding = [s for s in signals.get(g, []) if s["cls"] == "decision" and -9 <= now - mi(s["date"]) <= 9]
         if not cov.get("stores") and cov.get("operator_run"):
             r = {"state": "out", "kind": "no store of its own", "why": "Its online store runs on an outside operator's storefront."}
-            why = f'the scans found no store the company runs, only operator-run stores ({", ".join(cov["operator_run"][:3])})'
+            why = f'the scans found no store the company runs itself, only stores an outside operator runs ({", ".join(cov["operator_run"][:3])})'
         elif ih or (online is not None and online > ceiling):
             kind = "builds its own platform" if ih else "enterprise scale"
             line = ih or f"About ${online / 1000:.2f}B a year online, above the largest company on the list the score was built on (${ceiling:,.0f}M)."
             if deciding:
                 r = {"state": "long", "kind": "long odds", "why": line}
-                why = f'{kind}, with a decision signal dated {deciding[-1]["date"]}'
+                why = ("the first research pass marked it hard to move, as an in-house platform at national scale" if ih else f"it sells ${online:,.0f}M a year online, above the largest company on the reference list (${ceiling:,.0f}M)") + f', and a decision signal dated {deciding[-1]["date"]} is on file'
             else:
                 r = {"state": "out", "kind": kind, "why": line}
-                why = ("the first pass capped it as an in-house platform at national scale" if ih else f"online sales of ${online:,.0f}M are above the reference list's largest (${ceiling:,.0f}M)") + "; no decision signal inside 9 months"
+                why = ("the first research pass marked it hard to move, as an in-house platform at national scale" if ih else f"it sells ${online:,.0f}M a year online, above the largest company on the reference list (${ceiling:,.0f}M)") + "; no decision signal inside 9 months is on file"
         elif rc or done:
             years = [int(done[-1]["date"][:4])] if done else []
             years += [int(y) for y in re.findall(r"\b(20\d\d)\b", rc or "") if int(y) <= today.year][:1]
             r = {"state": "later", "kind": "just decided", "why": done[-1]["text"] if done else rc, "again": str((max(years) if years else today.year) + 2)}
-            why = (f'a platform-done event dated {done[-1]["date"]}' if done else "the first pass capped it as recently replatformed")
+            why = (f'a platform move that finished in {done[-1]["date"]} is on file' if done else "the first research pass marked it hard to move, as recently replatformed")
         else:
             r = {"state": "open"}; why = "no rule against it"
         basis[g] = why
