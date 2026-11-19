@@ -4,19 +4,52 @@
   "slug": "xx-book-triangulation",
   "as_of": "2026-11-11",
   "verification": "web",
+  "platform_naming": "leading",
+  "lede_note": "One sentence about what this book mostly is, shown in the page's opening paragraph (optional).",
+  "method_notes": [
+    "A sentence for the methodology section about something specific to this book's data (optional)."
+  ],
   "domain_alias": {
     "apollo-domain.com": {
       "book_domain": "domain-in-the-book.com",
       "note": "Book lists domain-in-the-book.com; Apollo lists apollo-domain.com (why they differ)."
     }
   },
+  "account_domain": {
+    "Account Name As Exported": {
+      "book_domain": "its-own-domain.com",
+      "note": "Use this instead of domain_alias when several Apollo rows share one website but the book gives each its own."
+    }
+  },
+  "extra_surfaces": {
+    "Account Name As Exported": [
+      {
+        "label": "A second storefront the book lists for the same company",
+        "domain": "shop.example.com"
+      }
+    ]
+  },
   "signal_misattributed": {
     "Account Name As Exported": "Why the Apollo row is a different company, so its FIRE fields are shown but not scored."
+  },
+  "triage": {
+    "holding": {
+      "Owner Or Holding Entity": "Why it is gated without research (it runs no storefront; its companies are scored on their own rows)."
+    },
+    "research_anyway": [
+      "University Store That Is A Store In Its Own Right"
+    ]
   },
   "groups": {
     "Parent Or Buying Centre": [
       "Account Name As Exported",
       "Another Row Of The Same Company"
+    ]
+  },
+  "families": {
+    "Owner With Separate Decisions": [
+      "A Company It Owns",
+      "Another Company It Owns"
     ]
   },
   "display": {
@@ -45,7 +78,7 @@
   "whitespace_cap": {
     "Account Name As Exported": {
       "cap": 15,
-      "reason": "Sourced reason the platform is not legacy whitespace (for example: went live on a competitor's platform within the last two years)."
+      "reason": "Sourced reason the platform is not legacy whitespace (for example: went live on a competitor's platform within the last two years, or an in-house platform at national scale)."
     }
   },
   "account_notes": {

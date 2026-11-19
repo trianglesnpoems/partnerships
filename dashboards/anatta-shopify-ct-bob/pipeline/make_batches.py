@@ -9,7 +9,8 @@ B, BOOK = sys.argv[1], sys.argv[2]
 prior = json.load(open(sys.argv[3])) if len(sys.argv) > 3 else {}
 acc = {a["name"]: a for a in json.load(open(f"{B}/accounts_input.json"))}
 remaining = set(json.load(open(f"{B}/remaining.json")))
-PLAN = [(b["id"], b["depth"], b["names"]) for b in json.load(open(BOOK))["batch_plan"]]
+book = json.load(open(BOOK))
+PLAN = [(b["id"], b["depth"], b["names"]) for b in book["batch_plan"]]
 planned = [n for _, _, names in PLAN for n in names]
 assert len(planned) == len(set(planned)), "an account is in two batches"
 assert set(planned) == remaining, (sorted(remaining - set(planned)), sorted(set(planned) - remaining))
@@ -19,6 +20,10 @@ for bid, depth, names in PLAN:
     rows = []
     for n in names:
         a = dict(acc[n]); a.pop("in_sfdc", None); a.pop("contacts", None); a.pop("in_accounts_export", None)
+        # which rows share a decision or an owner, so the researcher can say so on the record and check it
+        for key, field in (("groups", "same_decision_as"), ("families", "same_owner_as")):
+            mates = [m for names in book.get(key, {}).values() if n in names for m in names if m != n]
+            if mates: a[field] = mates
         if a["domain"] in prior: a["prior_review"] = prior[a["domain"]]
         rows.append(a)
     json.dump(rows, open(f"{B}/batches/{bid}.json", "w"), indent=1, ensure_ascii=False)

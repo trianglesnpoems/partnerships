@@ -118,17 +118,19 @@ def build(internal, target):
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n"
             + ICON + "\n" + head + "</head>\n<body>\n" + page + "</body>\n</html>\n"), masked
 
-CSV_COLS = ["name", "display", "group", "domain", "book_domain", "tier", "triangle", "shopify_fit", "anatta_fit", "gate", "gate_reason", "category", "model",
+CSV_COLS = ["name", "display", "group", "family", "domain", "book_domain", "tier", "triangle", "shopify_fit", "anatta_fit", "gate", "gate_reason", "category", "model",
             "plat", "platform", "size_est", "hq", "ownership", "confidence", "fire_score", "fire_intent", "fire_in_market", "fire_signals",
             "fire_last_signal", "story", "shopify_angle", "anatta_angle", "flags", "adjustments"]
 def write_csv(path, internal):
-    cols = CSV_COLS + (["contacts"] if hb else []) + (["in_salesforce"] if internal else [])
+    cols = CSV_COLS + (["platform_read", "storeleads_sales"] if sc["summary"].get("sources") else []) + (["contacts"] if hb else []) + (["in_salesforce"] if internal else [])
     def val(a, k):
         if k.startswith("fire_"): return a["fire"][k[5:]]
         if k == "flags": return " | ".join(f for f in a.get("flags", []) if internal or not INTERNAL_FLAG.search(f))
         if k == "adjustments": return " | ".join(a.get("adjustments", []))
         if k == "in_salesforce": return "yes" if a["in_sfdc"] else "no"
         if k == "contacts": return len(people_of.get(a["name"], []))
+        if k == "platform_read": return (a.get("platform_read") or {}).get("verdict", "")
+        if k == "storeleads_sales": return (a.get("storeleads") or {}).get("Estimated yearly sales", "")
         return a.get(k, "")
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f); w.writerow(cols)

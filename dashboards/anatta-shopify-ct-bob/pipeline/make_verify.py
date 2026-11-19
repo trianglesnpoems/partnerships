@@ -3,7 +3,7 @@
 Same policy as the Oct 2026 build: provisional T1 gets both lenses (platform & scale; business model & gates), provisional T2
 gets the platform lens. There are no contacts in this book, so instead of "gated with 10+ contacts" the model lens also
 covers every researched gate that is a judgment call (distress, gov, already_plus).
-Usage: make_verify.py <build_dir> <scored_json>"""
+Usage: make_verify.py <build_dir> <scored_json> [max_accounts_per_verifier]"""
 import json, sys, os
 B, scored_p = sys.argv[1], sys.argv[2]
 sc = json.load(open(scored_p))
@@ -16,9 +16,34 @@ for x in sc["accounts"]:
     if x["missing"] or x["name"] not in raw: continue
     prov = {"shopify_fit": x["shopify_fit"], "anatta_fit": x["anatta_fit"], "triangle": x["triangle"], "tier": x["tier"], "fire": x["fire"]}
     job = {"name": x["name"], "provisional": prov, "record": raw[x["name"]]}
+    # what the exports and the live check say about the storefront, when the book was built with them: the verifier
+    # checks the record against these reads, not only against the record's own evidence
+    read = {k: x[k] for k in ("platform_read", "live", "storeleads", "other_storefronts", "group", "family") if x.get(k)}
+    if read: job["read"] = read
     if x["tier"] in ("T1", "T2"): jobs["platform"].append(job)
     if x["tier"] == "T1" or x["gate"] in ("distress", "gov", "already_plus"): jobs["model"].append(job)
 os.makedirs(f"{B}/verify_jobs", exist_ok=True); os.makedirs(f"{B}/verify", exist_ok=True)
+# Optional third argument: the most accounts one verifier takes. A lens with more jobs than that is split into parts
+# (verify_jobs/<lens>_pN.json), keeping rows of one buying centre or owner together; index.json lists every part.
+CHUNK = int(sys.argv[3]) if len(sys.argv) > 3 else 0
+index = []
 for lens, L in jobs.items():
     json.dump(L, open(f"{B}/verify_jobs/{lens}.json", "w"), indent=1, ensure_ascii=False)
     print(lens, len(L), [j["name"] for j in L])
+    if not CHUNK or len(L) <= CHUNK:
+        if L: index.append({"lens": lens, "part": "all", "file": f"{B}/verify_jobs/{lens}.json", "names": [j["name"] for j in L]})
+        continue
+    by_centre = {}
+    for j in L:
+        r = j.get("read", {}); by_centre.setdefault(r.get("family") or r.get("group") or j["name"], []).append(j)
+    parts, cur = [], []
+    for block in sorted(by_centre.values(), key=len, reverse=True):
+        if cur and len(cur) + len(block) > CHUNK: parts.append(cur); cur = []
+        cur += block
+    if cur: parts.append(cur)
+    for i, part in enumerate(parts, 1):
+        f = f"{B}/verify_jobs/{lens}_p{i}.json"
+        json.dump(part, open(f, "w"), indent=1, ensure_ascii=False)
+        index.append({"lens": lens, "part": f"p{i}", "file": f, "names": [j["name"] for j in part]})
+        print(f"  {lens} p{i}: {len(part)}")
+json.dump(index, open(f"{B}/verify_jobs/index.json", "w"), indent=1, ensure_ascii=False)

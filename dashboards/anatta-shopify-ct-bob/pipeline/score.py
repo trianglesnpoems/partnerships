@@ -85,6 +85,13 @@ NOT_PURSUED = book.get("not_pursued", {})                     # account name -> 
 GROUPS = book.get("groups", {})                               # centre -> [account names]
 group_of = {n: g for g, names in GROUPS.items() for n in names}
 assert all(n in inputs for n in group_of), [n for n in group_of if n not in inputs]
+assert sum(map(len, GROUPS.values())) == len(group_of), "an account is in two groups"
+# Rows that share an owner but not a decision (a holding company's subsidiaries, a licensor's brands). Shown as context;
+# a row can sit in a group and in a family at once.
+FAMILIES = book.get("families", {})                           # owner -> [account names]
+family_of = {n: f for f, names in FAMILIES.items() for n in names}
+assert all(n in inputs for n in family_of), [n for n in family_of if n not in inputs]
+assert sum(map(len, FAMILIES.values())) == len(family_of), "an account is in two families"
 assert all(n in inputs for n in list(WHITESPACE_CAP) + list(ACCOUNT_NOTES) + list(SIGNAL_MISATTRIBUTED) + list(NOT_PURSUED)), "book.json names an account that is not in the book"
 
 # Record names that are a domain string or a label artefact get a readable display name; the record name is always shown beside it.
@@ -105,15 +112,26 @@ PLAT_RULES = [
     ("Custom build", r"custom|bespoke|in-house|proprietary|headless"),
 ]
 PLAT_OVERRIDE = book.get("plat_override", {})                 # account name -> platform family
+# book.json "platform_naming": "leading" = the researchers were told to start platform_confirmed with the platform's plain
+# name, so the family is read off the start of the line and the free-text rules are only the fallback.
+LEADING = [("Shopify Plus", r"shopify plus"), ("Shopify", r"shopify"), ("Salesforce Commerce Cloud", r"salesforce commerce cloud|sfcc"),
+           ("Adobe Commerce / Magento", r"adobe commerce|magento"), ("BigCommerce", r"bigcommerce"), ("WooCommerce", r"woocommerce"),
+           ("Other enterprise", r"sap commerce|hcl commerce|oracle commerce|commercetools|netsuite|kibo|vtex|optimizely|znode|miva"),
+           ("Third-party storefront", r"third-party storefront"), ("Custom build", r"custom build"), ("No online store", r"no online store")]
+LEAD_ON = book.get("platform_naming") == "leading"
 def plat_family(name, text):
     if name in PLAT_OVERRIDE: return PLAT_OVERRIDE[name]
     t = (text or "").lower()
+    if LEAD_ON:
+        head = re.sub(r"^unconfirmed[:;,]?\s*", "", t)
+        for fam, pat in LEADING:
+            if re.match(pat, head): return fam
     for fam, pat in PLAT_RULES:
         if re.search(pat, t): return fam
     return "Other / unclear"
 
 # In card and table text, "Other enterprise" is replaced by the platform's own name where the researcher gave one.
-ENTERPRISE_NAMES = [("vtex", "VTEX"), ("oracle", "Oracle Commerce"), ("hcl", "HCL Commerce"), ("optimizely", "Optimizely"), ("episerver", "Optimizely"),
+ENTERPRISE_NAMES = [("miva", "Miva Merchant"), ("vtex", "VTEX"), ("oracle", "Oracle Commerce"), ("hcl", "HCL Commerce"), ("optimizely", "Optimizely"), ("episerver", "Optimizely"),
                     ("hybris", "SAP Commerce"), ("sap", "SAP Commerce"), ("netsuite", "NetSuite"), ("suitecommerce", "NetSuite"),
                     ("commercetools", "commercetools"), ("kibo", "Kibo"), ("znode", "Znode"), ("sitecore", "Sitecore")]
 def plat_label(family, text):
@@ -138,11 +156,18 @@ def plain(text):
     """Researchers sometimes name the input field `prior_review`; readers know it as the earlier review of this book."""
     t = re.sub(r"\bprior_review'?s?\b", "the earlier review", text or "")
     return t[:1].upper() + t[1:] if t.startswith("the earlier review") else t
+# Working labels the book notes ask researchers to use. GROUPING notes are for whoever maintains book.json (they are printed
+# at the end of the run and acted on there), so they do not reach the page; the cap labels are put in plain words.
+WORKING_LABEL = [(r"^CAP CANDIDATE \(proprietary scale\):\s*", "In-house platform at national scale: "), (r"^CAP CANDIDATE \(recent platform\):\s*", "Recently replatformed: "),
+                 (r"^CAP CANDIDATE[^:]*:\s*", "Hard to convert: ")]
 def clean_flags(flags):
     """Drop flags that only restate CRM presence, and take the shouting out of an all-caps lead-in."""
     out = []
     for f in flags:
-        if CRM_PRESENCE.search(f): continue
+        if CRM_PRESENCE.search(f) or f.startswith("GROUPING:"): continue
+        for pat, word in WORKING_LABEL:
+            if re.match(pat, f):
+                f = re.sub(pat, word, f); break
         out.append(plain(re.sub(r"^([A-Z][A-Z ]{6,}):", lambda m: m.group(1).capitalize().replace("apollo", "Apollo") + ":", f)))
     return out
 
@@ -158,8 +183,11 @@ for name, a in inputs.items():
     f = a["fire"]
     f_scored = BLANK_FIRE if name in SIGNAL_MISATTRIBUTED else f
     common = {"name": name, "display": DISPLAY.get(name, name), "domain": a["domain"], "website": a["website"], "linkedin": a["linkedin"], "book_domain": a["book_domain"],
-              "domain_note": a["domain_note"], "group": group_of.get(name, ""), "fire": f, "signals_raw": a["signals_raw"],
+              "domain_note": a["domain_note"], "group": group_of.get(name, ""), "family": family_of.get(name, ""), "fire": f, "signals_raw": a["signals_raw"],
               "fire_days_since_signal": days_since(f["last_signal"]), "in_sfdc": a["in_sfdc"]}
+    # the side-by-side platform read, the live check and extra storefronts, when the book was built with them
+    for k in ("platform_read", "live", "other_storefronts", "book_name"):
+        if a.get(k): common[k] = a[k]
     if not r:
         out.append({**common, "missing": True, "tier": "NA", "shopify_fit": None, "anatta_fit": None, "triangle": None, "gate": "", "gate_reason": ""})
         continue
@@ -236,6 +264,10 @@ for name, a in inputs.items():
     })
 
 out.sort(key=lambda x: (x["triangle"] is None, -(x["triangle"] or 0), x["name"]))
+# Sister rows (same decision or same owner) that already run Shopify: a warm bridge, shown on the record, never scored.
+for x in out:
+    mates = [y for y in out if y is not x and not y["missing"] and ((x["group"] and y["group"] == x["group"]) or (x["family"] and y["family"] == x["family"]))]
+    x["shopify_in_family"] = [{"name": y["display"], "plat": y["plat"]} for y in mates if y["plat"] in ("Shopify", "Shopify Plus")]
 
 # ---------- assertions: the quality bar, enforced ----------
 SH_MAX = {"whitespace": 25, "scale": 20, "model_fit": 20, "unified": 15, "timing": 10, "ecosystem": 10}
@@ -279,6 +311,22 @@ summary = {"accounts": len(out), "scored": len(scored), "missing": [x["name"] fo
            "verification": book.get("verification", "web")}   # "web" = verifiers searched; "consistency" = checked each record against its own evidence
 no_bw = [a["name"] for a in inputs.values() if "note" in a["builtwith"]]
 summary["no_builtwith"], summary["no_builtwith_names"] = len(no_bw), [DISPLAY.get(n, n) for n in no_bw]
+summary["families"], summary["family_rows"] = len(FAMILIES), len(family_of)
+summary["triaged_by"] = dict(collections.Counter(x["category"] for x in scored if x["source"] == "triage.json"))
+summary["lede_note"], summary["method_notes"] = book.get("lede_note", ""), book.get("method_notes", [])
+if any(a.get("platform_read") for a in inputs.values()):     # built with Store Leads and/or the live check
+    v = [a["platform_read"]["verdict"] for a in inputs.values()]
+    lv = [a.get("live", {}) for a in inputs.values()]
+    summary["sources"] = {
+        "platform_read": {"agree3": sum(x.startswith("3 sources agree") for x in v), "agree2": sum(x.startswith("2 sources agree") for x in v),
+                          "single": sum(x.startswith("1 source") for x in v), "disagree": sum(x.startswith("Sources disagree") for x in v),
+                          "none": sum(x.startswith("No source") for x in v)},
+        "live": {"date": next((l["checked"] for l in lv if l.get("checked")), ""), "checked": sum(1 for l in lv if l), "loaded": sum(l.get("result") == "page loaded" for l in lv),
+                 "walled": sum("bot wall" in l.get("result", "") for l in lv), "failed": sum("did not answer" in l.get("result", "") for l in lv)},
+        "storeleads": {"with_platform": sum(1 for a in inputs.values() if a["storeleads"].get("Platform")), "with_sales": sum(1 for a in inputs.values() if a["storeleads"].get("Estimated yearly sales"))},
+        "extra_storefronts": sum(len(a.get("other_storefronts", [])) for a in inputs.values()),
+        "apollo_gmv_rows": sum(1 for a in inputs.values() if a["storeleads"].get("Est. GMV (storeleads)")),
+    }
 summary["fire"]["recency_window"] = recency_window([(x["fire"]["last_signal"], x["fire"]["recency"]) for x in out])
 if os.path.exists(f"{B}/batches/index.json"):
     depth = collections.Counter()
@@ -292,6 +340,10 @@ for x in scored[:30]:
 print("\nPLATFORM FAMILY (check by eye):")
 for fam, rows in sorted(collections.Counter(x["plat"] for x in scored).items(), key=lambda kv: -kv[1]): print(f"  {rows:2d} {fam}")
 for x in sorted(scored, key=lambda x: x["plat"]): print(f'  {x["plat"][:24]:24s} | {x["name"][:30]:30s} | {x["platform"][:110]}')
+notes = [(n, f) for n, r in records.items() for f in r.get("flags", []) if f.startswith(("GROUPING:", "CAP CANDIDATE"))]
+if notes:
+    print("\nNOTES FOR book.json (grouping corrections and cap candidates raised by research):")
+    for n, f in sorted(notes, key=lambda x: (x[1][:3], x[0])): print(f"  {n[:32]:32s} | {f[:230]}")
 print("\nGATED:")
 for x in scored:
     if x["tier"] in ("X", "EXP"): print(f'{x["tier"]:3s} {x["name"][:34]:34s} gate={x["gate"]:13s} {x["gate_reason"][:90]}')
