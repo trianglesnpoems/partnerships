@@ -32,12 +32,15 @@ const check = (ok, what, detail) => { if (ok) passes++; else fails.push(what + (
       const open = nm => pg.evaluate(n => { const el = [...document.querySelectorAll('[data-focus]')].find(e => e.dataset.focus === n); if (el) el.click(); return !!el; }, nm);
       const data = await pg.evaluate(() => JSON.parse(document.getElementById('data').textContent));
       const HB = data.heartbeat, ranked = HB.ranked, n = ranked.length;
+      const REACH = HB.reach || null, ASIDE = [...(HB.long || []), ...(HB.later || []), ...(HB.out || [])];      // with the reach test: who is ranked, and who is set aside
+      const WORD = {long: 'Long odds', later: 'Not now', out: 'Out of reach'};
       check(data.internal === (edition === 'internal'), `${tag}: the file is the ${edition} edition`);
 
       // overview: the ranking first, in score order, with the scores the data holds
       check(await fits(), `${tag}: the overview fits the screen width`);
       const rows = await pg.evaluate(() => [...document.querySelectorAll('#hb-top tbody tr.row:not(.readrow), #hb-rest tbody tr.row:not(.readrow)')].map(r => [+r.querySelector('.hbrank').textContent, r.querySelector('strong').textContent, +r.querySelector('td.num b').textContent, r.dataset.focus]));
-      const want = ranked.slice().sort((a, b) => b.priority - a.priority || b.motion - a.motion || b.fit - a.fit);
+      const want = REACH ? ranked.slice() : ranked.slice().sort((a, b) => b.priority - a.priority || b.motion - a.motion || b.fit - a.fit);     // qa.py recomputes the order of a reach ranking
+      if (REACH) check(want.every((r, i) => !i || want[i - 1].priority >= r.priority), `${tag}: the ranking never steps up in score`);
       check(JSON.stringify(rows.map(r => r[1])) === JSON.stringify(want.map(r => r.display)), `${tag}: the ranking lists every company in score order`, rows.slice(0, 3));
       check(JSON.stringify(rows.map(r => r[2])) === JSON.stringify(want.map(r => r.priority)), `${tag}: the scores on the ranking match the data`);
       check(JSON.stringify(rows.map(r => r[0])) === JSON.stringify(want.map((r, i) => i + 1)), `${tag}: ranks run 1 to ${n}`);
@@ -46,6 +49,11 @@ const check = (ok, what, detail) => { if (ok) passes++; else fails.push(what + (
       check(eyebrow.includes('not for partners'), `${tag}: marked Not for partners`, eyebrow);
       check((await pg.locator('#ov-h1').innerText()).includes(String(data.accounts.length)), `${tag}: the headline counts every account`);
       check(await pg.locator('#hb-top .hbbar').count() === Math.min(10, n), `${tag}: every row in the ten shows where its score comes from`);
+      if (REACH) {
+        const shownAside = await pg.evaluate(() => [...document.querySelectorAll('#hb-aside [data-aside]')].map(e => e.dataset.aside));
+        check(JSON.stringify(shownAside) === JSON.stringify(ASIDE.map(r => r.group)), `${tag}: every company set aside is listed with its reason, in order`, [shownAside.length, ASIDE.length]);
+        check((await pg.locator('#ov-h1').innerText()).includes(String(n)), `${tag}: the headline says how many companies can move`);
+      }
       const outsideRows = await pg.locator('#hb-outside tbody tr').count();
       check(outsideRows === HB.outside.length, `${tag}: every company outside the ICP is listed`, [outsideRows, HB.outside.length]);
       await pg.evaluate(() => document.querySelectorAll('#v-overview details').forEach(d => { d.open = true; }));
@@ -77,13 +85,27 @@ const check = (ok, what, detail) => { if (ok) passes++; else fails.push(what + (
         check(got && got.name === r.lead, `${tag}: ${r.display} opens its record`, got && got.name);
         if (!got) continue;
         const t = (got.hb || got.all).toLowerCase(), has = x => t.includes(x.toLowerCase());     // headings are set in capitals by their style
-        check(has(`Heartbeat score · ${r.priority} · rank ${r.rank} of ${n}`), `${tag}: ${r.display} shows its score and rank`);
-        check(has(`Why a partner moves · ${r.motion}`) && has(`Anatta fit · ${r.fit}`) && has(`Timing · ${r.timing}`) && has(`Potential · ${r.potential}`), `${tag}: ${r.display} shows four measures`);
+        check(has(REACH ? `Score · ${r.priority} · rank ${r.rank} of ${n}` : `Heartbeat score · ${r.priority} · rank ${r.rank} of ${n}`), `${tag}: ${r.display} shows its score and rank`);
+        check(has(REACH ? `Way in · ${r.motion}` : `Why a partner moves · ${r.motion}`) && has(`Anatta fit · ${r.fit}`) && has(REACH ? `Opening · ${r.timing}` : `Timing · ${r.timing}`) && has(`Potential · ${r.potential}`), `${tag}: ${r.display} shows four measures`);
+        if (REACH) check(has(`The Heartbeat score alone gave ${r.hb.priority}, rank ${r.hb.rank} of ${REACH.scored}`), `${tag}: ${r.display} keeps the score the Heartbeat alone gave it`);
+        if (REACH) check((r.signals || []).every(s => has(s.text)), `${tag}: ${r.display} lists the dated signals its opening rests on`);
         check(has('Shop Pay:'), `${tag}: ${r.display} has the Shop Pay wedge`);
         check(has('Subscription · +10') === !!r.bonus, `${tag}: ${r.display} subscription bonus line`);
         check(!got.wide && await fits(), `${tag}: ${r.display} record fits the screen width`);
         if (got.hb) text.push([tag, `${r.display} / Heartbeat record`, got.hb, true]);
         if (r.rank <= 12) text.push([tag, `${r.display} / full record`, got.all, false]);
+      }
+      for (const r of ASIDE) {       // set aside: the record says so, gives the reason and keeps the earlier score
+        await open(r.lead); await pg.waitForTimeout(90);
+        const got = await pg.evaluate(() => { const row = document.querySelector('#tbody tr.row[aria-expanded="true"]'); const det = row && row.nextElementSibling; const hb = det && det.querySelector('.hbrec'); return row ? { name: row.dataset.n, hb: hb ? hb.innerText : '', wide: det ? det.scrollWidth > det.clientWidth + 1 : false } : null; });
+        check(got && got.name === r.lead, `${tag}: ${r.display} opens its record`, got && got.name);
+        if (!got) continue;
+        const t = got.hb.toLowerCase(), has = x => t.includes(x.toLowerCase()), st = r.reach.state;
+        check(has(st === 'long' ? 'Listed apart · Long odds' : `Not ranked · ${WORD[st]}`) && has(r.reach.why), `${tag}: ${r.display} is shown as ${WORD[st].toLowerCase()}, with the reason`);
+        check(has(`The Heartbeat score alone gave ${r.hb.priority}, rank ${r.hb.rank} of ${REACH.scored}`), `${tag}: ${r.display} keeps the score the Heartbeat alone gave it`);
+        check(st === 'long' ? has(`Score · ${r.priority}`) : !has('Score · ') || has('The Heartbeat score alone'), `${tag}: ${r.display} shows a score only where one was computed`);
+        check(!got.wide && await fits(), `${tag}: ${r.display} record fits the screen width`);
+        text.push([tag, `${r.display} / record of a company set aside`, got.hb, true]);
       }
       for (const r of HB.outside) {
         await open(r.lead); await pg.waitForTimeout(80);

@@ -189,6 +189,33 @@ python3 pipeline/qa.py --internal <out>/<slug>-internal.html --shareable <out>/<
     --ids-from <the CRM export>.csv [--scrub <scrub.json>]
 ```
 
+### A list nobody pre-qualified: reach first
+
+The Heartbeat score was built on a Shopify seller's account list. There every company is already in reach, and every
+scale is a floor: $200M online is full marks, and so is 500 stores. On an internal list that also holds national
+retailers, the largest company fills every scale and comes first, although its own research note says its store
+cannot be moved. Nothing in the score asks whether a store can be won, and in a sum a closed door costs 20 points at
+most. Three smaller faults ride along: a FIRE reading counted twice (in timing, and again as the trigger on partner
+moves), a reading that means less the larger the company is, and a finished rebuild that lowers timing and nothing else.
+
+`reach_rank.py` puts one question in front of the score and rebuilds timing from first-hand evidence:
+
+| Step | Script | What it does |
+|---|---|---|
+| H10 | `reach_rank.py` | Reads `reach.json` (one call per company inside the ICP, with its reason: open, long odds, not now, out of reach) and `signals.json` (the company's own dated actions, each in a class: a decision said to be open, a new owner or chief, a technology or e-commerce chief changing, another senior change, growth, software its vendor has frozen). Only the companies that can move are ranked. The score keeps the Heartbeat's weights and its fit, potential, Shop Pay lift and subscription rule. The opening keeps the Heartbeat's split of timing (60% research, 40% FIRE), but the research share counts classified first-hand signals only. The way in is partner motion with one change: a FIRE reading is not a trigger. It also writes the first ten under four weightings of the opening, to show how much the order depends on the weights. |
+| H11 | `assemble.py --openings openings.json [--fixes fixes.json]` | Leads the page with that ranking, lists the companies set aside with the reason for each, and keeps the score the Heartbeat alone gave every company on its record. `--fixes` applies corrections found after the research was written; one that matches nothing stops the build. |
+| H12 | `qa.py --reach reach.json --signals signals.json --as-of YYYY-MM-DD` | Recomputes the opening, the way in, the score and the order in a second implementation, and checks that every company the Heartbeat scored is ranked or set aside once. |
+
+The reach calls and the signal classes are judgments, so each is written down with its reason and its source, and the
+page shows them. Scores round halves up on exact arithmetic, so the number on the page is the one a reader gets by hand.
+
+```bash
+python3 pipeline/reach_rank.py --rescored <Heartbeat Source>/data/<seller>/rescored.json --book <Heartbeat Source>/data/<seller>/book.json \
+    --reach <reach.json> --signals <signals.json> --as-of 2026-11-19 --out <build>/openings.json
+python3 pipeline/assemble.py <build>/scored.json <out> --heartbeat ... --heartbeat-insights <insights.json> --openings <build>/openings.json [--fixes <fixes.json>]
+python3 pipeline/qa.py ... --reach <reach.json> --signals <signals.json> --as-of 2026-11-19
+```
+
 ## Scoring in one paragraph
 
 Shopify fit = platform whitespace 25 + commerce scale 20 + business-model fit 20 + unified-commerce surface 15 +
@@ -231,6 +258,15 @@ lists it under "Where Shopify is already inside"; it is never part of the score.
 - **Old signal.** The newest FIRE signal is 57 days older than the exports. Researchers and verifiers treated a FIRE
   signal or an In-market flag as soft unless public evidence backed it.
 - **No contacts export**, so no hub map and no named people.
+- **Reach first.** The list turned out to be internal, not one seller's, and the Heartbeat score alone put the
+  largest retailer on it first. With the reach test in front, 34 of the 69 companies inside the ICP are ranked; 24 are
+  out of reach, 10 chose or rebuilt a platform inside two years and 1 is listed apart at long odds. Seven of the
+  Heartbeat's first ten were among those set aside. Four companies have a decision said to be open, under two owners.
+  The same four come first with the opening weighted 20%, 30%, 40% or 50%: the weights were not the cause.
+- **A deadline that had been withdrawn.** The research gave a vendor's removal date for an older storefront, from an
+  integrator's article. Two later articles said the vendor had dropped the date four months before. The check that
+  found this also found the same storefront, first-hand, at two more companies on the list. A dated claim about a
+  vendor is re-read against the newest source before it is used as an opening.
 
 ## What was specific to CT's book
 

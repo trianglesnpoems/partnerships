@@ -3,7 +3,7 @@
     python3 qa.py --internal out/<slug>-internal.html --shareable out/<slug>-shareable.html \\
         --source <Heartbeat Source folder> --seller <slug> --issue <its issues/....json> \\
         [--facts partner_facts.json] [--csv-internal a.csv --csv-shareable b.csv] [--ids-from <the CRM export>.csv] \\
-        [--scrub scrub.json] [--no-page]
+        [--scrub scrub.json] [--reach reach.json --signals signals.json --as-of YYYY-MM-DD] [--no-page]
 
 It follows the Heartbeat Source's own tools/qa.py, on the page this pipeline builds.
 
@@ -17,6 +17,11 @@ Part 2, the page (needs Playwright for Node; qa_page.js beside this file). Both 
 script errors, nothing wider than the screen, the ranking in score order, every ranked company opens with its score,
 links open safely, and no banned wording anywhere a reader can see.
 
+With --reach, --signals and --as-of the page was built with the reach test in front (reach_rank.py). Then every company
+the Heartbeat scored must be ranked or set aside with its reason, the Heartbeat's own numbers are checked where the page
+keeps them, and the opening, the way in, the score and the order are recomputed here from the reach calls, the signals,
+the moves and the research: a second implementation, not a call to reach_rank.py.
+
 The Heartbeat wording rules are applied in full to everything the Heartbeat layer shows. The triangulation underneath
 was written to the triangulation template, which calls the account list "the book", so that one phrase is counted
 there and reported, not failed.
@@ -29,6 +34,7 @@ ap.add_argument('--source', required=True, help='the Heartbeat Source folder (to
 ap.add_argument('--seller', required=True); ap.add_argument('--issue', required=True)
 ap.add_argument('--facts'); ap.add_argument('--csv-internal'); ap.add_argument('--csv-shareable'); ap.add_argument('--ids-from')
 ap.add_argument('--scrub', help="the book's scrub list given to assemble.py: nothing it removes may be left")
+ap.add_argument('--reach'); ap.add_argument('--signals'); ap.add_argument('--as-of')
 ap.add_argument('--no-page', action='store_true')
 A = ap.parse_args()
 os.environ['HB_SELLER'] = A.seller
@@ -131,10 +137,18 @@ for a in book['accounts']:
     if not a.get('gate'):
         groups.setdefault(a.get('group') or a['name'], []).append(a)
 scored = {r['group']: r for r in R['ranked']}
-onpage = {r['group']: r for r in HB['ranked']}
-check(list(onpage) == [r['group'] for r in R['ranked']], 'the page ranks the same companies in the same order as the scored list')
-order = sorted(HB['ranked'], key=lambda r: (-r['priority'], -r['motion'], -r['fit']))
-check([r['group'] for r in order] == list(onpage), 'the ranking is in score order, ties by partner motion then Anatta fit')
+REACHM = HB.get('reach')        # the reach test went first: the page ranks those that can move and sets the rest aside
+check(bool(REACHM) == bool(A.reach), 'the page and this run agree on whether the reach test was applied', (bool(REACHM), bool(A.reach)))
+ASIDE = HB.get('long', []) + HB.get('later', []) + HB.get('out', [])
+onpage = {r['group']: r for r in HB['ranked'] + ASIDE}
+hbv = lambda r, k: r['hb'][k] if REACHM else r[k]       # the Heartbeat's own number for a row, wherever the page keeps it
+if REACHM:
+    check(sorted(onpage) == sorted(scored) and len(onpage) == len(HB['ranked']) + len(ASIDE), 'every company the Heartbeat scored is ranked or set aside, once', sorted(set(onpage) ^ set(scored)))
+    check([hbv(r, 'rank') for r in sorted(onpage.values(), key=lambda r: hbv(r, 'rank'))] == list(range(1, len(scored) + 1)), "the Heartbeat's own ranks are kept, 1 to n")
+else:
+    check(list(onpage) == [r['group'] for r in R['ranked']], 'the page ranks the same companies in the same order as the scored list')
+    order = sorted(HB['ranked'], key=lambda r: (-r['priority'], -r['motion'], -r['fit']))
+    check([r['group'] for r in order] == list(onpage), 'the ranking is in score order, ties by partner motion then Anatta fit')
 check([r['rank'] for r in HB['ranked']] == list(range(1, len(HB['ranked']) + 1)), 'ranks run 1 to n with no gap')
 MOTIVES = {'Displacement', 'Portfolio', 'Better together'}
 REL = {p['name'] for p in (REG.get('partners') if isinstance(REG, dict) else REG) or [] if p.get('rel')}
@@ -162,16 +176,16 @@ for g, r in onpage.items():
         check(r.get(k) == e.get(k), f'{g}: {k} on the page is the researched figure', (r.get(k), e.get(k)))
     base = round(100 * (0.6 * lead['shopify_sub']['timing'] / 10 + 0.4 * max(0, lead['anatta_sub']['intent'] - 2) / 18))
     base = EXTRAS.get(g, {}).get('timing', base)
-    check(r['timingBase'] == base, f'{g}: timing before the lift', (r['timingBase'], base))
+    check(hbv(r, 'timingBase') == base, f'{g}: timing before the lift', (hbv(r, 'timingBase'), base))
     check(e.get('shopPay') in ('yes', 'partly', 'no') and r['shopPay'] == e.get('shopPay'), f'{g}: Shop Pay fit matches the research', (r['shopPay'], e.get('shopPay')))
     check(bool(e.get('shopPayWhy')), f'{g}: Shop Pay fit has its reason')
     t = min(100, base + pot.LIFT[e.get('shopPay', 'no')])
-    check(r['timing'] == t == x['timing'], f'{g}: timing with the Shop Pay lift', (r['timing'], t))
+    check(hbv(r, 'timing') == t == x['timing'], f'{g}: timing with the Shop Pay lift', (hbv(r, 'timing'), t))
     moves = EXTRAS.get(g, {}).get('moves', [])
     shown = lambda m: {k: m.get(k) for k in ('partner', 'motives', 'live', 'evidence', 'gap', 'trigger', 'triggerDate')}
     check([shown(m) for m in r['moves']] == [shown(m) for m in moves], f'{g}: the moves on the page are the moves that were scored')
     mo = motion(moves)
-    check(r['motion'] == mo == x['motion'], f'{g}: partner motion recomputes from the moves', (r['motion'], mo))
+    check(hbv(r, 'motion') == mo == x['motion'], f'{g}: partner motion recomputes from the moves', (hbv(r, 'motion'), mo))
     for m in moves:
         check(set(m['motives']) <= MOTIVES and m['motives'], f'{g}: {m["partner"]} motives are from the three', m['motives'])
         check(not m.get('triggerDate') or re.fullmatch(r'20\d\d-(0[1-9]|1[0-2])', m['triggerDate']), f'{g}: {m["partner"]} trigger date is YYYY-MM', m.get('triggerDate'))
@@ -180,17 +194,91 @@ for g, r in onpage.items():
         if REL:
             check(m['partner'] in REL, f'{g}: {m["partner"]} is a partner in the registry')
     best = sorted(moves, key=lambda m: -move_score(m))[0] if moves else None
-    check((r['first'] or None) == ([best['partner'], move_score(best)] if best else None), f'{g}: partner to move first', r['first'])
+    if not REACHM:
+        check((r['first'] or None) == ([best['partner'], move_score(best)] if best else None), f'{g}: partner to move first', r['first'])
     check(r['subscription'] == e.get('subscription', 'none') and r['subscription'] in ('live', 'ended', 'none'), f'{g}: subscription state matches the research', (r['subscription'], e.get('subscription')))
     b = pot.bonus(e)
     live_bonus += 1 if b else 0
     check(r['bonus'] == b, f'{g}: subscription bonus', (r['bonus'], b))
     check(r['subscription'] == 'none' or bool(e.get('subscriptionNote')), f'{g}: a live or ended program names its evidence')
     score = min(100, round(W['motion'] * mo + W['fit'] * f + W['timing'] * t + W['potential'] * p) + b)
-    check(r['priority'] == score == x['priority'], f'{g}: score recomputes', (r['priority'], score))
+    check(hbv(r, 'priority') == score == x['priority'] and hbv(r, 'rank') == x['rank'], f'{g}: the Heartbeat score recomputes', (hbv(r, 'priority'), score))
 out_groups = {g for g in groups if icp.GROUPS.get(g) and icp.segment(icp.GROUPS[g]) == 'Outside'} | {g for g in groups if not icp.GROUPS.get(g) and icp.segment(icp.default(max(groups[g], key=lambda a: a['triangle']))) == 'Outside'}
 check({r['group'] for r in HB['outside']} == out_groups, 'every company outside the ICP is listed and none is ranked', sorted({r['group'] for r in HB['outside']} ^ out_groups))
 check(set(onpage) | out_groups == set(groups), 'every ungated company is ranked or listed as outside', sorted(set(groups) - set(onpage) - out_groups))
+
+# ---- the reach test and the ranking built on it, recomputed here from the inputs
+if REACHM and A.reach and A.signals and A.as_of:
+    REACH_IN, SIG_IN = J(A.reach), J(A.signals)
+    today = datetime.date.fromisoformat(A.as_of); now = today.year * 12 + today.month - 1
+    CLS = {'decision': 1.0, 'mandate': 0.75, 'tech-lead': 0.6, 'leader': 0.3, 'growth': 0.15}
+    check(REACHM['classes'] == CLS and REACHM['frozen'] == 0.15 and REACHM['family'] == 15 and REACHM['shares'] == {'research': 60, 'fire': 40}, 'the signal classes, the shares and the two additions are the documented ones', REACHM['classes'])
+    check(REACHM['as_of'] == A.as_of and REACHM['scored'] == len(scored), 'the page states the day the signals were read as of and how many companies were scored')
+    up = lambda v: int(v + 0.5 + 1e-9)
+    want_list = {'open': 'ranked', 'long': 'long', 'later': 'later', 'out': 'out'}
+    where = {r['group']: k for k in ('ranked', 'long', 'later', 'out') for r in HB.get(k, [])}
+    check(set(REACH_IN) == set(onpage), 'a reach call is on file for every company inside the ICP', sorted(set(REACH_IN) ^ set(onpage)))
+    check(set(SIG_IN) <= set(onpage), 'every signal belongs to a company inside the ICP', sorted(set(SIG_IN) - set(onpage)))
+    rescored = {}
+    for g, r in onpage.items():
+        rc = REACH_IN.get(g) or {}; sig = SIG_IN.get(g, [])
+        check(rc.get('state') in want_list and where[g] == want_list.get(rc.get('state')), f'{g}: listed where its reach call puts it', (rc.get('state'), where[g]))
+        check(r['reach'].get('state') == rc.get('state') and r['reach'].get('why') == rc.get('why') and r['reach'].get('again') == rc.get('again') and r['reach'].get('note') == rc.get('note'), f'{g}: the reach call on the page is the one on file')
+        if rc.get('state') != 'open':
+            check(bool(rc.get('why')) and len(rc['why']) <= 230, f'{g}: a company that is not ranked says why, in one line', rc.get('why'))
+        if rc.get('state') == 'later':
+            check(bool(re.fullmatch(r'20\d\d', rc.get('again') or '')), f'{g}: a company set aside for now says when to look again', rc.get('again'))
+        check(r['signals'] == sig, f'{g}: the signals on the page are the signals on file')
+        for s in sig:
+            check(s.get('cls') in CLS or s.get('cls') == 'frozen', f'{g}: a signal has a known class', s.get('cls'))
+            check(bool(re.fullmatch(r'20\d\d-(0[1-9]|1[0-2])', s.get('date') or '')), f'{g}: a signal is dated YYYY-MM', s.get('date'))
+            check(bool(s.get('text')) and re.search(r'\d', s['text'][:40]) is not None, f'{g}: a signal starts with its date', s.get('text'))
+            check(s.get('source') is None or re.match(r'https?://', s['source']), f'{g}: a signal\'s source is a link or is named in its text', s.get('source'))
+        recs = groups[g]; lead = max(recs, key=lambda a: a['triangle']); e = POT[g]; x = scored[g]
+        live = sorted((CLS[s['cls']] * (1.0 if -9 <= now - mi(s['date']) <= 9 else 0.5 if 9 < now - mi(s['date']) <= 12 else 0.0), s['cls']) for s in sig if s['cls'] in CLS)
+        live = [v for v in reversed(live) if v[0] > 0]
+        first_hand = min(1.0, (live[0][0] if live else 0) + (0.25 * live[1][0] if len(live) > 1 else 0) + (0.15 if any(s['cls'] == 'frozen' for s in sig) else 0))
+        intent = lead['anatta_sub']['intent']; research_pts = 60 * first_hand; fire_pts = 40 * max(0, intent - 2) / 18; lift = pot.LIFT[e.get('shopPay', 'no')]
+        opening = min(100, up(research_pts + fire_pts) + lift)
+        fresh = [s['cls'] for s in sig if s['cls'] in CLS and -9 <= now - mi(s['date']) <= 9]       # a signal older than 9 months adds points and names nothing
+        lead_cls = max(fresh, key=CLS.get) if fresh else None
+        window = 'open' if lead_cls == 'decision' else 'changing' if lead_cls in ('mandate', 'tech-lead') else 'fire' if intent >= 10 else 'quiet'
+        check(r['intent'] == intent and r['opening_parts'] == {'first_hand': round(research_pts, 1), 'fire': round(fire_pts, 1), 'shop_pay': lift}, f'{g}: the parts of the opening recompute', r['opening_parts'])
+        check(r['window'] == window, f'{g}: what the opening rests on', (r['window'], window))
+        trig = any(s['cls'] in ('decision', 'mandate', 'tech-lead', 'leader') and -9 <= now - mi(s['date']) <= 9 for s in sig)
+        def mscore(m):
+            own = bool(m.get('triggerDate')) and not (m.get('trigger') or '').startswith('FIRE logged')
+            return len(set(m['motives'])) + (1 if m.get('live') else 0) + (1 if (abs(mi(m['triggerDate']) - now) <= 9 if own else trig) else 0)
+        moves = EXTRAS.get(g, {}).get('moves', [])
+        s3 = sorted((mscore(m) for m in moves), reverse=True) + [0, 0, 0]
+        mo2 = round(100 * (0.6 * s3[0] + 0.25 * s3[1] + 0.15 * s3[2]) / 5)
+        family = sorted({f['name'] for a in recs for f in (a.get('shopify_in_family') or [])})
+        path = min(100, mo2 + (15 if family else 0))
+        check(r['path_parts'] == {'motion': mo2, 'family': 15 if family else 0, 'trigger': trig} and r['family'] == family, f'{g}: the parts of the way in recompute', r['path_parts'])
+        best = max(moves, key=mscore) if moves else None
+        check((r['first'] or None) == ([best['partner'], mscore(best)] if best else None), f'{g}: partner to move first, under the first-hand trigger rule', r['first'])
+        sc = min(100, (35 * path + 30 * x['fit'] + 20 * opening + 15 * x['potential'] + 50) // 100 + pot.bonus(e))
+        rescored[g] = (sc, opening, path, x['fit'])
+        if rc.get('state') in ('open', 'long'):
+            check(r['timing'] == opening and r['motion'] == path, f'{g}: opening and way in recompute', ((r['timing'], opening), (r['motion'], path)))
+            check(r['priority'] == sc, f'{g}: score recomputes, halves up', (r['priority'], sc))
+        else:
+            check(r.get('priority') is None and r.get('rank') is None, f'{g}: a company set aside carries no score and no rank')
+    want_order = sorted((g for g in onpage if where[g] == 'ranked'), key=lambda g: tuple(-v for v in rescored[g]))
+    check([r['group'] for r in HB['ranked']] == want_order, 'the ranking is in score order, ties by opening, then way in, then Anatta fit', [r['group'] for r in HB['ranked']][:5])
+    in_reach = [g for g in onpage if where[g] == 'ranked']; bonus_of = {g: pot.bonus(POT[g]) for g in in_reach}
+    sens = {}
+    for wo in (20, 30, 40, 50):         # the same order reach_rank.py writes: the other three weights keep their proportions
+        rest = (100 - wo) / 80
+        def under(g, wo=wo, rest=rest):
+            sc, opening, path, fit = rescored[g]
+            if wo != 20:
+                sc = min(100, up((35 * rest * path + 30 * rest * fit + wo * opening + 15 * rest * scored[g]['potential']) / 100) + bonus_of[g])
+            return (-sc, -opening, -path, -fit)
+        sens[str(wo)] = sorted(in_reach, key=under)[:10]
+    check(REACHM['sensitivity'] == sens, 'the first ten under each weighting of the opening recompute', {k: v[:4] for k, v in sens.items()})
+elif REACHM:
+    fails.append('the page was built with the reach test, and this run was not given --reach, --signals and --as-of to check it')
 check(not ISSUE.get('accounts') or all(a['name'] in onpage for a in ISSUE['accounts']), 'every account on the issue is on the list')
 
 # partners: live where the partner facts say they are
@@ -233,7 +321,7 @@ INS = HB.get('insights') or {}
 caveats, used = {}, {}
 proof_lines = []          # (where, text): every line that carries Anatta proof
 for g, a in (INS.get('accounts') or {}).items():
-    check(g in onpage, f'insight for {g}: the company is ranked')
+    check(g in onpage, f'insight for {g}: the company is inside the ICP')
     for k in ('why', 'play', 'fitt', 'leadt'):
         v = a.get(k)
         if v is None:
@@ -249,7 +337,7 @@ for g, a in (INS.get('accounts') or {}).items():
         check(isinstance(row, list) and len(row) == 3 and row[0] in ('Twin', 'Peer', 'Safety'), f'{g}: a story is [Twin|Peer|Safety, client, line]', row)
         if isinstance(row, list) and len(row) == 3:
             check(client(row[1]) in GEN, f'{g}: story names a client in the Proof Genome', row[1])
-            used[row[1]] = used.get(row[1], 0) + (1 if onpage.get(g, {}).get('rank', 99) <= 10 else 0)
+            used[row[1]] = used.get(row[1], 0) + (1 if (onpage.get(g, {}).get('rank') or 99) <= 10 else 0)
             proof_lines.append((f'{g}, {row[0]}', f'{row[1]}: {row[2]}'))
     proof_lines += [(f'{g}, the move', x) for x in a.get('leadt') or []]
     proof_lines += [(f'{g}, where Anatta fits', x) for x in a.get('fitt') or []]
@@ -288,6 +376,8 @@ for row in SUBS.get('rows') or []:
     if g in onpage:
         check((row['state'] == 'live') == bool(onpage[g]['bonus']), f'subscription view: {g} is live exactly when it carries the bonus', (row['state'], onpage[g]['bonus']))
         check(row.get('rank') == onpage[g]['rank'] and row.get('priority') == onpage[g]['priority'], f'subscription view: {g} shows its rank and score')
+        aside = (onpage[g].get('reach') or {}).get('state', 'open') != 'open'
+        check(aside == bool(row.get('why_not_ranked')) and (not aside or row.get('section') in ('aside', 'ended', 'noted', 'context')), f'subscription view: {g} is marked as set aside exactly when it is', (aside, row.get('why_not_ranked'), row.get('section')))
         check(row['state'] == POT[g].get('subscription', 'none'), f'subscription view: {g} state is the researched state', (row['state'], POT[g].get('subscription')))
         counted = any(p.get('counts') and p.get('status') == 'live' for p in row.get('programs') or [])
         check(not (row.get('programs') or []) or counted == (row['state'] == 'live'), f'subscription view: {g} is live exactly when a program that counts is live')
@@ -301,7 +391,8 @@ if SUBS:
 
 # ---- the two editions, the CSVs, and nothing private
 HS = DS.get('heartbeat') or {}
-check([(r['group'], r['priority'], r['rank']) for r in HS.get('ranked', [])] == [(r['group'], r['priority'], r['rank']) for r in HB['ranked']], 'both editions carry the same ranking')
+both = lambda H: [(k, r['group'], r.get('priority'), r.get('rank')) for k in ('ranked', 'long', 'later', 'out') for r in H.get(k, [])]
+check(both(HS) == both(HB), 'both editions carry the same ranking and the same companies set aside')
 check(D.get('internal') is True and DS.get('internal') is False, 'each file is the edition it says it is')
 INTERNAL_ONLY = ('crm_note', 'in_sfdc')
 check(not any(k in a for a in DS['accounts'] for k in INTERNAL_ONLY), 'the shareable edition carries no internal-only field')
@@ -342,22 +433,30 @@ for path, edition in ((A.csv_internal, 'internal'), (A.csv_shareable, 'shareable
     check(not re.search(r'[\w.+-]+@[\w-]+\.[a-z]{2,}', raw), f'no email address in the {edition} CSV')
     if edition == 'shareable':
         check('in_salesforce' not in rows[0] and 'crm_note' not in rows[0], 'the shareable CSV carries no internal-only column')
-    by_lead = {r['lead']: r for r in HB['ranked']}
     gated = {a['name'] for a in book['accounts'] if a.get('gate')}
-    in_group = {n: r for r in HB['ranked'] for n in r['rows'] if n not in gated}
+    in_group = {n: r for r in HB['ranked'] + ASIDE for n in r['rows'] if n not in gated}
+    RANK_COL = 'rank' if REACHM else 'heartbeat_rank'
     bad = []
     for row in rows:
         r = in_group.get(row['name'])
         if r is None:
-            if row.get('heartbeat_rank'):
+            if row.get(RANK_COL):
                 bad.append((row['name'], 'has a rank but is not ranked'))
             continue
-        want = {'heartbeat_rank': str(r['rank']), 'heartbeat_score': str(r['priority']), 'heartbeat_segment': r['segment'], 'partner_motion': str(r['motion']),
-                'anatta_icp_fit': str(r['fit']), 'heartbeat_timing': str(r['timing']), 'potential': str(r['potential'])}
+        s = lambda v: '' if v is None else str(v)
+        if REACHM:
+            ranked_row = r['reach']['state'] in ('open', 'long')
+            want = {'reach': {'open': 'in reach', 'long': 'long odds', 'later': 'not now', 'out': 'out of reach'}[r['reach']['state']], 'rank': s(r['rank']), 'score': s(r['priority']),
+                    'way_in': s(r['motion']) if ranked_row else '', 'opening': s(r['timing']) if ranked_row else '', 'anatta_icp_fit': s(r['fit']), 'potential': s(r['potential']),
+                    'heartbeat_rank_alone': s(r['hb']['rank']), 'heartbeat_score_alone': s(r['hb']['priority'])}
+            check(all(k in row for k in want), f'{edition} CSV carries the reach columns', [k for k in want if k not in row][:3])
+        else:
+            want = {'heartbeat_rank': str(r['rank']), 'heartbeat_score': str(r['priority']), 'heartbeat_segment': r['segment'], 'partner_motion': str(r['motion']),
+                    'anatta_icp_fit': str(r['fit']), 'heartbeat_timing': str(r['timing']), 'potential': str(r['potential'])}
         diff = {k: (row.get(k), v) for k, v in want.items() if k in row and str(row.get(k)) != v}
         if diff:
             bad.append((row['name'], diff))
-    check(not bad, f'{edition} CSV Heartbeat columns match the page', bad[:3])
+    check(not bad, f'{edition} CSV ranking columns match the page', bad[:3])
 
 # ---------------------------------------------------------------- Part 2: the page
 ran = False

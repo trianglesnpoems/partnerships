@@ -24,10 +24,19 @@ masked to its domain, an em dash becomes a comma, "AE" becomes "seller", and Bui
 builds for an account, which is never shown. Links are left alone, so a source stays a source. The build prints what
 each rule changed. --title, --label and --slug replace the ones the scored book carries.
 
+--openings openings.json (written by reach_rank.py) is for a list nobody pre-qualified. The reach test goes first: the
+companies that can move are ranked on the score reach_rank.py built from first-hand signals, and the rest are listed
+with the reason they are set aside. Each row keeps the Heartbeat's own score beside it, under "hb".
+
+--fixes fixes.json applies corrections found after the research was written, each with its reason:
+  {"reason": "...", "fixes": [{"account": name, "find": "exact text", "replace": "..."},
+                              {"account": name, "match": "regex", "unless": "text", "append": "..."}]}
+A correction that matches nothing stops the build.
+
 Usage: assemble.py <scored.json> <out_dir> [<hubs.json> <libs_dir>] [--heartbeat rescored.json --potential potential.json
                     --heartbeat-extras book_extras.json --heartbeat-notes notes.json --heartbeat-insights insights.json
                     --proof <Heartbeat Source>/shared/anatta.json]
-                    [--scrub scrub.json] [--title "..."] [--label "..."] [--slug ...]
+                    [--openings openings.json] [--fixes fixes.json] [--scrub scrub.json] [--title "..."] [--label "..."] [--slug ...]
   libs_dir holds node_modules/d3, node_modules/topojson-client, node_modules/us-atlas and na-countries-50m.json
   (see prune_countries.js)."""
 import csv, json, sys, os, re, copy, collections, html as _html
@@ -37,6 +46,7 @@ def opt(flag):
         i = argv.index(flag); v = argv[i + 1]; del argv[i:i + 2]; return v
 BEAT_P, POT_P, BEAT_NOTES_P, EXTRAS_P = opt("--heartbeat"), opt("--potential"), opt("--heartbeat-notes"), opt("--heartbeat-extras")
 INSIGHTS_P, SCRUB_P, TITLE_O, LABEL_O, SLUG_O, PROOF_P = opt("--heartbeat-insights"), opt("--scrub"), opt("--title"), opt("--label"), opt("--slug"), opt("--proof")
+OPEN_P, FIXES_P = opt("--openings"), opt("--fixes")
 scored_p, OUT = argv[:2]
 hubs_p, LIB = (argv[2], argv[3]) if len(argv) > 3 else (None, None)
 here = os.path.dirname(os.path.abspath(__file__))
@@ -82,6 +92,18 @@ def tidy(x, key=None):
         x, n = re.subn(pat, to, x)
         if n: tidied[why] += n
     return x[:1].upper() + x[1:] if x[:4] in ("the ", "an o", "its ") and key in ("claim", "reason") else x
+if FIXES_P:      # corrections found after the research was written, applied before anything is shown
+    FX = json.load(open(FIXES_P, encoding="utf-8")); acc_by = {a["name"]: a for a in sc["accounts"]}
+    def _walk(x, fn): return {k: _walk(v, fn) for k, v in x.items()} if isinstance(x, dict) else [_walk(v, fn) for v in x] if isinstance(x, list) else fn(x) if isinstance(x, str) else x
+    for f in FX["fixes"]:
+        hits = []
+        def fn(s, f=f, hits=hits):
+            if "find" in f and f["find"] in s: hits.append(1); return s.replace(f["find"], f["replace"])
+            if "match" in f and re.search(f["match"], s) and f.get("unless", "\x00") not in s and f["append"] not in s: hits.append(1); return s.rstrip() + " " + f["append"]
+            return s
+        a = acc_by[f["account"]]; new = _walk(a, fn); a.clear(); a.update(new)
+        assert hits, f'correction matched nothing at {f["account"]}: {f.get("find") or f.get("match")}'
+    print(f'corrections applied after the research: {len(FX["fixes"])} at {len({f["account"] for f in FX["fixes"]})} accounts')
 for a in sc["accounts"]:
     for k in HIDDEN_STACK_KEYS:
         if (a.get("builtwith") or {}).pop(k, None) is not None: tidied["BuiltWith's Agency field left out"] += 1
@@ -144,9 +166,31 @@ if BEAT_P:
     got = [r["group"] for r in beat["ranked"] + beat["outside"]]
     assert sorted(got) == sorted(open_groups), "the Heartbeat ranking and the book do not list the same companies"
     assert [r["rank"] for r in beat["ranked"]] == list(range(1, len(beat["ranked"]) + 1))
-    beat_of = {n: r for r in beat["ranked"] + beat["outside"] for n in r["rows"]}
+    if OPEN_P:      # the reach test goes first; the companies that can move are ranked on the score reach_rank.py built
+        O = json.load(open(OPEN_P, encoding="utf-8")); hb_rows = {r["group"]: r for r in beat["ranked"]}
+        assert sorted(x["group"] for k in ("ranked", "long", "later", "out") for x in O[k]) == sorted(hb_rows), "the reach ranking and the Heartbeat ranking do not cover the same companies"
+        assert O["weights"] == {"path": W["motion"], "fit": W["fit"], "opening": W["timing"], "potential": W["potential"]}, "the reach ranking was not scored with the Heartbeat's weights"
+        def reach_row(x):
+            d = hb_rows[x["group"]]
+            d["hb"] = {k: d[k] for k in ("rank", "priority", "motion", "timing", "timingBase")}       # the Heartbeat's own numbers, kept for comparison
+            d["reach"] = {k: x[k] for k in ("state", "kind", "why", "again", "note") if x.get(k)}
+            d.update({k: x[k] for k in ("window", "signals", "opening_parts", "path_parts", "family", "intent", "first")})
+            d["fire"] = {k: v for k, v in x["fire"].items() if k != "signals"}      # the exported topic labels stay on the first pass's record, shown as exported
+            if x["state"] in ("open", "long"):
+                d.update({"priority": x["score"], "rank": x.get("rank"), "motion": x["path"], "timing": x["opening"]})
+                exact = sum(round(W[k] * 100) * d[k] for k in W)        # in hundredths: halves go up, as a reader would round them
+                assert d["priority"] == min(100, (exact + 50) // 100 + d["bonus"]), f'{x["group"]}: the score does not recompute'
+            else:
+                d.update({"priority": None, "rank": None})
+            return d
+        beat.update({k: [reach_row(x) for x in O[k]] for k in ("ranked", "long", "later", "out")})
+        assert [r["rank"] for r in beat["ranked"]] == list(range(1, len(beat["ranked"]) + 1))
+        beat["reach"] = {"as_of": O["as_of"], "classes": O["classes"], "groups": O["groups"], "shares": O["shares"], "frozen": O["frozen"], "family": O["family"],
+                         "sensitivity": O["sensitivity"], "scored": len(hb_rows)}
+    aside = beat.get("long", []) + beat.get("later", []) + beat.get("out", [])
+    beat_of = {n: r for r in beat["ranked"] + aside + beat["outside"] for n in r["rows"]}
     if INSIGHTS_P:      # what the ranking says, the subscription view and the lines written for each company (see README)
-        ins = json.load(open(INSIGHTS_P, encoding="utf-8")); rank_of = {r["group"]: r for r in beat["ranked"]}
+        ins = json.load(open(INSIGHTS_P, encoding="utf-8")); rank_of = {r["group"]: r for r in beat["ranked"] + aside}
         assert all(g in rank_of for g in ins.get("accounts", {})), "an insight is written for a company that is not ranked"
         beat["insights"] = {k: ins[k] for k in ("headline", "intro", "findings", "accounts") if ins.get(k)}
         beat["proof"] = json.load(open(PROOF_P, encoding="utf-8"))["proof"] if PROOF_P else {}    # the Proof Genome roll-up: totals are tokens in the text
@@ -154,7 +198,7 @@ if BEAT_P:
         assert used <= set(beat["proof"]), f"proof tokens with no value: {sorted(used - set(beat['proof']))}"
         subs = ins.get("subscriptions")
         if subs:
-            TIER_WHY = {"EXP": "Already on Shopify Plus", "X": "Gated out"}
+            TIER_WHY = {"EXP": "Already on Shopify Plus", "X": "Gated out"}; ASIDE_WHY = {"long": "Long odds", "later": "Not now", "out": "Out of reach"}
             for row in subs["rows"]:
                 r = rank_of.get(row["group"]); rs = rows_of.get(row["group"])
                 assert rs, f'{row["group"]}: the subscription view names a company that is not on the list'
@@ -162,14 +206,16 @@ if BEAT_P:
                 if r:
                     row.update({"rank": r["rank"], "priority": r["priority"], "display": r["display"], "lead": r["lead"]})
                     assert (row["state"] == "live") == bool(r["bonus"]), f'{row["group"]}: the subscription view and the bonus disagree'
-                    row["section"] = "live" if row["state"] == "live" else "ended" if row["state"] == "ended" else "context" if context else "noted"
+                    state = (r.get("reach") or {}).get("state", "open")
+                    if state != "open": row.update({"why_not_ranked": ASIDE_WHY[state], "aside": state, "was": r["hb"]["rank"]})
+                    row["section"] = ("live" if state == "open" else "aside") if row["state"] == "live" else "ended" if row["state"] == "ended" else "context" if context else "noted"
                 else:
                     lead = max(rs, key=lambda a: a["triangle"] or 0); out_of_icp = any(o["group"] == row["group"] for o in beat["outside"])
                     row.update({"rank": None, "priority": None, "display": row["group"] if len(rs) > 1 else lead["display"], "lead": lead["name"],
                                 "why_not_ranked": "Outside the ICP" if out_of_icp else TIER_WHY.get(lead["tier"], "Not ranked")})
                     row["section"] = "unranked" if row["state"] == "live" else "ended" if row["state"] == "ended" else "context" if context else "noted"
-            ORDER = {"live": 0, "unranked": 1, "ended": 2, "noted": 3, "context": 4}
-            subs["rows"].sort(key=lambda x: (ORDER[x["section"]], x["rank"] is None, x["rank"] or 0, x["group"]))
+            ORDER = {"live": 0, "aside": 1, "unranked": 2, "ended": 3, "noted": 4, "context": 5}; A_ORDER = {"long": 0, "later": 1, "out": 2}
+            subs["rows"].sort(key=lambda x: (ORDER[x["section"]], A_ORDER.get(x.get("aside"), 0), x["rank"] is None, x["rank"] or x.get("was") or 0, x["group"]))
             beat["subscriptions"] = subs
     # The Heartbeat layer is held to the wording rules at the source: nothing here may need rewording.
     before = json.dumps(beat, ensure_ascii=False, sort_keys=True); n0 = sum(tidied.values())
@@ -251,6 +297,13 @@ BEAT_COLS = {"heartbeat_rank": lambda r: r.get("rank", ""), "heartbeat_score": l
 CSV_COLS = ["name", "display", "group", "family", "domain", "book_domain", "tier", "triangle", "shopify_fit", "anatta_fit", "gate", "gate_reason", "category", "model",
             "plat", "platform", "size_est", "hq", "ownership", "confidence", "fire_score", "fire_intent", "fire_in_market", "fire_signals",
             "fire_last_signal", "story", "shopify_angle", "anatta_angle", "flags", "adjustments"]
+if beat and beat.get("reach"):        # the reach test went first: the sheet says where each company landed and keeps the Heartbeat's own numbers beside it
+    _REACH = {"open": "in reach", "long": "long odds", "later": "not now", "out": "out of reach"}; _WIN = dict(beat["reach"]["groups"])
+    BEAT_COLS = {"reach": lambda r: _REACH[r["reach"]["state"]] if r.get("reach") else "outside the ICP", "reach_reason": lambda r: (r.get("reach") or {}).get("why", "") if r.get("reach") else r.get("why", ""),
+                 "rank": lambda r: r.get("rank") or "", "score": lambda r: r.get("priority") if r.get("priority") is not None else "", "opening_rests_on": lambda r: _WIN.get(r.get("window"), "") if (r.get("reach") or {}).get("state") in ("open", "long") else "",
+                 "way_in": lambda r: r.get("motion", "") if r.get("priority") is not None else "", "anatta_icp_fit": lambda r: r["fit"], "opening": lambda r: r.get("timing", "") if r.get("priority") is not None else "", "potential": lambda r: r.get("potential", ""),
+                 "icp_segment": lambda r: r["segment"], "subscription": lambda r: r.get("subscription", ""), "shop_pay": lambda r: r.get("shopPay", ""), "partner_to_move_first": lambda r: (r.get("first") or [""])[0],
+                 "heartbeat_rank_alone": lambda r: (r.get("hb") or {}).get("rank", ""), "heartbeat_score_alone": lambda r: (r.get("hb") or {}).get("priority", "")}
 if beat and beat.get("insights"):     # with an insight layer the CSV carries the one-line read and the programs that count
     _sub = {x["group"]: x for x in (beat.get("subscriptions") or {}).get("rows", [])}
     BEAT_COLS["subscription_programs"] = lambda r: "; ".join(f'{p["name"]} ({p["store"]}; {p["engine"]})' for p in (_sub.get(r["group"]) or {}).get("programs", []) if p.get("counts") and p.get("status") == "live")
