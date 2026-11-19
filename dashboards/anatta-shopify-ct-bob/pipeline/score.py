@@ -252,6 +252,7 @@ for name, a in inputs.items():
         "hq": r["hq"], "ownership": r["ownership"],
         "shopify_sub": {k: s[k] for k in ["whitespace", "scale", "model_fit", "unified", "timing", "ecosystem", "penalties"]},
         "shopify_fit_research": sf_research, "shopify_fit_uncapped": sf_uncapped, "whitespace_capped": sf_uncapped != sf_research,
+        "cap_reason": cap["reason"] if cap and sf_uncapped != sf_research else "",
         "penalty_reason": s["penalty_reason"],
         "anatta_sub": {"brand_surface": an["brand_surface"], "modernization": an["modernization"], "scale": an["scale"], "ltv": an["ltv"], "intent": intent_pts},
         "anatta_fit_research": af_research,
