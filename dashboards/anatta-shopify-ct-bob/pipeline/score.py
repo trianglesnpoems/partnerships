@@ -173,6 +173,19 @@ def clean_flags(flags):
         out.append(plain(re.sub(r"^([A-Z][A-Z ]{6,}):", lambda m: m.group(1).capitalize().replace("apollo", "Apollo") + ":", f)))
     return out
 
+def place(sf, af, bon, gate):
+    """Triangle and tier for a pair of fits. One place decides this, for the final scores and for the two views of the second look.
+    The non_merchant gate only bites when the Shopify score is genuinely low."""
+    if gate == "non_merchant" and sf >= 20: gate = ""
+    tri = min(100, round(0.55 * sf + 0.45 * af + bon))
+    if gate == "already_plus": tier = "EXP"
+    elif gate: tier = "X"
+    elif tri >= 62 and sf >= 63: tier = "T1"
+    elif tri >= 48: tier = "T2"
+    elif tri >= 36: tier = "T3"
+    else: tier = "T4"
+    return tri, tier
+
 def days_since(s):
     m = re.match(r"([A-Za-z]{3})\w* (\d+)\w* (\d{4})$", s or "")
     if not m: return None
@@ -231,13 +244,18 @@ for name, a in inputs.items():
     if gate == "non_merchant" and sf >= 20:  # the non_merchant gate only bites when the Shopify score is genuinely low
         adj_notes.append(f"non_merchant gate ignored: Shopify fit {sf} ≥ 20"); gate = ""; gate_reason = ""
     bon = bonus(f_scored)
-    tri = min(100, round(0.55 * sf + 0.45 * af + bon))
-    if gate == "already_plus": tier = "EXP"
-    elif gate: tier = "X"
-    elif tri >= 62 and sf >= 63: tier = "T1"
-    elif tri >= 48: tier = "T2"
-    elif tri >= 36: tier = "T3"
-    else: tier = "T4"
+    tri, tier = place(sf, af, bon, gate)
+    # The second look, seen two ways. "before" is what the verifiers were shown: the research scores, cap applied. "reviewer" is
+    # where the row would sit on the verifiers' own figures, with no averaging. The page labels a row whose tier differs.
+    second_look = None
+    if vs:
+        research_gate = r.get("gate", "") or ""
+        b_tri, b_tier = place(sf_research, af_research, bon, research_gate)
+        r_sf = sum(sf_sugg) / len(sf_sugg) if sf_sugg else sf_research
+        r_af = sum(af_sugg) / len(af_sugg) if af_sugg else af_research
+        r_tri, r_tier = place(r_sf, r_af, bon, gate_sugg[0] if gate_sugg else research_gate)
+        second_look = {"before": {"tier": b_tier, "triangle": b_tri, "shopify_fit": sf_research, "anatta_fit": af_research},
+                       "reviewer": {"tier": r_tier, "triangle": r_tri, "shopify_fit": round(r_sf), "anatta_fit": round(r_af)}}
     set_aside = None
     if name in NOT_PURSUED:   # applied last, so no score and no verdict can undo it
         set_aside = {"tier": tier, "gate": gate}
@@ -265,6 +283,7 @@ for name, a in inputs.items():
         "confidence": r["confidence"],
         "verification": [{"lens": v["lens"], "verdict": v["verdict"], "reason": v["reason"], "evidence": v.get("evidence", [])} for v in vs],
         "adjustments": adj_notes, "signal_misattributed": name in SIGNAL_MISATTRIBUTED, "set_aside": set_aside,
+        "second_look": second_look,
         "storeleads": a["storeleads"], "builtwith": {k: v for k, v in bw.items() if k != "note"},
         "source": sources.get(name),
     })
@@ -350,6 +369,12 @@ notes = [(n, f) for n, r in records.items() for f in r.get("flags", []) if f.sta
 if notes:
     print("\nNOTES FOR book.json (grouping corrections and cap candidates raised by research):")
     for n, f in sorted(notes, key=lambda x: (x[1][:3], x[0])): print(f"  {n[:32]:32s} | {f[:230]}")
+split = [x for x in scored if x.get("second_look") and x["second_look"]["reviewer"]["tier"] != x["tier"] and x["gate"] != "not_pursued"]
+if split:
+    print("\nSECOND LOOK WOULD GIVE A DIFFERENT TIER (the tier shown averages the two views; the page labels these rows):")
+    for x in split:
+        b, v = x["second_look"]["before"], x["second_look"]["reviewer"]
+        print(f'  {x["tier"]:3s} tri={x["triangle"]:3} {x["name"][:34]:34s} before {b["tier"]:3s} {b["triangle"]:3} | on the second look alone {v["tier"]:3s} {v["triangle"]:3}')
 print("\nGATED:")
 for x in scored:
     if x["tier"] in ("X", "EXP"): print(f'{x["tier"]:3s} {x["name"][:34]:34s} gate={x["gate"]:13s} {x["gate_reason"][:90]}')

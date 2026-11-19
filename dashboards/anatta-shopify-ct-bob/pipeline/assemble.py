@@ -125,7 +125,8 @@ CSV_COLS = ["name", "display", "group", "family", "domain", "book_domain", "tier
             "plat", "platform", "size_est", "hq", "ownership", "confidence", "fire_score", "fire_intent", "fire_in_market", "fire_signals",
             "fire_last_signal", "story", "shopify_angle", "anatta_angle", "flags", "adjustments"]
 def write_csv(path, internal):
-    cols = CSV_COLS + (["platform_read", "storeleads_sales"] if sc["summary"].get("sources") else []) + (["contacts"] if hb else []) + (["in_salesforce"] if internal else [])
+    cols = (CSV_COLS + (["platform_read", "storeleads_sales"] if sc["summary"].get("sources") else []) + (["contacts"] if hb else [])
+            + (["second_look_would_be"] if any(a.get("second_look") for a in sc["accounts"]) else []) + (["in_salesforce"] if internal else []))
     def val(a, k):
         if k.startswith("fire_"): return a["fire"][k[5:]]
         if k == "flags": return " | ".join(f for f in a.get("flags", []) if internal or not INTERNAL_FLAG.search(f))
@@ -134,6 +135,9 @@ def write_csv(path, internal):
         if k == "contacts": return len(people_of.get(a["name"], []))
         if k == "platform_read": return (a.get("platform_read") or {}).get("verdict", "")
         if k == "storeleads_sales": return (a.get("storeleads") or {}).get("Estimated yearly sales", "")
+        if k == "second_look_would_be":   # the tier on the second look's own figures, only where it differs from the tier shown
+            v = (a.get("second_look") or {}).get("reviewer", {}).get("tier", "")
+            return v if v and v != a["tier"] and a.get("gate") != "not_pursued" else ""
         return a.get(k, "")
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f); w.writerow(cols)

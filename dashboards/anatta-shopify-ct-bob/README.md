@@ -37,8 +37,9 @@ listed rows with no Apollo account are a second storefront of an account that is
   1 has reads that disagree, and for 124 no source names a platform (owners, non-merchants, in-house builds).
 - **Research.** 12 accounts were gated by rule (3 universities, 9 owner or holding entities). The other 183 were
   researched in 17 batches, 172 on a full pass and 11 on a one-source pass, with about 130 web searches.
-- **Second look.** 127 accounts got 186 verdicts from 14 verifiers, each with its own searches: 162 confirmed,
-  24 adjusted, none refuted.
+- **Second look.** 127 accounts got 186 verdicts from 14 verifiers, each with its own searches: 163 confirmed,
+  23 adjusted, none refuted. For 9 rows (3 in T1, 6 in T2) the verifiers' own figures would give a lower tier than
+  the average the method uses; the page labels each one.
 - **Result.** 51 golden-triangle rows across 36 companies (T1), 50 strong (T2), 26 develop (T3), 12 watch (T4),
   11 already on Shopify Plus (EXP) and 45 set aside (X). 109 rows sit in 32 shared decisions and 99 rows under 19
   owners.
@@ -109,6 +110,13 @@ modernisation need 20 + scale for a retainer 20 + LTV/subscription complexity 20
 straight from the export). Triangle = round(0.55 × Shopify + 0.45 × Anatta + small intent bonuses). T1 needs
 triangle ≥ 62 and Shopify fit ≥ 63; T2 ≥ 48; T3 ≥ 36; T4 otherwise. Gates: Shopify Plus already live → EXP;
 government, distress, no commerce surface (only when Shopify fit < 20), bad record, restricted → X.
+
+Where a verifier suggests a different fit, the final fit is the average of the research figure and the verifier's.
+That is deliberately conservative, and it can leave a row in a tier the verifier would not have given it. `score.py`
+therefore records two more views of every verified row (`second_look`): the tier before the second look, which is
+what the verifiers' notes were written against, and the tier on the verifiers' own figures. The page says both on
+the record and tags a row "second look: T2" when the second view differs from the tier shown; the CSV carries it as
+`second_look_would_be`.
 
 ## Groups and families
 
