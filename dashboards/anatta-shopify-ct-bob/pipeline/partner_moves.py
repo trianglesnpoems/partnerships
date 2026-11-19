@@ -51,6 +51,7 @@ reg = {x["name"]: x for x in json.load(open(REG, encoding="utf-8"))["registry"]}
 _research = json.load(open(RESEARCH, encoding="utf-8"))
 research = {c["group"]: c for c in _research["companies"]}
 INFO_ROWS = set(_research.get("info_rows", []))      # rows whose own site is a corporate or info site with no checkout
+OWN_ROWS = set(_research.get("own_store_rows", []))  # rows the book marks as operator-run where the operator is the company itself
 
 # Lanes where a rival can be taken out, the partner that leads each, and the partners that hold it when live.
 DISPLACE = {
@@ -86,7 +87,8 @@ for g, rows in groups.items():
     if (res.get("icp") or {}).get("audience") in ("b2b-catalog", "none"): continue      # outside the ICP: listed, not ranked, no moves worked
     # the company's stores: rows that sell. A gated row counts only when it is a live store already on Shopify Plus.
     # A store someone else operates (a grocer's Instacart shop, a team shop run by Fanatics) carries the operator's tools, not the company's.
-    stores = [r for r in rows if r.get("gate") in ("", None, "already_plus") and r.get("plat") not in ("No online store", "Third-party storefront") and r["name"] not in INFO_ROWS]
+    stores = [r for r in rows if r.get("gate") in ("", None, "already_plus") and r["name"] not in INFO_ROWS
+              and (r.get("plat") not in ("No online store", "Third-party storefront") or r["name"] in OWN_ROWS)]
     nm = lambda r: r.get("display") or r["name"]
     seen = collections.defaultdict(dict)        # vendor -> row name -> fact
     for r in stores:
@@ -134,7 +136,9 @@ for g, rows in groups.items():
         if not v0["partner"] or vendor in NOT_A_ROW: continue
         live = live_at(vendor)
         if not live: continue
-        m = {"partner": vendor, "motives": ["Better together"], "live": True, "evidence": f"Live at {since(live)} ({scans(live)}).", "gap": "", "gain": "Keeps the seat through the move"}
+        alias = sorted({a for v in live.values() for a in v.get("seen_as") or []})
+        m = {"partner": vendor, "motives": ["Better together"], "live": True, "gap": "", "gain": "Keeps the seat through the move",
+             "evidence": f"Live at {since(live)} ({scans(live)})." + (f" Seen as {', '.join(alias)}, which {vendor} owns." if alias else "")}
         # "Not seen at a sister store" only means something where that store was read by a scan that saw the partner elsewhere.
         saw = {src for v in live.values() for src in v["sources"]}
         covered = lambda r: any(((facts.get(r["name"]) or {}).get("scans") or {}).get(k) for k, src in (("builtwith", "BuiltWith"), ("storeleads", "Store Leads"), ("live", "Live site")) if src in saw)
@@ -187,7 +191,7 @@ for g, rows in groups.items():
     was_read = lambda r: any(((facts.get(r["name"]) or {}).get("scans") or {}).values())
     out[g] = {"moves": final,
               "coverage": {"stores": len(stores), "read": sum(1 for r in stores if was_read(r)), "unread": [nm(r) for r in stores if not was_read(r)],
-                           "operator_run": [nm(r) for r in rows if not r.get("gate") and r.get("plat") == "Third-party storefront"]}}
+                           "operator_run": [nm(r) for r in rows if not r.get("gate") and r.get("plat") == "Third-party storefront" and r["name"] not in OWN_ROWS]}}
     report.append((g, [(m["partner"], score(m)) for m in final]))
 
 json.dump(out, open(OUT, "w", encoding="utf-8"), indent=1, ensure_ascii=False)

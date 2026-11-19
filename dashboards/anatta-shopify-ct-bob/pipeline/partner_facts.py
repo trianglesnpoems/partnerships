@@ -108,6 +108,7 @@ LANES = {
     "analytics": {"Elevar": ["elevar", "elevar conversion tracking"], "Triple Whale": ["triple whale"]},
     "mobile": {"Tapcart": ["tapcart"]},
 }
+SEEN_AS = {"borderfree": "Borderfree"}     # a product a partner owns under another name: the fact says which name the scan saw
 VENDOR, LANE = {}, {}
 for lane, vendors in LANES.items():
     for v, names in vendors.items():
@@ -158,7 +159,8 @@ for cat, r in read_detect(BW):
     host = re.sub(r"/.*$", "", g(r, "Location on Website").lower()) or d
     where = "store" if host in (d, "www." + d) or any(host == s + d for s in STORE_SUBS) else host
     first, last = g(r, "First Detected")[:10], g(r, "Last Detected")[:10]
-    e = seen[d].setdefault((v, where), {"first": first or "9999", "last": last, "dns": True})
+    e = seen[d].setdefault((v, where), {"first": first or "9999", "last": last, "dns": True, "as": set()})
+    if tech.lower() in SEEN_AS: e["as"].add(SEEN_AS[tech.lower()])
     e["first"], e["last"] = min(e["first"], first or e["first"]), max(e["last"], last)
     e["dns"] = e["dns"] and cat in DNS_CATS
     if re.match(r"20[12]\d-", last): last_seen = max(last_seen, last) if last <= datetime.date.today().isoformat() else last_seen
@@ -187,10 +189,10 @@ def facts_for(domain, storeleads):
         if where != "store":
             if days(e["last"], AS_OF.isoformat()) is not None and days(e["last"], AS_OF.isoformat()) <= LIVE_DAYS: side.append(f"{v} on {where}")
             continue
-        out[v] = {"vendor": v, "lane": LANE[v], "partner": is_partner(v), "first": e["first"][:7], "last": e["last"][:7], "sources": ["BuiltWith"], "dns": e["dns"],
+        out[v] = {"vendor": v, "lane": LANE[v], "partner": is_partner(v), "first": e["first"][:7], "last": e["last"][:7], "sources": ["BuiltWith"], "dns": e["dns"], "seen_as": sorted(e["as"]),
                   "_age": days(e["last"], AS_OF.isoformat()), "_span": days(e["first"], e["last"])}
     for v in sl | lv:
-        e = out.setdefault(v, {"vendor": v, "lane": LANE[v], "partner": is_partner(v), "first": "", "last": "", "sources": [], "dns": False, "_age": None, "_span": None})
+        e = out.setdefault(v, {"vendor": v, "lane": LANE[v], "partner": is_partner(v), "first": "", "last": "", "sources": [], "dns": False, "seen_as": [], "_age": None, "_span": None})
         if v in sl: e["sources"].append("Store Leads")
         if v in lv: e["sources"].append("Live site")
     rows = []
