@@ -23,7 +23,7 @@ if (!storesPath || !outPath) { console.error('usage: node subscription_scan.js <
 // The engines that run subscriptions, memberships and wine clubs. Matched against every request and each page's source.
 const ENGINES = {
   'Recharge': /rechargepayments|rechargeapps|rechargecdn|rechargeassets/i, 'Skio': /skio\.com/i, 'Stay.ai': /stay\.ai|retextion/i, 'Ordergroove': /ordergroove/i,
-  'Recurly': /recurly/i, 'Smartrr': /smartrr/i, 'Bold Subscriptions': /boldapps|boldcommerce|sub\.boldapps/i, 'Loop Subscriptions': /loopwork\.co/i,
+  'Recurly': /recurly/i, 'Smartrr': /smartrr/i, 'Bold Subscriptions': /sub\.boldapps\.net|ro\.boldapps\.net|bold[-_]?subscriptions/i, 'Loop Subscriptions': /loopwork\.co/i,
   'Appstle': /appstle/i, 'Seal Subscriptions': /sealsubscriptions/i, 'PayWhirl': /paywhirl/i, 'Chargebee': /chargebee/i, 'Zuora': /zuora/i, 'sticky.io': /sticky\.io/i,
   'Subbly': /subbly/i, 'Awtomic': /awtomic|bundlesubscriptions/i, 'Prive': /tryprive|prive\.co/i, 'Subscribe Pro': /subscribepro/i, 'QPilot': /qpilot/i,
   'WooCommerce Subscriptions': /woocommerce-subscriptions|wcs-|wc-subscriptions/i, 'Maxio': /chargify|maxio/i, 'Rebilly': /rebilly/i, 'Yotpo Subscriptions': /subscriptions\.yotpo/i,

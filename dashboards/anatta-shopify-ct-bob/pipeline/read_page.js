@@ -16,7 +16,7 @@ const args = process.argv.slice(2); const url = args[0];
 const opt = k => { const i = args.indexOf(k); return i > 0 ? args[i + 1] : null; };
 if (!url) { console.error('usage: node read_page.js <url> [--find "regex"] [--links "regex"] [--max 6000] [--click "text"]'); process.exit(2); }
 const ENGINES = { 'Recharge': /rechargepayments|rechargeapps|rechargecdn/i, 'Skio': /skio\.com/i, 'Stay.ai': /stay\.ai|retextion/i, 'Ordergroove': /ordergroove/i, 'Recurly': /recurly/i, 'Smartrr': /smartrr/i,
-  'Bold Subscriptions': /boldapps|boldcommerce/i, 'Loop Subscriptions': /loopwork\.co/i, 'Appstle': /appstle/i, 'Seal Subscriptions': /sealsubscriptions/i, 'Chargebee': /chargebee/i, 'Zuora': /zuora/i,
+  'Bold Subscriptions': /sub\.boldapps\.net|ro\.boldapps\.net|bold[-_]?subscriptions/i, 'Loop Subscriptions': /loopwork\.co/i, 'Appstle': /appstle/i, 'Seal Subscriptions': /sealsubscriptions/i, 'Chargebee': /chargebee/i, 'Zuora': /zuora/i,
   'Subscribe Pro': /subscribepro/i, 'ebbo (Clarus)': /claruscommerce|ebbo\.com/i, 'Commerce7': /commerce7/i, 'WineDirect': /winedirect|vin65/i, 'Yotpo': /yotpo/i, 'Klaviyo': /klaviyo/i, 'Attentive': /attn\.tv|attentive/i };
 const WALL = /access denied|pardon our interruption|are you a robot|verify you are human|captcha|attention required|request blocked|unusual traffic|just a moment|security check/i;
 (async () => {
