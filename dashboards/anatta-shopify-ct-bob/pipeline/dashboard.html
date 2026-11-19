@@ -260,6 +260,11 @@ details.plain summary{cursor:pointer;color:var(--ink);font-weight:500;padding:10
   <p>Triangle score of 48 or better. Each has a reason it is not golden yet; the open record says what would change that.</p></header>
   <div class="tblwrap" id="ov-t2"></div>
 </div></section>
+<section class="sec" id="ov-exp-sec"><div class="wrap">
+  <header><p class="eyebrow" id="ov-exp-eyebrow"></p><h2>Where Shopify is already inside</h2>
+  <p>These accounts already run Shopify Plus. They are expansion and reference accounts, not replatform prospects. <span id="ov-exp-note"></span></p></header>
+  <div class="tblwrap" id="ov-exp"></div>
+</div></section>
 <!--MAP-->
 <section class="sec"><div class="wrap">
   <header><p class="eyebrow" id="ov-people-eyebrow"></p><h2 id="ov-people-h2"></h2><p id="ov-people-p"></p></header>
@@ -279,11 +284,6 @@ details.plain summary{cursor:pointer;color:var(--ink);font-weight:500;padding:10
   <header><p class="eyebrow">Read the book by owner</p><h2 id="ov-families-h2"></h2>
   <p>These rows share an owner but not a decision: each company buys on its own, so each is scored and tiered on its own. Where a sister company already runs Shopify, the reference is inside the same owner.</p></header>
   <div class="grid cols q" id="ov-families"></div>
-</div></section>
-<section class="sec" id="ov-exp-sec"><div class="wrap">
-  <header><p class="eyebrow" id="ov-exp-eyebrow"></p><h2>Where Shopify is already inside</h2>
-  <p>These accounts already run Shopify Plus. They are expansion and reference accounts, not replatform prospects. <span id="ov-exp-note"></span></p></header>
-  <div class="tblwrap" id="ov-exp"></div>
 </div></section>
 <!--INTERNAL-->
 <section class="sec" id="ov-signal-sec"><div class="wrap">
@@ -352,6 +352,7 @@ details.plain summary{cursor:pointer;color:var(--ink);font-weight:500;padding:10
   <div class="grid cols w">
     <div class="card pad"><h3>Current platform</h3><div id="bk-plat"></div></div>
     <div class="card pad"><h3>Business model</h3><div id="bk-model"></div></div>
+    <div class="card pad" id="bk-read-card"><h3>How many sources agree on the platform</h3><div id="bk-read"></div></div>
   </div>
 </div></section>
 <section class="sec" id="book"><div class="wrap">
@@ -569,7 +570,7 @@ if (INTERNAL) {
     ['Thin', `${F.with_score} of ${S.accounts} accounts carry a FIRE score and ${F.with_signal} carry a named signal. ${S.not_in_sfdc} accounts are not in Salesforce. ${SRC && SRC.apollo_gmv_rows ? `Apollo's own GMV column is filled on ${SRC.apollo_gmv_rows} rows and the mobile-score column on none.` : 'The GMV, mobile-score and headless columns are empty on every row.'}`],
     ['Stale', `The newest signal in the book is ${F.newest_signal_days} days old.${w ? ` The recency labels only add up if scoring last ran between ${esc(w[0])} and ${esc(w[1])}, so an account labelled "&lt;7d" is about eight weeks cold.` : ''}`],
     [vEdu + vWrong === visits.length && visits.length ? 'Misattributed' : 'Website visits', visits.length ? `The ${plural(visits.length, 'website visit')} in the book resolved to ${visits.map(a => `<strong>${nm(a)}</strong>`).join(', ')}. ${vEdu + vWrong === visits.length ? '' : `${vTop.length} of those accounts reached the top two tiers and ${vLow.length} ended in Watch or set aside. `}${vEdu ? `${plural(vEdu, 'is a university', 'are universities')} (a campus network, not a buyer). ` : ''}${vWrong ? `${plural(vWrong, 'is a row', 'are rows')} where Apollo holds a different company from the one in the book.` : ''}` : 'No website visits in the book.'],
-    ['Noisy', `${im.length} accounts carry the In-market flag. Research found a hard timing signal of its own (6 or more out of 10 on timing) at ${imHard.length ? imHard.length + ' of them' : 'none of them'}, and ${imLow.length} ended in Watch or disqualified (${imLow.map(a => nm(a)).join(', ')}). Treat the flag as a prompt to look, not as a buying window.`],
+    ['Noisy', `${plural(im.length, 'account')} ${im.length === 1 ? 'carries' : 'carry'} the In-market flag. Research found a hard timing signal of its own (6 or more out of 10 on timing) at ${imHard.length ? imHard.length + ' of them' : 'none of them'}, and ${imLow.length} ended in Watch or disqualified${imLow.length ? ` (${imLow.map(a => nm(a)).join(', ')})` : ''}. Treat the flag as a prompt to look, not as a buying window.`],
   ].map(([h, t]) => `<div class="card pad"><h3>${h}</h3><p style="margin:0;font-size:13.2px">${t}</p></div>`).join('');
 }
 /*/INTERNAL*/
@@ -664,6 +665,11 @@ function breakdown(el, key){
   $(el).querySelectorAll('i[data-tip]').forEach(i => { const html = () => { const [a, b] = i.dataset.tip.split(': '); return `${esc(a)}: <b>${esc(b)}</b>`; }; i.addEventListener('pointermove', e => tipShow(html(), e)); i.addEventListener('pointerleave', tipHide); });
 }
 breakdown('bk-plat', 'plat'); breakdown('bk-model', 'model');
+$('bk-read-card').hidden = !SRC;
+if (SRC) {
+  scored.forEach(a => { const v = a.platform_read ? a.platform_read.verdict : ''; a.read_class = v.startsWith('3 sources agree') ? 'Three reads agree' : v.startsWith('2 sources agree') ? 'Two reads agree' : v.startsWith('1 source') ? 'One read only' : v.startsWith('Sources disagree') ? 'Reads disagree' : 'No source names a platform'; });
+  breakdown('bk-read', 'read_class');
+}
 
 // ---------- table ----------
 const fTier = $('fTier'), fPlat = $('fPlat'), fModel = $('fModel'), fSig = $('fSig'), q = $('q');

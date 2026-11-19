@@ -1,16 +1,20 @@
-# Anatta × Shopify — partner triangulation for CT's book (Nov 2026)
+# Anatta × Shopify — partner triangulation for one book of accounts
 
-Scores every account in CT's book of business against two ICPs — Shopify's enterprise/Plus sales motion and
+Scores every account in a book of business against two ICPs — Shopify's enterprise/Plus sales motion and
 Anatta's services motion — blends them into a triangle score, gates and tiers them. Same rubric, weights, thresholds
-and gates as the October 2026 Anatta × Shopify build (`dashboards/anatta-shopify-triangulation`), so the two books
-compare directly.
+and gates as the October 2026 Anatta × Shopify build (`dashboards/anatta-shopify-triangulation`), so books compare
+directly.
+
+The pipeline was built for CT's book (11 Nov 2026), which is why the folder carries that name, and was run again
+for a second, larger book (19 Nov 2026). Everything that names an account lives in that book's `book.json`, next to
+its data, never here.
 
 The deliverable is a single self-contained HTML file in two variants: an internal copy and a copy that is safe to
 share with Shopify, each with a CSV of the scored book. It has two views (Overview, Account Dashboard), plus a Hub
 Map view and named people on every account when a contacts export is supplied. Data files, the book config and the
 generated HTML are **not** committed here; the code needed to regenerate them is in `pipeline/`.
 
-## Result (11 Nov 2026)
+## CT's book (11 Nov 2026)
 
 79 accounts, 73 companies once shared rows are grouped: 8 golden-triangle rows across 5 companies (T1), 13 strong
 (T2), 13 develop (T3), 31 watch (T4), 14 disqualified (X), none already on Shopify Plus. 27 accounts got a second
@@ -23,24 +27,42 @@ Contacts (added 15 Nov 2026): 656 people in the export, 643 kept, 590 placed in 
 sit at Tier 1 and Tier 2 accounts and 267 at accounts that are set aside (184 at the four universities, 45 at the
 account we no longer pursue), so the hub map opens filtered to the top two tiers.
 
+## The second book (19 Nov 2026)
+
+195 accounts, built from three inputs: the Apollo accounts export, a BuiltWith detect export (192 domains) and a
+Store Leads export of the 204 domains the book lists, plus a live check of 226 storefront hosts. The 9 listed rows
+with no Apollo account are a second storefront of an account that is in Apollo and are attached to it.
+
+The result is added here when the run is complete.
+
 ## Inputs
 
 | File | What it is |
 |---|---|
-| Apollo accounts export (79 rows) | Account name, website and the FIRE fields Anatta maintains |
-| BuiltWith export of the book (78 domains) | Detected commerce platform and stack, with first/last-detected dates for tracked apps |
-| Apollo contacts export (optional, 656 rows) | Name, title, company, email, LinkedIn address, city, state, country |
+| Apollo accounts export | Account name, website and the FIRE fields Anatta maintains |
+| BuiltWith export of the book | Detected commerce platform and stack with first/last-detected dates. Either one wide CSV (a row per domain) or a "detect" export (a zip or folder of per-category CSVs) |
+| Store Leads export of the book's domains (optional) | Platform, an online-sales estimate, theme, installed apps and the last platform change, per storefront |
+| Live storefront check (optional, made by `live_check.py`) | What answered at each address on the day of the build, and the platform fingerprints on the page |
+| Apollo contacts export (optional) | Name, title, company, email, LinkedIn address, city, state, country |
+
+With Store Leads or the live check in the build, every account carries a **platform read**: what each source says
+the storefront runs on, side by side. BuiltWith's export, Store Leads and the live site are three independent reads.
+A read counts only for the account's own main storefront, so a detection on a side host, on another site the address
+redirects to, a one-off detection or one not seen recently is listed with the reason it is not counted. Apollo's own
+BuiltWith column is the same vendor with no host and no last-seen date: it is shown as context and never counted.
+Nothing is voted on or averaged. Research settles the platform; the read tells it where to look.
 
 ## Pipeline (run in this order)
 
 | Step | Script | What it does |
 |---|---|---|
-| 0 | `book.json` | Not a script: the one file that names accounts (domain aliases, shared buying centres, display names, the misattributed-signal list, the batch plan). It lives with the data and is not committed; `book.example.json` documents the shape. |
-| 1 | `build_inputs.py` | Joins the two exports into one research input per account. Nine accounts carry a different domain in the two files; `book.json` records each one and why. Salesforce record IDs never leave the export (only an in-Salesforce yes/no is kept). |
-| 2 | `triage.py` | Gates the universities by rule. With 79 accounts and an unreliable CRuX column, every other account is researched. |
+| 0 | `book.json` | Not a script: the one file that names accounts (domain aliases, extra storefronts, shared buying centres, owner families, display names, the misattributed-signal list, rule triage, the batch plan). It lives with the data and is not committed; `book.example.json` documents the shape. |
+| 0.5 | `live_check.py` (optional) | Loads each storefront once and reads the platform off the page: final address after redirects, platform fingerprints in the HTML, headers and cookies, the Shopify theme object. A bot wall or a failed fetch is recorded as such, never as "no store". Standard library only. |
+| 1 | `build_inputs.py` | Joins the exports into one research input per account and, with Store Leads or the live check, builds each account's platform read. Where the book and Apollo disagree on a domain, `book.json` records each one and why. Asserts that every BuiltWith domain and every Store Leads row is attached to an account. Salesforce record IDs never leave the export (only an in-Salesforce yes/no is kept). |
+| 2 | `triage.py` | Gates the universities by rule, plus any owner or holding entity `book.json` names (a private-equity firm, a holding company: it runs no storefront, and its companies sit on their own rows). Every other account is researched. |
 | 3 | `make_batches.py` | Splits the rest into research batches, keeping rows that share a buying centre together. "Full" batches get 2–4 searches per account; "light" batches (no visible commerce surface) get one. |
 | 4 | research agents + `validate_batch.py` | One agent per batch scores both legs per `rubric.md` with sourced web evidence and writes `results/batch_NN.json`; the validator enforces names, schema and ranges. |
-| 5 | `make_verify.py`, verifier agents + `validate_verify.py` | Provisional T1 accounts get two adversarial lenses (platform & scale; business model & gates), T2 gets the platform lens, and every judgment-call gate (distress, gov, already_plus) gets the model lens. |
+| 5 | `make_verify.py`, verifier agents + `validate_verify.py` | Provisional T1 accounts get two adversarial lenses (platform & scale; business model & gates), T2 gets the platform lens, and every judgment-call gate (distress, gov, already_plus) gets the model lens. Each job carries the platform read, so a verifier checks the record against the sources and not only against itself. A third argument splits a long lens into parts, keeping one owner's rows together. |
 | 6 | `score.py` | **Single source of truth** for every number: merges research, triage and verifier verdicts; computes Shopify fit, Anatta fit (with the deterministic FIRE intent subscore), triangle, gates and tiers; asserts subscore sums, source-exact FIRE values, a written play for every T1 and that no Salesforce ID is present. |
 | 7 | `build_hubs.py` (optional) | Contacts layer: dedupes the contacts export, joins each person to an account row, reads seniority and function off the title, geocodes against GeoNames places of 500+ people and clusters them into 120 km hubs. Drops CRM record IDs and leaves out people exported under a wrong-company match. Needs the `geonamescache` package. |
 | 8 | `assemble.py` | Embeds the scored book (and the contacts layer, if built) into `dashboard.html`. Writes the internal and shareable copies, each as a standalone file, as a page fragment for publishing and as a CSV; removes the internal-only section from the shareable copy and asserts it carries no internal-only field, CRM note or record ID. Contact emails are shown in full only in the internal standalone file; every other output masks them, and the build asserts the exact masked count. |
@@ -48,11 +70,15 @@ account we no longer pursue), so the hub map opens filtered to the top two tiers
 ```bash
 # book.json (see pipeline/book.example.json) holds everything that names an account; it lives with the data
 python3 pipeline/build_inputs.py <builtwith.csv> <apollo_accounts.csv> <build>/book.json <build>/accounts_input.json
-python3 pipeline/triage.py <build>
+#   with a detect export, Store Leads and the live check:
+#   python3 pipeline/live_check.py <hosts.txt> <build>/live.json
+#   python3 pipeline/build_inputs.py <detect.zip> <apollo_accounts.csv> <build>/book.json <build>/accounts_input.json \
+#       --storeleads <domains_export.csv> --live <build>/live.json
+python3 pipeline/triage.py <build> [<build>/book.json]
 python3 pipeline/make_batches.py <build> <build>/book.json [prior_review.json]
 # research agents write <build>/results/batch_NN.json; check each with validate_batch.py <build> batch_NN
 python3 pipeline/score.py <build> <apollo_accounts.csv> <build>/book.json <build>/scored.json
-python3 pipeline/make_verify.py <build> <build>/scored.json
+python3 pipeline/make_verify.py <build> <build>/scored.json [max_accounts_per_verifier]
 # verifier agents write <build>/verify/<part>__<lens>.json; check each with validate_verify.py
 python3 pipeline/score.py <build> <apollo_accounts.csv> <build>/book.json <build>/scored.json
 python3 pipeline/assemble.py <build>/scored.json <out>
@@ -74,8 +100,18 @@ straight from the export). Triangle = round(0.55 × Shopify + 0.45 × Anatta + s
 triangle ≥ 62 and Shopify fit ≥ 63; T2 ≥ 48; T3 ≥ 36; T4 otherwise. Gates: Shopify Plus already live → EXP;
 government, distress, no commerce surface (only when Shopify fit < 20), bad record, restricted → X.
 
-## What is specific to this book
+## Groups and families
 
+`groups` in `book.json` are rows that share one decision: one conversation covers all of them. `families` are rows
+that share an owner but buy separately (a holding company's subsidiaries, a licensor's brands). Both are context:
+every row is scored on its own storefront. Where a sister row already runs Shopify, the record says so and the page
+lists it under "Where Shopify is already inside"; it is never part of the score.
+
+## What was specific to CT's book
+
+- **Its two book-specific sentences** now come from `book.json`: `lede_note` ("Most of those are manufacturers,
+  distributors and processors with no storefront to move.") and `method_notes` (the CRuX note below). Add both to
+  regenerate that book's page word for word.
 - **Signal attached to the wrong company.** Apollo matched one account to a different company from the one in the
   book. Its FIRE fields are shown exactly as exported but are not scored (`signal_misattributed` in `book.json`).
 - **Shared buying centres.** Ten rows roll up to four companies (`groups` in `book.json`). Each row is scored on its
