@@ -103,6 +103,18 @@ footer{border-top:1px solid var(--line);padding:26px 0 46px;color:var(--ink-3);f
 /* meters: one hue, track is a lighter step of the same ramp */
 .subbar{display:grid;grid-template-columns:150px 1fr 40px;gap:8px;align-items:center;font-size:12px;color:var(--ink-2);margin:3px 0}
 .meter{height:6px;border-radius:3px;background:var(--s1-soft);overflow:hidden}.meter>i{display:block;height:100%;border-radius:3px;background:var(--s1)}
+/* Heartbeat ranking: one stacked bar per company, a segment per measure, 2px surface gaps, values in the table beside it */
+.hbkey{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink-2);margin:0 0 12px}
+.hbkey span{display:inline-flex;align-items:center;gap:6px}.hbkey i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.hbbar{display:flex;gap:2px;height:10px;min-width:150px;background:var(--surface-2);border-radius:0 4px 4px 0}
+.hbbar i{display:block;height:100%}.hbbar i:last-child{border-radius:0 4px 4px 0}
+.hb-motion{background:var(--s1)}.hb-fit{background:var(--s2)}.hb-timing{background:var(--s3)}.hb-potential{background:var(--s4)}.hb-bonus{background:var(--s5)}
+.hbrank{font-family:var(--mono);font-size:12px;color:var(--ink-3);text-align:right;white-space:nowrap}
+tr.ten .hbrank{color:var(--ink);font-weight:700}
+.meter.m2{background:color-mix(in srgb,var(--s2) 22%,var(--surface))}.meter.m2>i{background:var(--s2)}
+.meter.m3{background:color-mix(in srgb,var(--s3) 22%,var(--surface))}.meter.m3>i{background:var(--s3)}
+.meter.m4{background:color-mix(in srgb,var(--s4) 22%,var(--surface))}.meter.m4>i{background:var(--s4)}
+.hbmove{margin:5px 0;font-size:12.6px;color:var(--ink-2);overflow-wrap:anywhere}.hbmove b{color:var(--ink)}
 /* tier strips */
 .strip{border:1px solid var(--line);border-radius:11px;background:var(--surface);overflow:hidden}
 .strip summary{cursor:pointer;padding:11px 14px;display:flex;align-items:center;gap:10px;list-style:none;flex-wrap:wrap}
@@ -249,6 +261,18 @@ details.plain summary{cursor:pointer;color:var(--ink);font-weight:500;padding:10
   <div class="grid kpis" id="ov-kpis" style="margin:24px 0 10px"></div>
   <p class="small" id="ov-note" style="max-width:80ch"></p>
   <div class="csvbox" id="csvbox" hidden><p class="small" style="margin:0 0 6px">Your browser blocked the copy. The CSV is selected below: copy it from here.</p><textarea id="csvta" readonly aria-label="Accounts CSV"></textarea></div>
+</div></section>
+<section class="sec" id="hb-sec" hidden><div class="wrap">
+  <header><p class="eyebrow" id="hb-eyebrow"></p><h2 id="hb-h2"></h2><p id="hb-intro"></p></header>
+  <div class="hbkey" id="hb-key"></div>
+  <div class="tblwrap" id="hb-top"></div>
+  <div id="hb-rest" style="margin-top:10px"></div>
+  <div id="hb-outside" style="margin-top:10px"></div>
+  <p class="small" id="hb-note" style="max-width:86ch;margin:14px 0 0"></p>
+</div></section>
+<section class="sec" id="hb-under" hidden><div class="wrap">
+  <header style="margin-bottom:0"><p class="eyebrow">Underneath the ranking</p><h2>The triangulation the ranking is built on</h2>
+  <p id="hb-under-p"></p></header>
 </div></section>
 <section class="sec"><div class="wrap">
   <header><p class="eyebrow" id="ov-t1-eyebrow"></p><h2>The golden triangles</h2>
@@ -444,6 +468,17 @@ const scored = A.filter(a => !a.missing);
 const byTier = t => scored.filter(a => a.tier === t);
 const T1 = byTier('T1'), T2 = byTier('T2'), T3 = byTier('T3'), EXP = byTier('EXP'), X = byTier('X');
 
+// ---------- Heartbeat ranking (present only when the build was given one) ----------
+// Scores come from the Heartbeat Source's own rescore; the page shows them and computes none.
+const HB = DATA.heartbeat || null;
+const HB_MEAS = [['motion', 'Partner motion', 'hb-motion', ''], ['fit', 'Anatta fit', 'hb-fit', 'm2'], ['timing', 'Timing', 'hb-timing', 'm3'], ['potential', 'Potential', 'hb-potential', 'm4']];
+const hbOf = new Map();          // account name -> its company's Heartbeat row
+if (HB) { HB.ranked.forEach(r => r.rows.forEach(n => hbOf.set(n, r))); HB.outside.forEach(r => r.rows.forEach(n => hbOf.set(n, r))); }
+const hbPct = k => Math.round(HB.weights[k] * 100);
+const SHOPPAY = {yes: 'Can start now', partly: 'Partly', no: 'Not yet'};
+const hbBar = r => `<div class="hbbar" role="img" aria-label="Score ${r.priority} of 100">${HB_MEAS.map(([k, l, c]) => { const pts = HB.weights[k] * r[k]; return pts >= 0.5 ? `<i class="${c}" style="width:${pts}%" title="${l} ${r[k]} of 100, weighted ${hbPct(k)}%: ${Math.round(pts)} points"></i>` : ''; }).join('')}${r.bonus ? `<i class="hb-bonus" style="width:${r.bonus}%" title="Subscription live: a flat ${r.bonus} points"></i>` : ''}</div>`;
+const hbHard = r => r.rows.some(n => { const a = byName.get(n); return a && !a.gate && a.whitespace_capped; });
+
 // ---------- theme / tooltip / router ----------
 const root = document.documentElement;
 if (TARGET === 'file') {
@@ -536,14 +571,43 @@ $('ov-h1').textContent = T1.length
                    : `${S.accounts} accounts in the book. ${numWord(t1Hard.length)} ${t1Hard.length === 1 ? 'company clears' : 'companies clear'} both bars, and ${t1Hard.length === 1 ? 'it is' : 'every one is'} hard to move.`)
   : `${S.accounts} accounts in the book. None clears both bars yet; ${T2.length} come close.`;
 $('ov-lede').textContent = `Anatta builds and optimises Shopify Plus and headless storefronts; Shopify sells the platform underneath them. A brand on a legacy platform should hear one replatform story from both, not two cold pitches. This page scores all ${S.accounts} accounts in ${BOOK} against both ICPs. ${S.accounts} rows come down to ${centres} companies${S.families ? `, and ${S.family_rows} of the rows sit under ${plural(S.families, 'owner')} that hold more than one of them` : ''}. ${S.lede_note ? S.lede_note + ' ' : ''}${T1.length + T2.length} ${T1.length + T2.length === 1 ? 'account reaches' : 'accounts reach'} the top two tiers${EXP.length ? `, ${EXP.length} already run Shopify Plus` : ''} and ${X.length} ${X.length === 1 ? 'is' : 'are'} gated out with a stated reason.${t1Hard.length ? ` Of the ${t1Centres.length} companies that clear both bars, ${t1Hard.length} would be hard to move, because the main store runs on an in-house platform at national scale or on a platform that went live in the last two years. They are listed apart.` : ''}`;
-$('ov-kpis').innerHTML = [
+const kpiHtml = L => L.map(([v, k, s]) => `<div class="kpi"><span class="v">${v}</span><span class="k">${k}</span><div class="sub">${s}</div></div>`).join('');
+const tierTiles = [
   [S.accounts, 'Accounts scored', `${centres} companies once shared rows are grouped`],
   [T1.length, 'Golden triangles', t1Hard.length ? `${plural(t1Open.length, 'company', 'companies')} can move · ${t1Hard.length} hard to move` : t1Centres.length === T1.length ? 'strong for both sides' : `strong for both sides · ${plural(t1Centres.length, 'company', 'companies')}`],
   [T2.length, 'Strong candidates', 'triangle 48 or better'],
   [T3.length, 'Develop', 'a fit on one leg, or no trigger yet'],
   [EXP.length, 'Already on Shopify Plus', 'expansion, not replatform'],
   [X.length, 'Disqualified', 'each with a stated reason'],
-].concat(HUBS ? [[HS.kept, 'People in the book', `${HS.mapped} placed in ${HS.hubs} metro hubs`]] : []).map(([v, k, s]) => `<div class="kpi"><span class="v">${v}</span><span class="k">${k}</span><div class="sub">${s}</div></div>`).join('');
+].concat(HUBS ? [[HS.kept, 'People in the book', `${HS.mapped} placed in ${HS.hubs} metro hubs`]] : []);
+$('ov-kpis').innerHTML = kpiHtml(tierTiles);
+if (HB) {   // the ranking leads: its own headline, its own tiles, and the tier tiles move under it
+  const R = HB.ranked, O = HB.outside, n = R.length, ten = R.slice(0, 10), rest = R.slice(10);
+  $('ov-h1').textContent = `${S.accounts} accounts. Ranked by the Heartbeat score, these ten come first.`;
+  $('ov-lede').textContent = `Anatta builds and optimises Shopify Plus and headless storefronts; Shopify sells the platform underneath them. This page ranks the ${centres} companies in ${BOOK} the way a Heartbeat issue does: by which partner has a reason to move, how closely the account matches what Anatta has delivered, timing, and how much commerce there is to win. ${n} companies sit inside Anatta's ICP and are ranked. ${O.length} are outside it and listed with the reason, and ${centres - n - O.length} are gated out. The research behind every account, and the two-sided triangle score the ranking reads, are underneath.`;
+  $('ov-kpis').innerHTML = kpiHtml([
+    [S.accounts, 'Accounts', `${centres} companies once shared rows are grouped`],
+    [n, 'Ranked', "companies inside Anatta's ICP"],
+    [R.filter(r => r.moves.some(m => m.live)).length, 'A partner already inside', 'a partner tool is live on a store'],
+    [R.filter(r => r.bonus).length, 'Subscription live', 'recurring purchase runs today: +10'],
+    [R.filter(r => r.shopPay === 'yes').length, 'Can add Shop Pay now', 'own checkout, not on Shopify'],
+    [centres - n, 'Not ranked', `${O.length} outside the ICP · ${centres - n - O.length} gated out`],
+  ]);
+  $('hb-sec').hidden = false; $('hb-under').hidden = false;
+  $('hb-eyebrow').textContent = `Heartbeat score · ${HB.month} · Not for partners`;
+  $('hb-h2').textContent = n > 10 ? `The first ten of ${n} ranked companies` : `${n} ranked companies`;
+  $('hb-intro').textContent = `Score = ${hbPct('motion')}% partner motion + ${hbPct('fit')}% Anatta fit + ${hbPct('timing')}% timing + ${hbPct('potential')}% potential, each measured 0 to 100, plus a flat 10 when a subscription is live. Partner motion counts most: a partner with a reason to move is a door someone will open. Open a row for what sits behind each measure.`;
+  $('hb-key').innerHTML = HB_MEAS.map(([k, l, c]) => `<span><i class="${c}"></i>${l} ${hbPct(k)}%</span>`).join('') + '<span><i class="hb-bonus"></i>Subscription live +10</span>';
+  const hbRow = r => `<tr class="row${r.rank <= 10 ? ' ten' : ''}" data-focus="${esc(r.lead)}"><td class="hbrank">${r.rank}</td><td><strong>${esc(r.display)}</strong><div class="small">${esc(r.segment)} · ${esc(r.platform || '')}${r.rows.length > 1 ? ' · ' + plural(r.rows.length, 'row') : ''}</div><div style="margin-top:3px"><span class="tierpill ${r.book_tier}" title="Tier in the triangulation underneath">${r.book_tier}</span>${r.bonus ? ' <span class="tag" title="Recurring purchase is live: the evidence is on the record">subscription live</span>' : ''}${hbHard(r) ? ' <span class="tag" title="Platform whitespace is capped in the triangulation: the reason is on the record">hard to move</span>' : ''}</div></td><td style="min-width:170px">${hbBar(r)}</td><td class="num"><b>${r.priority}</b></td><td class="num">${r.motion}</td><td class="num">${r.fit}</td><td class="num">${r.timing}</td><td class="num">${r.potential}</td><td class="small" style="min-width:130px">${r.first ? `${esc(r.first[0])} <span class="mono">${r.first[1]} of 5</span>` : 'No partner with a reason yet'}</td><td class="small" style="white-space:nowrap">${SHOPPAY[r.shopPay] || ''}</td></tr>`;
+  const hbTable = L => `<table class="wide"><thead><tr><th class="num">#</th><th>Company</th><th>Where the score comes from</th><th class="num">Score</th><th class="num">Partner motion</th><th class="num">Anatta fit</th><th class="num">Timing</th><th class="num">Potential</th><th>Partner to move first</th><th>Shop Pay</th></tr></thead><tbody>${L.map(hbRow).join('')}</tbody></table>`;
+  $('hb-top').innerHTML = hbTable(ten);
+  $('hb-rest').innerHTML = rest.length ? `<details class="strip"><summary><b style="font-size:13.5px">Ranks 11 to ${n}</b><span class="small">${plural(rest.length, 'more company', 'more companies')} inside the ICP</span></summary><div class="tblwrap" style="border:none;border-top:1px solid var(--line);border-radius:0">${hbTable(rest)}</div></details>` : '';
+  $('hb-outside').innerHTML = O.length ? `<details class="strip"><summary><b style="font-size:13.5px">Outside Anatta's ICP</b><span class="small">${plural(O.length, 'company', 'companies')} listed, not ranked</span></summary><div class="tblwrap" style="border:none;border-top:1px solid var(--line);border-radius:0"><table><thead><tr><th>Company</th><th>Why it is outside</th><th>Tier in the triangulation</th></tr></thead><tbody>${O.map(r => `<tr class="row" data-focus="${esc(r.lead)}"><td><strong>${esc(r.display)}</strong></td><td class="small" style="color:var(--ink-2);min-width:260px">${esc(r.why)}</td><td style="white-space:nowrap"><span class="tierpill ${r.book_tier}">${r.book_tier}</span> <span class="mono small">${r.triangle}</span></td></tr>`).join('')}</tbody></table></div></details>` : '';
+  const hardN = R.filter(hbHard).length, hardTen = ten.filter(hbHard).length;
+  $('hb-note').textContent = `${hardN ? `The Heartbeat score has no measure for how hard a platform is to leave. ${hardN} of the ${n} ranked companies${n > 10 ? `, ${hardTen} of them in the first ten,` : ''} carry the "hard to move" mark from the triangulation: the main store runs on an in-house platform at national scale, or on a platform that went live in the last two years. The mark is context and does not change a rank. ` : ''}${(HB.notes || []).join(' ')}`;
+  $('hb-under-p').innerHTML = `Every account was first researched and scored on two legs, Shopify's fit and Anatta's, and given a tier. The ranking above reads that research: timing comes from it, and each row shows its tier. What follows is that first pass, with its evidence.`;
+  $('hb-under').querySelector('.wrap').insertAdjacentHTML('beforeend', `<div class="grid kpis" style="margin:18px 0 0">${kpiHtml(tierTiles)}</div>`);
+}
 const SRC = S.sources || null, PR = SRC && SRC.platform_read;   // set when the book was built with Store Leads and the live check
 $('ov-note').innerHTML = SRC
   ? `<strong style="color:var(--ink-2)">Where the Shopify leg comes from.</strong> Every storefront was read three ways: BuiltWith's technology export, Store Leads, and the live site itself on ${esc(fmtDate(SRC.live.date))}. All three agree on the platform for ${plural(PR.agree3, 'account')} and two agree for ${PR.agree2}; ${PR.single} rest on a single read${PR.disagree ? `, ${PR.disagree} ${PR.disagree === 1 ? 'has' : 'have'} reads that disagree` : ''}, and for ${PR.none} no source names a platform (owners, non-merchants and in-house builds). That makes platform whitespace, the heaviest subscore, a measured starting point that research then confirms or corrects.`
@@ -732,6 +796,25 @@ fPlat.innerHTML = '<option value="">All platforms</option>' + [...new Set(scored
 fModel.innerHTML = '<option value="">All models</option>' + [...new Set(scored.map(a => a.model))].sort().map(p => `<option>${esc(p)}</option>`).join('');
 let sortK = 'triangle', sortDir = -1, openName = null;
 const subbars = (sub, R) => R.map(([k, l, p]) => { const v = sub[k] ?? 0; return `<div class="subbar"><span>${l}</span><div class="meter"><i style="width:${100 * Math.max(0, v) / p}%"></i></div><span class="mono" style="text-align:right">${v}/${p}</span></div>`; }).join('');
+function hbDetail(a){
+  const r = HB && !a.gate ? hbOf.get(a.name) : null;
+  if (!r) return '';
+  if (r.rank == null) return `<h4>Heartbeat score</h4><div class="tx">Outside Anatta's ICP, so it is listed and not ranked. ${esc(r.why)}</div>`;
+  const P = r.parts, pp = r.potentialParts;
+  const meter = ([k, l, c, m]) => `<div class="subbar"><span>${l} · ${hbPct(k)}%</span><div class="meter ${m}"><i style="width:${r[k]}%"></i></div><span class="mono" style="text-align:right">${r[k]}</span></div>`;
+  const pot = [['Online', r.onlineNote, pp.online, 40], ['Stores', r.storesNote || (r.stores ? `${r.stores} company-run stores` : 'No company-run stores'), pp.stores, 25],
+               ['Store sites', `${plural(r.sites || 0, 'transactional store')}${r.sitesNote ? ': ' + r.sitesNote : ''}`, pp.sites, 15], ['Room to grow', r.headroomNote || 'From the share of sales made online and the store count', pp.headroom, 20]];
+  const moves = r.moves.map(m => `<div class="hbmove"><b>${esc(m.partner)}</b> <span class="tag">${m.live ? 'live' : 'not live'}</span> ${m.motives.map(x => `<span class="tag">${esc(x)}</span>`).join(' ')}<div>${esc(m.evidence)}${m.gap ? ` Gap: ${esc(m.gap)}.` : ''}${m.trigger ? ` Trigger: ${esc(m.trigger)}` : ''}</div></div>`).join('');
+  return `<h4>Heartbeat score · ${r.priority} · rank ${r.rank} of ${HB.ranked.length}</h4>
+    ${r.rows.length > 1 ? `<div class="small" style="margin-bottom:4px">Scored once for ${esc(r.display)}: ${plural(r.rows.length, 'row')}, one buying centre.</div>` : ''}
+    ${HB_MEAS.map(meter).join('')}
+    <div class="small" style="margin-top:6px">Score = round(${HB_MEAS.map(([k]) => `${HB.weights[k]} × ${r[k]}`).join(' + ')})${r.bonus ? ` + ${r.bonus} for a live subscription` : ''} = <b style="color:var(--ink)">${r.priority}</b></div>
+    <h4>Why a partner moves · ${r.motion}</h4>${moves || '<div class="tx">No partner tool and no rival was found on its stores, so no partner has a reason to move yet.</div>'}
+    <h4>Anatta fit · ${r.fit} · ${esc(r.segment)}</h4><div class="tx">${esc(r.why)}</div><div class="small">Who they sell to ${P.audience} of 30 · platform move ${P.platform} of 25 · what makes it hard ${P.hard} of 30 · category proof ${P.category} of 15</div>
+    <h4>Timing · ${r.timing}</h4><div class="tx">${r.timingBase} from research timing and FIRE intent${r.timing !== r.timingBase ? `, plus ${r.timing - r.timingBase} for the Shop Pay wedge` : ''}. Shop Pay: ${(SHOPPAY[r.shopPay] || '').toLowerCase()}${r.shopPayWhy ? ` (${esc(r.shopPayWhy)})` : ''}.</div>
+    <h4>Potential · ${r.potential}</h4>${pot.map(([l, t, v, of]) => `<div class="tx" style="margin:2px 0"><span class="small">${l} · ${v} of ${of}:</span> ${esc(t || 'not found')}</div>`).join('')}
+    <h4>Subscription${r.bonus ? ' · +' + r.bonus : ''}</h4><div class="tx">${esc(r.subscriptionNote || 'No subscription, recurring delivery or paid membership found')}</div>`;
+}
 function detail(a){
   if (a.missing) return `<div class="det"><div><p class="small">No research record for this account.</p></div></div>`;
   const bw = Object.entries(a.builtwith || {}).map(([k, v]) => `<div style="margin:2px 0"><span class="small">${esc(k)}:</span> ${esc(v)}</div>`).join('') || '<span class="small">no BuiltWith row</span>';
@@ -752,6 +835,7 @@ function detail(a){
     ${a.verification.length ? `<h4>Verification</h4>${secondLookNote(a)}${a.verification.map(v => `<div class="tx" style="margin:3px 0"><span class="tag">${esc(v.lens)}</span> <b>${esc(v.verdict)}</b>: ${esc(v.reason)} ${(v.evidence || []).filter(e => safeUrl(e.source)).map(e => `<a href="${esc(e.source)}" target="_blank" rel="noopener" class="small" title="${esc(e.claim)}">source ↗</a>`).join(' ')}</div>`).join('')}` : ''}
     ${a.adjustments.length ? `<h4>Adjustments</h4>${a.adjustments.map(x => `<div class="tx">↳ ${esc(x)}</div>`).join('')}` : ''}
   </div><div>
+    ${hbDetail(a)}
     <h4>Shopify fit · ${a.shopify_fit}</h4>${subbars(a.shopify_sub, RUB_S)}${a.shopify_sub.penalties ? `<div class="subbar"><span>Penalties</span><div></div><span class="mono" style="text-align:right">${a.shopify_sub.penalties}</span></div><div class="small">${esc(a.penalty_reason)}</div>` : ''}
     <h4>Anatta fit · ${a.anatta_fit}</h4>${subbars(a.anatta_sub, RUB_A)}
     <div class="small" style="margin-top:6px">Triangle = round(0.55 × ${a.shopify_fit} + 0.45 × ${a.anatta_fit}${a.bonus ? ` + ${a.bonus} bonus` : ''}) = <b style="color:var(--ink)">${a.triangle}</b></div>
@@ -794,11 +878,12 @@ $('method').innerHTML = `<p><b>Sources.</b> One Apollo accounts export (${S.acco
 <p><b>Research.</b> ${triText} ${S.triaged === 1 ? 'was' : 'were'} gated by rule without web research. Every other account was researched from the two rubrics with web search: ${D.full ?? '—'} accounts with a visible commerce surface got a full pass (platform confirmation, scale, ownership, timing, distress) and ${D.light ?? '—'} with none got a one-search pass. Each record carries sourced evidence, a confidence rating and a written story. ${S.verified} accounts (the provisional top two tiers and every judgment-call gate) then got an adversarial second look through two lenses: platform and scale; business model and gates. ${S.verification === 'consistency' ? 'The research pass used the whole web-search budget for this run, so that second look was a consistency check of each record against its own sourced evidence and the rubric, not fresh research. Every verdict says so.' : 'Verifiers searched for their own evidence.'} Where a verifier moved a score by 8 points or more the final value is the average of the two views, and the adjustment is shown on the record. ${scored.filter(split).length ? `For ${plural(scored.filter(split).length, 'row')} the second look's own figures would give a different tier from that average; each is tagged with the tier the second look would give. ` : ''}${starved ? `${plural(starved, 'account')} carry a flag naming a check that was not done because the search budget ran out.` : ''} ${SRC ? `Platform confirmation: the live site itself named the platform for ${A.filter(a => a.platform_read && a.platform_read.sources.some(x => x.source === 'Live site' && x.counts)).length} accounts, and at least two independent reads agree for ${PR.agree3 + PR.agree2}. Each record lists every read and why any was not counted; it says "unconfirmed" where a single detector is the only source (${unconf} accounts).` : `Platform confirmation: for ${live} accounts the researcher loaded the live site and read the platform from the page itself (the record says "fetched" with the date); for the rest it rests on press, job posts, agency case studies and the BuiltWith row, and the record says "unconfirmed" where BuiltWith is the only source (${unconf} accounts).`}</p>
 <p><b>Book-specific handling.</b> ${dropped.length ? `${dropped.map(a => `<b>${nm(a)}</b>`).join(', ')}: set aside because Anatta no longer pursues ${dropped.length === 1 ? 'it' : 'them'}. That is our decision, not a judgment on fit, so the scores stay on the record but the ${dropped.length === 1 ? 'row is' : 'rows are'} not counted in the tiers or among top-tier people. ` : ''}${A.filter(a => a.signal_misattributed).map(a => `<b>${nm(a)}</b>`).join(', ') || 'No account'}: the Apollo row is a different company from the one in the book, so its FIRE fields are shown as exported but not scored. ${capped.length > 6 ? plural(capped.length, 'account') : capped.map(a => `<b>${nm(a)}</b>`).join(', ') || 'No account'}: platform whitespace is capped at 15 of 25 where Shopify cannot convert the platform in a quarter (it went live on a competitor's platform recently, or it is an in-house platform at national scale). The reason and the uncapped score are on each record. This is the same documented cap the October build applied. A capped account can still clear both bars on scale and signal alone, so the overview lists those apart as hard to move and counts only the others as worth walking into now. ${S.grouped_rows} rows are marked as sharing ${Object.keys(groups).length} buying centres; each is still scored on its own storefront. ${S.family_rows ? `${S.family_rows} rows sit under ${plural(S.families, 'owner')} that hold more than one row: an owner is context, not a shared decision, and a sister company already on Shopify is shown on the record but never scored. ` : ''}${(S.method_notes || []).map(esc).join(' ')}</p>
 <p><b>Formula.</b> Shopify fit = Σ six subscores + penalties, clamped 0–100. Anatta fit = Σ four research subscores + FIRE intent (max 20), clamped 0–100. Triangle = round(0.55 × Shopify + 0.45 × Anatta + bonus), capped at 100, where bonus = +3 in-market, +3 FIRE intent High, +4 explicit Shopify intent signal. Tiers: T1 if triangle ≥ 62 and Shopify fit ≥ 63; T2 ≥ 48; T3 ≥ 36; T4 otherwise. Gates override tiers: Shopify Plus live → EXP; government, distress, no commerce surface (only when Shopify fit &lt; 20), bad record, restricted → X.</p>
+${HB ? `<p><b>Heartbeat score.</b> The ranking at the top is the Heartbeat score for ${esc(HB.month)}, computed by the Heartbeat Source's own scoring, unchanged: ${hbPct('motion')}% partner motion + ${hbPct('fit')}% Anatta fit + ${hbPct('timing')}% timing + ${hbPct('potential')}% potential, plus 10 when a subscription is live, capped at 100. Rows that share a buying centre are scored once, on the row with the highest triangle; gated rows are left out. Partner motion: a partner with a reason to move earns one point per reason (displacement, portfolio, better together), one if it is live at the company and one if a dated trigger falls within nine months of the issue month; the measure takes 60% of the best partner, 25% of the second and 15% of the third. Anatta fit is the ICP model: who they sell to (30), the platform move (25), what makes it hard (30), category proof (15). Timing is 60% research timing and 40% FIRE intent above its floor, plus 15 where a store can add Shop Pay to the checkout it runs today and 7 where it partly can. Potential is online sales now (40), company-run stores (25), transactional stores in the group (15) and room to grow (20). ${(HB.method_notes || []).map(esc).join(' ')}</p>` : ''}
 <p><b>The age of our signal.</b> The newest FIRE signal in the book is ${S.fire.newest_signal_days} days older than this build, so researchers counted a FIRE signal or an In-market flag as a soft timing signal unless public evidence backed it. The 20-point intent subscore is still computed from the export exactly as written.</p>
 <p style="margin:0"><b>What the numbers are not.</b> A prioritisation aid built from detected stack evidence, FIRE signals and desk research. It is not a substitute for a conversation with the account. Confidence is low where platform, scale or model could not all be sourced.</p>`;
 
 // ---------- CSV ----------
-function csvText(){ const cols = ['name','display','group','family','domain','tier','triangle','shopify_fit','anatta_fit','gate','gate_reason','category','model','plat','platform','size_est','hq','ownership','confidence','fire_score','fire_intent','fire_in_market','fire_signals','fire_last_signal','story','shopify_angle','anatta_angle','flags']; if (A.some(a => a.second_look)) cols.push('second_look_would_be'); const val = (a, k) => k.startsWith('fire_') ? a.fire[k.slice(5)] : k === 'flags' ? (a.flags || []).join(' | ') : k === 'second_look_would_be' ? (split(a) ? a.second_look.reviewer.tier : '') : a[k]; const qq = v => `"${String(v ?? '').replace(/"/g, '""')}"`; return [cols.join(','), ...A.map(a => cols.map(k => qq(val(a, k))).join(','))].join('\n'); }
+function csvText(){ const cols = ['name','display','group','family','domain','tier','triangle','shopify_fit','anatta_fit','gate','gate_reason','category','model','plat','platform','size_est','hq','ownership','confidence','fire_score','fire_intent','fire_in_market','fire_signals','fire_last_signal','story','shopify_angle','anatta_angle','flags']; if (A.some(a => a.second_look)) cols.push('second_look_would_be'); const HBC = {heartbeat_rank: r => r.rank, heartbeat_score: r => r.priority, heartbeat_segment: r => r.segment, partner_motion: r => r.motion, anatta_icp_fit: r => r.fit, heartbeat_timing: r => r.timing, potential: r => r.potential, subscription: r => r.subscription, shop_pay: r => r.shopPay, partner_to_move_first: r => r.first ? r.first[0] : ''}; if (HB) cols.push(...Object.keys(HBC)); const val = (a, k) => k.startsWith('fire_') ? a.fire[k.slice(5)] : k === 'flags' ? (a.flags || []).join(' | ') : k === 'second_look_would_be' ? (split(a) ? a.second_look.reviewer.tier : '') : k in HBC ? (hbOf.get(a.name) && !a.gate ? HBC[k](hbOf.get(a.name)) : '') : a[k]; const qq = v => `"${String(v ?? '').replace(/"/g, '""')}"`; return [cols.join(','), ...A.map(a => cols.map(k => qq(val(a, k))).join(','))].join('\n'); }
 const csvBtn = $('csvbtn');
 /*FILEONLY*/
 if (TARGET === 'file') {   // a standalone file can save the CSV; a published page cannot, so that build copies it instead

@@ -1,0 +1,232 @@
+#!/usr/bin/env python3
+"""Partner facts for one book: which technology partners, and which of their rivals, each storefront runs.
+
+A Heartbeat score puts partner motion first, and partner motion is written from these facts (see the Heartbeat Source
+playbook, "Why a partner moves"). This step only states what three scans saw. It writes no move and scores nothing.
+
+  BuiltWith detect export   first and last detected date per technology, and the host it was seen on
+  Store Leads               the technologies and installed apps it lists for the storefront (no dates)
+  Live check                what the page itself loaded on the day of the build (live_check.py)
+
+Who is a partner is not decided here: it is read from the partner registry (the Golden Triangle Console's export,
+partner_registry.json). A vendor the registry marks "rel": true is a partner. LANES below only says which lane a vendor
+works in and what each scan calls it; a vendor in a lane that is not a partner is a rival a partner could take out.
+
+Rules, each from a lesson in the Heartbeat Source:
+  - The main site is the store. Only shop., store., checkout. and buy. subdomains join it. Other hosts are listed apart.
+  - A BuiltWith-only sighting needs 60 days of history (a one-day sighting is not a live tool), unless Store Leads or
+    the live page shows the same vendor.
+  - Live means seen within 75 days of the export, or on the live page. Anything older is "removed", with its dates.
+  - A DNS record (mail, name server) is weaker than a tag on the page, so it is marked "dns".
+
+A row is read at the domain the book lists for it, which is the storefront the book means. Where the book lists a
+corporate site and the store sits elsewhere, --store-domains names the store ({"Account Name As Exported": "store.com"}).
+
+Usage: partner_facts.py <builtwith zip|dir> <accounts_input.json> <partner_registry.json> <out.json> [--live live.json]
+                        [--store-domains map.json] [--as-of YYYY-MM-DD]
+"""
+import csv, io, json, os, re, sys, zipfile, datetime, collections
+
+args = sys.argv[1:]
+def opt(flag, default=None):
+    if flag in args:
+        i = args.index(flag); v = args[i + 1]; del args[i:i + 2]; return v
+    return default
+LIVE_PATH, AS_OF_ARG, STORE_DOMAINS = opt("--live"), opt("--as-of"), opt("--store-domains")
+BW, ACC, REG, OUT = args[:4]
+LIVE_DAYS, HISTORY_DAYS = 75, 60
+STORE_SUBS = ("shop.", "store.", "checkout.", "buy.")
+DNS_CATS = {"mx", "ns"}
+SKIP_CATS = {"link", "ads", "docinfo", "registrar", "ssl", "copyright", "parked", "hosting", "cdns", "CDN", "Server", "Web Server", "Web Master", "language", "mapping", "media", "feeds"}
+
+# lane -> vendor -> the names the scans use for it (lower case). The first lane a vendor appears in is its lane.
+LANES = {
+    "email": {
+        "Klaviyo": ["klaviyo", "klaviyo for wordpress"],
+        "Bloomreach": ["bloomreach", "exponea", "bloomreach engagement"],
+        "Braze": ["braze"], "Iterable": ["iterable"],
+        "Salesforce Marketing Cloud": ["salesforce marketing cloud", "exacttarget email", "exacttarget", "igodigital", "salesforce marketing cloud account engagement"],
+        "Listrak": ["listrak"], "Zeta": ["zeta marketing platform", "zeta global", "zeta"], "Sailthru": ["sailthru", "sailthru horizon"],
+        "Emarsys": ["emarsys", "sap emarsys"], "Bronto": ["bronto email", "bronto"], "Oracle Responsys": ["responsys", "oracle responsys"],
+        "Acoustic": ["acoustic campaign", "silverpop"], "Cheetah Digital": ["cheetah digital", "cheetahmail"], "Bluecore": ["bluecore"],
+        "Wunderkind": ["wunderkind", "bouncex", "bounce exchange"], "Cordial": ["cordial"], "Epsilon": ["epsilon", "conversant"],
+        "Adobe Campaign": ["adobe campaign"], "Mailchimp": ["mailchimp", "mailchimp for wordpress"], "Constant Contact": ["constant contact"],
+        "Retention Science": ["retention science"], "4Cite": ["4cite"], "Dotdigital": ["dotdigital", "dotmailer"], "Omnisend": ["omnisend"],
+    },
+    "sms": {
+        "Attentive": ["attentive", "attentive mobile"], "Postscript": ["postscript"],
+        "Vibes": ["vibes"], "Mobivity": ["mobivity"], "SMSBump": ["smsbump"],
+    },
+    "reviews": {
+        "Yotpo": ["yotpo", "yotpo reviews"], "Okendo": ["okendo"],
+        "Bazaarvoice": ["bazaarvoice", "bazaarvoice social commerce", "curalate"], "PowerReviews": ["powerreviews"],
+        "Emplifi": ["emplifi", "emplifi ugc", "turnto", "pixlee"], "Olapic": ["olapic"], "Shopper Approved": ["shopper approved"],
+        "Judge.me": ["judge me", "judge.me", "judgeme"], "Stamped": ["stamped", "stamped.io"], "Trustpilot": ["trustpilot"], "Reevoo": ["reevoo"],
+    },
+    "helpdesk": {
+        "Gorgias": ["gorgias"], "Kustomer": ["kustomer"],
+        "Zendesk": ["zendesk", "zendesk embeddables", "zopim", "zendesk chat"],
+        "Salesforce Service Cloud": ["salesforce service cloud", "salesforce live agent", "salesforce desk", "salesforce chat (live agent)"],
+        "Freshdesk": ["freshdesk", "freshchat", "freshdesk chat"], "LivePerson": ["liveperson"], "Genesys": ["genesys", "genesys cloud cx platform"],
+        "Gladly": ["gladly"], "Intercom": ["intercom", "intercom help"], "Ada": ["ada support", "ada"], "iAdvize": ["iadvize"],
+        "Powerfront": ["powerfront"], "LiveChat": ["livechat"], "Olark": ["olark"], "eGain": ["egain"], "Khoros": ["khoros"],
+        "Nuance": ["nuance"], "Sierra": ["sierra"], "Linc": ["linc global", "linc"], "Help Scout": ["help scout"], "Tidio": ["tidio"],
+    },
+    "search": {
+        "Algolia": ["algolia"], "Constructor": ["constructor", "constructor io", "constructor.io"], "Fast Simon": ["fast simon", "instant search plus"],
+        "Oracle Endeca": ["endeca", "oracle endeca"], "Lucidworks": ["lucidworks"], "Coveo": ["coveo"], "Unbxd": ["unbxd"], "Findify": ["findify"],
+        "Hawk Search": ["hawk search", "hawksearch"], "Searchspring": ["searchspring", "athos commerce"], "Klevu": ["klevu"], "Nosto": ["nosto"],
+        "SLI Systems": ["sli systems"], "GroupBy": ["groupby"], "Reflektion": ["reflektion"], "Attraqt": ["attraqt"],
+    },
+    "returns": {
+        "Loop": ["loop returns", "loop"], "AfterShip": ["aftership"],
+        "Narvar": ["narvar"], "Happy Returns": ["happy returns"], "Returnly": ["returnly"], "Route": ["route", "routeapp"], "Optoro": ["optoro"],
+    },
+    "cross-border": {
+        "Global-e": ["global-e", "globale", "global e", "borderfree"], "ESW": ["esw", "eshopworld"],
+        "Zonos": ["zonos", "iglobal stores"], "Reach": ["reach"], "FlavorCloud": ["flavorcloud"],
+    },
+    "subscriptions": {
+        "Recharge": ["recharge", "recharge payments", "recharge subscriptions"], "Skio": ["skio"], "Stay.ai": ["stay ai", "stay.ai", "retextion"],
+        "Ordergroove": ["ordergroove"], "Recurly": ["recurly"], "Bold Subscriptions": ["bold subscriptions"], "Smartrr": ["smartrr"],
+    },
+    "loyalty": {
+        "Smile.io": ["smile io", "smile.io"], "Rivo": ["rivo loyalty", "rivo"], "Friendbuy": ["friendbuy"], "Talon.One": ["talon.one", "talon one"],
+        "Rokt": ["rokt"], "LoyaltyLion": ["loyalty lion", "loyaltylion"], "Annex Cloud": ["annex cloud"], "Extole": ["extole"],
+    },
+    "personalisation": {
+        "Dynamic Yield": ["dynamic yield"], "Rebuy": ["rebuy"], "Shoplift": ["shoplift"],
+        "Monetate": ["monetate"], "Certona": ["certona"], "Adobe Target": ["adobe target standard", "omniture adobe test and target", "adobe target"],
+        "Salesforce Personalization": ["salesforce marketing cloud personalisation", "salesforce interaction studio", "salesforce personalization", "evergage"],
+        "Optimizely": ["optimizely"], "AB Tasty": ["ab tasty"], "Granify": ["granify"],
+    },
+    "fraud": {
+        "Signifyd": ["signifyd"], "Forter": ["forter"], "NoFraud": ["nofraud"],
+        "Riskified": ["riskified"], "Kount": ["kount"], "Sift": ["sift science", "sift"], "ThreatMetrix": ["threatmetrix"],
+    },
+    "performance": {"Yottaa": ["yottaa"], "Noibu": ["noibu"]},
+    "analytics": {"Elevar": ["elevar", "elevar conversion tracking"], "Triple Whale": ["triple whale"]},
+    "mobile": {"Tapcart": ["tapcart"]},
+}
+VENDOR, LANE = {}, {}
+for lane, vendors in LANES.items():
+    for v, names in vendors.items():
+        LANE.setdefault(v, lane)
+        for n in names: VENDOR.setdefault(n, v)
+
+# The registry says who is a partner. Its own names and aliases are also matched, for vendors LANES spells differently.
+reg = json.load(open(REG, encoding="utf-8"))["registry"]
+REL = {x["name"] for x in reg if x.get("rel")}
+REL |= {"Loop"} if "Loop" in REL or "Loop Returns" in REL else set()
+for x in reg:
+    if x["name"] in LANE:
+        for a in x.get("aliases") or []: VENDOR.setdefault(a.lower(), x["name"])
+is_partner = lambda v: v in REL
+
+def vendor_of(tech):
+    t = re.sub(r"\s+", " ", tech.strip().lower())
+    t = re.sub(r"[,:‑-]\s+.*$", "", t) if t not in VENDOR else t      # "Klaviyo, Email Marketing & SMS" -> "klaviyo"
+    return VENDOR.get(t) or VENDOR.get(re.sub(r"\s+(returns & exchanges|ai helpdesk & chat|search & discovery|product reviews.*)$", "", t))
+
+def dom(u): return re.sub(r"^www\.", "", re.sub(r"^https?://", "", (u or "").strip().lower()).split("/")[0])
+def parents(d):
+    parts = d.split("."); return [".".join(parts[i:]) for i in range(len(parts) - 1)]
+
+def read_detect(path):
+    def rows(name, fh):
+        cat = os.path.basename(name)[:-4]
+        if "_" in cat: return                 # the sub-category files repeat the top-level ones
+        for r in csv.DictReader(io.TextIOWrapper(fh, encoding="utf-8-sig", newline="")): yield cat, r
+    if os.path.isdir(path):
+        for f in sorted(os.listdir(path)):
+            if f.endswith(".csv"):
+                with open(os.path.join(path, f), "rb") as fh: yield from rows(f, fh)
+    else:
+        with zipfile.ZipFile(path) as z:
+            for f in sorted(z.namelist()):
+                if f.endswith(".csv") and "/" not in f.strip("/"):
+                    with z.open(f) as fh: yield from rows(f, fh)
+
+g = lambda r, k: (r.get(k) or "").strip()
+seen = collections.defaultdict(dict)          # domain -> (vendor, where) -> {"first", "last", "dns", "host"}
+last_seen = ""
+for cat, r in read_detect(BW):
+    d, tech = g(r, "Domain").lower(), g(r, "Technology Name")
+    if not d or not tech or cat in SKIP_CATS: continue
+    v = vendor_of(tech)
+    if not v: continue
+    host = re.sub(r"/.*$", "", g(r, "Location on Website").lower()) or d
+    where = "store" if host in (d, "www." + d) or any(host == s + d for s in STORE_SUBS) else host
+    first, last = g(r, "First Detected")[:10], g(r, "Last Detected")[:10]
+    e = seen[d].setdefault((v, where), {"first": first or "9999", "last": last, "dns": True})
+    e["first"], e["last"] = min(e["first"], first or e["first"]), max(e["last"], last)
+    e["dns"] = e["dns"] and cat in DNS_CATS
+    if re.match(r"20[12]\d-", last): last_seen = max(last_seen, last) if last <= datetime.date.today().isoformat() else last_seen
+AS_OF = datetime.date.fromisoformat(AS_OF_ARG or last_seen)
+
+def days(a, b):
+    try: return (datetime.date.fromisoformat(b) - datetime.date.fromisoformat(a)).days
+    except Exception: return None
+
+live_apps, live_read = {}, set()             # live_read: the storefronts whose page actually loaded (a bot wall reads nothing)
+if LIVE_PATH:
+    for host, v in json.load(open(LIVE_PATH, encoding="utf-8")).items():
+        if v.get("bot_wall") or v.get("error") or not (200 <= (v.get("status") or 0) < 400): continue
+        live_read.add(dom(host))
+        live_apps.setdefault(dom(host), set()).update({vendor_of(a) for a in (v.get("apps") or [])} - {None})
+
+def split_list(s): return [x.strip() for x in re.split(r",\s{1,2}(?=[A-Z0-9])", s or "") if x.strip()]
+
+def facts_for(domain, storeleads):
+    """Every lane vendor seen at one storefront, with where and when."""
+    bw_dom = next((p for p in parents(domain) if p in seen), None)
+    sl = {vendor_of(t) for t in split_list(storeleads.get("Technologies")) + split_list(storeleads.get("Apps"))} - {None}
+    lv = live_apps.get(domain, set())
+    out, side = {}, []
+    for (v, where), e in (seen.get(bw_dom) or {}).items():
+        if where != "store":
+            if days(e["last"], AS_OF.isoformat()) is not None and days(e["last"], AS_OF.isoformat()) <= LIVE_DAYS: side.append(f"{v} on {where}")
+            continue
+        out[v] = {"vendor": v, "lane": LANE[v], "partner": is_partner(v), "first": e["first"][:7], "last": e["last"][:7], "sources": ["BuiltWith"], "dns": e["dns"],
+                  "_age": days(e["last"], AS_OF.isoformat()), "_span": days(e["first"], e["last"])}
+    for v in sl | lv:
+        e = out.setdefault(v, {"vendor": v, "lane": LANE[v], "partner": is_partner(v), "first": "", "last": "", "sources": [], "dns": False, "_age": None, "_span": None})
+        if v in sl: e["sources"].append("Store Leads")
+        if v in lv: e["sources"].append("Live site")
+    rows = []
+    for v, e in out.items():
+        corroborated = len(e["sources"]) > 1 or e["sources"] != ["BuiltWith"]
+        recent = e["_age"] is not None and e["_age"] <= LIVE_DAYS
+        if "Live site" in e["sources"] or "Store Leads" in e["sources"]: state = "live"
+        elif recent and (e["_span"] or 0) >= HISTORY_DAYS: state = "live"
+        elif recent: state = "brief sighting"            # not counted: under 60 days of history and no second scan
+        else: state = "removed"
+        if e["dns"] and state == "live" and not corroborated: state = "live (dns only)"
+        rows.append({k: v2 for k, v2 in {**e, "state": state}.items() if not k.startswith("_")})
+    rows.sort(key=lambda r: (not r["partner"], r["lane"], r["vendor"]))
+    return rows, sorted(side)
+
+acc = json.load(open(ACC, encoding="utf-8"))
+store_domain = json.load(open(STORE_DOMAINS, encoding="utf-8")) if STORE_DOMAINS else {}
+res = []
+for a in acc:
+    a = {**a, "domain": dom(store_domain.get(a["name"]) or a.get("book_domain") or a["domain"])}
+    rows, side = facts_for(a["domain"], {} if a["name"] in store_domain else (a.get("storeleads") or {}))
+    extra = []
+    for o in a.get("other_storefronts") or []:
+        r2, s2 = facts_for(dom(o["domain"]), o.get("storeleads") or {})
+        extra.append({"label": o.get("label", ""), "domain": o["domain"], "vendors": r2})
+    res.append({"name": a["name"], "domain": a["domain"], "vendors": rows, "side_hosts": side, "other_storefronts": extra,
+                "scans": {"builtwith": any(p in seen for p in parents(a["domain"])), "storeleads": bool((a.get("storeleads") or {}).get("Technologies")),
+                          "live": a["domain"] in live_read}})
+json.dump({"as_of": AS_OF.isoformat(), "rules": {"live_days": LIVE_DAYS, "history_days": HISTORY_DAYS, "store_subdomains": STORE_SUBS},
+           "partners": sorted(v for v in LANE if is_partner(v)), "accounts": res}, open(OUT, "w", encoding="utf-8"), indent=0, ensure_ascii=False)
+
+c = collections.Counter(); r_ = collections.Counter()
+for x in res:
+    for v in x["vendors"]:
+        if v["state"].startswith("live"): (c if v["partner"] else r_)[v["vendor"]] += 1
+print(f"as of {AS_OF} | {len(res)} accounts | {sum(1 for x in res if any(v['partner'] and v['state'].startswith('live') for v in x['vendors']))} with a partner live")
+print("partners live at:", ", ".join(f"{k} {n}" for k, n in c.most_common()))
+print("rivals live at:  ", ", ".join(f"{k} {n}" for k, n in r_.most_common(30)))
+print("states:", dict(collections.Counter(v["state"] for x in res for v in x["vendors"])))

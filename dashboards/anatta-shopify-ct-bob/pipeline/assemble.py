@@ -12,12 +12,22 @@ Contact emails are shown in full ONLY in the internal standalone file. They are 
 the shareable copy and in every published fragment, and the build asserts the exact masked count and that no raw
 address is left.
 
-Usage: assemble.py <scored.json> <out_dir> [<hubs.json> <libs_dir>]
+With a Heartbeat ranking (--heartbeat rescored.json, written by the Heartbeat Source's tools/rescore.py) the page leads
+with that ranking and keeps the triangulation underneath. --potential is the same run's potential.json, for the notes
+behind each measure; --heartbeat-notes is a JSON file {"month": ..., "notes": [...], "method_notes": [...]}.
+Nothing is scored here: the build only joins the ranking to the book and asserts that every score recomputes.
+
+Usage: assemble.py <scored.json> <out_dir> [<hubs.json> <libs_dir>] [--heartbeat rescored.json --potential potential.json --heartbeat-notes notes.json]
   libs_dir holds node_modules/d3, node_modules/topojson-client, node_modules/us-atlas and na-countries-50m.json
   (see prune_countries.js)."""
 import csv, json, sys, os, re, copy, collections, html as _html
-scored_p, OUT = sys.argv[1:3]
-hubs_p, LIB = (sys.argv[3], sys.argv[4]) if len(sys.argv) > 4 else (None, None)
+argv = sys.argv[1:]
+def opt(flag):
+    if flag in argv:
+        i = argv.index(flag); v = argv[i + 1]; del argv[i:i + 2]; return v
+BEAT_P, POT_P, BEAT_NOTES_P = opt("--heartbeat"), opt("--potential"), opt("--heartbeat-notes")
+scored_p, OUT = argv[:2]
+hubs_p, LIB = (argv[2], argv[3]) if len(argv) > 3 else (None, None)
 here = os.path.dirname(os.path.abspath(__file__))
 tpl = open(os.path.join(here, "dashboard.html"), encoding="utf-8").read()
 head, body = re.match(r"<!--HEAD-->\n(.*?)<!--/HEAD-->\n(.*)$", tpl, re.S).groups()
@@ -53,6 +63,34 @@ if hb:
     topo = {"__COUNTRIES__": open(f"{LIB}/na-countries-50m.json", encoding="utf-8").read().replace("<", "\\u003c"),
             "__STATES__": open(f"{LIB}/node_modules/us-atlas/states-10m.json", encoding="utf-8").read().replace("<", "\\u003c")}
 
+# ---------- Heartbeat ranking (optional) ----------
+beat = None
+if BEAT_P:
+    R = json.load(open(BEAT_P, encoding="utf-8")); POT = json.load(open(POT_P, encoding="utf-8")) if POT_P else {}
+    extra = json.load(open(BEAT_NOTES_P, encoding="utf-8")) if BEAT_NOTES_P else {}
+    W = R["weights"]
+    rows_of = collections.OrderedDict()
+    for a in sc["accounts"]: rows_of.setdefault(a.get("group") or a["name"], []).append(a)
+    open_groups = [g for g, rs in rows_of.items() if any(not a.get("gate") for a in rs)]
+    def join(r, ranked):
+        rs = rows_of[r["group"]]; lead = max((a for a in rs if not a.get("gate")), key=lambda a: a["triangle"])
+        d = {"group": r["group"], "display": r["group"] if len(rs) > 1 else lead["display"], "lead": lead["name"], "rows": [a["name"] for a in rs],
+             "segment": r["segment"], "fit": r["fit"], "parts": r["parts"], "why": r["why"], "book_tier": r["book_tier"], "triangle": r["triangle"], "platform": r["platform"]}
+        if not ranked: return d
+        e = POT.get(r["group"]) or {}
+        # every score is the Heartbeat Source's; this only checks that it recomputes from the four measures it came with
+        assert r["priority"] == min(100, round(sum(W[k] * r[k] for k in W)) + r["bonus"]), f'{r["group"]}: Heartbeat score does not recompute'
+        d.update({k: r[k] for k in ("rank", "priority", "motion", "timing", "timingBase", "shopPay", "potential", "potentialParts", "subscription", "bonus", "first")})
+        d["moves"] = [{k: m.get(k, "") for k in ("partner", "motives", "live", "evidence", "gap", "trigger", "triggerDate")} for m in r["moves"]]
+        d.update({k: e[k] for k in ("online", "onlineNote", "stores", "storesNote", "sites", "sitesNote", "headroomNote", "shopPayWhy", "subscriptionNote") if e.get(k) not in (None, "")})
+        return d
+    beat = {"month": extra.get("month", ""), "weights": W, "ranked": [join(r, True) for r in R["ranked"]], "outside": [join(r, False) for r in R["outside"]],
+            "notes": extra.get("notes", []), "method_notes": extra.get("method_notes", [])}
+    got = [r["group"] for r in beat["ranked"] + beat["outside"]]
+    assert sorted(got) == sorted(open_groups), "the Heartbeat ranking and the book do not list the same companies"
+    assert [r["rank"] for r in beat["ranked"]] == list(range(1, len(beat["ranked"]) + 1))
+    beat_of = {n: r for r in beat["ranked"] + beat["outside"] for n in r["rows"]}
+
 def mask(email):
     if not email: return ""
     local, _, dom = email.partition("@"); return f"{local[:1]}•••@{dom}"
@@ -70,6 +108,7 @@ def build(internal, target):
     summary["copy_note"] = ("Internal copy: it shows which accounts are in Salesforce and how far our own signal can be trusted. Do not forward outside Anatta."
                             if internal else "CRM record IDs and internal notes are stripped; this copy is safe to share with Shopify.")
     data = {"internal": internal, "target": target, "summary": summary, "accounts": accounts}
+    if beat: data["heartbeat"] = beat
     if hb:
         contacts = copy.deepcopy(hb["contacts"])
         raw_emails = [c["email"] for c in contacts if c["email"]]
@@ -121,12 +160,15 @@ def build(internal, target):
     return ("<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n"
             + ICON + "\n" + head + "</head>\n<body>\n" + page + "</body>\n</html>\n"), masked
 
+BEAT_COLS = {"heartbeat_rank": lambda r: r.get("rank", ""), "heartbeat_score": lambda r: r.get("priority", ""), "heartbeat_segment": lambda r: r["segment"],
+             "partner_motion": lambda r: r.get("motion", ""), "anatta_icp_fit": lambda r: r["fit"], "heartbeat_timing": lambda r: r.get("timing", ""), "potential": lambda r: r.get("potential", ""),
+             "subscription": lambda r: r.get("subscription", ""), "shop_pay": lambda r: r.get("shopPay", ""), "partner_to_move_first": lambda r: (r.get("first") or [""])[0]}
 CSV_COLS = ["name", "display", "group", "family", "domain", "book_domain", "tier", "triangle", "shopify_fit", "anatta_fit", "gate", "gate_reason", "category", "model",
             "plat", "platform", "size_est", "hq", "ownership", "confidence", "fire_score", "fire_intent", "fire_in_market", "fire_signals",
             "fire_last_signal", "story", "shopify_angle", "anatta_angle", "flags", "adjustments"]
 def write_csv(path, internal):
     cols = (CSV_COLS + (["platform_read", "storeleads_sales"] if sc["summary"].get("sources") else []) + (["contacts"] if hb else [])
-            + (["second_look_would_be"] if any(a.get("second_look") for a in sc["accounts"]) else []) + (["in_salesforce"] if internal else []))
+            + (["second_look_would_be"] if any(a.get("second_look") for a in sc["accounts"]) else []) + (list(BEAT_COLS) if beat else []) + (["in_salesforce"] if internal else []))
     def val(a, k):
         if k.startswith("fire_"): return a["fire"][k[5:]]
         if k == "flags": return " | ".join(f for f in a.get("flags", []) if internal or not INTERNAL_FLAG.search(f))
@@ -135,6 +177,8 @@ def write_csv(path, internal):
         if k == "contacts": return len(people_of.get(a["name"], []))
         if k == "platform_read": return (a.get("platform_read") or {}).get("verdict", "")
         if k == "storeleads_sales": return (a.get("storeleads") or {}).get("Estimated yearly sales", "")
+        if k in BEAT_COLS:                # the company's Heartbeat row, on each of its ungated rows
+            return BEAT_COLS[k](beat_of[a["name"]]) if a["name"] in beat_of and not a.get("gate") else ""
         if k == "second_look_would_be":   # the tier on the second look's own figures, only where it differs from the tier shown
             v = (a.get("second_look") or {}).get("reviewer", {}).get("tier", "")
             return v if v and v != a["tier"] and a.get("gate") != "not_pursued" else ""
