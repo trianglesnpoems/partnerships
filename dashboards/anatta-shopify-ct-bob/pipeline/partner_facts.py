@@ -27,14 +27,20 @@ Rules, each from a lesson in the Heartbeat Source:
   - The export is checked against the browser, vendor by vendor. Where the browser could run a search on at least five
     stores at which BuiltWith lists a vendor, and confirmed fewer than half of them, BuiltWith's word alone is not enough
     for that vendor anywhere in the book: a listing that rests on BuiltWith only is "not confirmed", readable store or not.
-  - --confirmed names facts read first-hand in research ([{"name": account, "vendor": ..., "note": what was read and
+  - A tool named only in a store's page source, with no call seen and no export listing, is "not confirmed" where the
+    browser saw the store call another tool for the same job.
+  - --contradicted names tools an export lists that first-hand evidence rules out at that store (its own security policy
+    allows no host of that vendor): the listing becomes "not confirmed".
+  - --confirmed names facts read first-hand in research ([{"name": account, "vendor": ..., "at": the store it was read at when
+    that store is not a row on the list (optional), "note": what was read and
     where}]). Such a fact gains the source "Research", so it no longer rests on the export alone.
 
 A row is read at the domain the book lists for it, which is the storefront the book means. Where the book lists a
 corporate site and the store sits elsewhere, --store-domains names the store ({"Account Name As Exported": "store.com"}).
 
 Usage: partner_facts.py <builtwith zip|dir> <accounts_input.json> <partner_registry.json> <out.json> [--live live.json]
-                        [--browser browser.json] [--confirmed confirmed.json] [--store-domains map.json] [--as-of YYYY-MM-DD]
+                        [--browser browser.json] [--confirmed confirmed.json] [--contradicted contradicted.json]
+                        [--store-domains map.json] [--as-of YYYY-MM-DD]
 """
 import csv, io, json, os, re, sys, zipfile, datetime, collections
 
@@ -44,6 +50,7 @@ def opt(flag, default=None):
         i = args.index(flag); v = args[i + 1]; del args[i:i + 2]; return v
     return default
 LIVE_PATH, AS_OF_ARG, STORE_DOMAINS, BROWSER_PATH, CONFIRMED_PATH = opt("--live"), opt("--as-of"), opt("--store-domains"), opt("--browser"), opt("--confirmed")
+CONTRA_PATH = opt("--contradicted")
 BW, ACC, REG, OUT = args[:4]
 LIVE_DAYS, HISTORY_DAYS = 75, 60
 STORE_SUBS = ("shop.", "store.", "checkout.", "buy.")
@@ -212,6 +219,9 @@ def facts_for(domain, storeleads):
         if v in sl: e["sources"].append("Store Leads")
         if v in lv: e["sources"].append("Live site")
     rows = []
+    called = collections.defaultdict(set)     # lane -> the tools the browser saw this store call
+    for v2, how in (br.get("seen") or {}).items():
+        if how == "call" and v2 in LANE: called[LANE[v2]].add(v2)
     for v, e in out.items():
         corroborated = len(e["sources"]) > 1 or e["sources"] != ["BuiltWith"]
         recent = e["_age"] is not None and e["_age"] <= LIVE_DAYS
@@ -224,6 +234,9 @@ def facts_for(domain, storeleads):
         # (the browser has to have seen some other tool there: a page that loaded but called nothing may be a block page)
         unseen = e["sources"] == ["BuiltWith"] and bool(br.get("read")) and bool(br.get("seen"))
         if unseen and state == "live" and e["lane"] == "search" and br.get("search_read"): state = "not confirmed"
+        # a name that sits in the page source only (nothing called it, no export lists it), at a store whose browser load
+        # called another tool for the same job: the store runs the other tool, and this one is not confirmed
+        if state == "live" and e["sources"] == ["Live site"] and (br.get("seen") or {}).get(v) == "page" and called[e["lane"]] - {v}: state = "not confirmed"
         rows.append({k: v2 for k, v2 in {**e, "state": state, "unseen_in_browser": unseen}.items() if not k.startswith("_")})
     rows.sort(key=lambda r: (not r["partner"], r["lane"], r["vendor"]))
     return rows, sorted(side)
@@ -232,7 +245,10 @@ acc = json.load(open(ACC, encoding="utf-8"))
 store_domain = json.load(open(STORE_DOMAINS, encoding="utf-8")) if STORE_DOMAINS else {}
 confirmed = collections.defaultdict(dict)     # account name -> vendor -> what research read first-hand
 if CONFIRMED_PATH:
-    for c in json.load(open(CONFIRMED_PATH, encoding="utf-8")): confirmed[c["name"]][c["vendor"]] = c["note"]
+    for c in json.load(open(CONFIRMED_PATH, encoding="utf-8")): confirmed[c["name"]][c["vendor"]] = (c["note"], c.get("at", ""))    # "at": the store it was read at, when that store is not a row
+contradicted = collections.defaultdict(dict)  # account name -> vendor -> first-hand evidence that the store does not run it
+if CONTRA_PATH:
+    for c in json.load(open(CONTRA_PATH, encoding="utf-8")): contradicted[c["name"]][c["vendor"]] = c["note"]
 res = []
 for a in acc:
     a = {**a, "domain": dom(store_domain.get(a["name"]) or a.get("book_domain") or a["domain"])}
@@ -243,15 +259,20 @@ for a in acc:
         extra.append({"label": o.get("label", ""), "domain": o["domain"], "vendors": r2})
     for v in rows:
         if v["vendor"] in confirmed.get(a["name"], {}):
-            v["sources"].append("Research"); v["research_note"] = confirmed[a["name"]][v["vendor"]]
+            v["sources"].append("Research"); v["research_note"] = confirmed[a["name"]][v["vendor"]][0]
             if v["state"] in ("not confirmed", "brief sighting", "live (dns only)"): v["state"] = "live"
             v["unseen_in_browser"] = False
+    # The reverse: first-hand evidence that a store cannot be running a tool an export still lists (its own security policy
+    # allows no host of that vendor, say). The listing is then "not confirmed": not counted, and not read as absent either.
+    for v in rows:
+        if v["vendor"] in contradicted.get(a["name"], {}) and v["state"] in ("live", "live (dns only)", "brief sighting"):
+            v["state"] = "not confirmed"; v["research_note"] = contradicted[a["name"]][v["vendor"]]
     # A tool research read first-hand at a store no scan listed it for (a cookie policy that names the vendor, the store's own
     # page calling it): it is a fact about the store like any other, and it says where it came from.
-    for vendor, note in confirmed.get(a["name"], {}).items():
+    for vendor, (note, at) in confirmed.get(a["name"], {}).items():
         if vendor in LANE and not any(v["vendor"] == vendor for v in rows):
             rows.append({"vendor": vendor, "lane": LANE[vendor], "partner": is_partner(vendor), "first": "", "last": "", "sources": ["Research"], "dns": False, "seen_as": [],
-                         "state": "live", "unseen_in_browser": False, "research_note": note})
+                         "state": "live", "unseen_in_browser": False, "research_note": note, **({"at": at} if at else {})})
     rows.sort(key=lambda r: (not r["partner"], r["lane"], r["vendor"]))
     res.append({"name": a["name"], "domain": a["domain"], "vendors": rows, "side_hosts": side, "other_storefronts": extra,
                 "scans": {"builtwith": any(p in seen for p in parents(a["domain"])), "storeleads": bool((a.get("storeleads") or {}).get("Technologies")),

@@ -52,6 +52,19 @@ listed rows with no Apollo account are a second storefront of an account that is
   of 159 store sites and ran a search on 85. It confirmed the export for most partners, and only 4 of 11 of its
   listings of one search tool, so a listing of that tool resting on the export alone is not counted. For 5 ranked
   companies no scan could read a store the company runs itself: their partner motion is unknown and counts as 0.
+- **Second look at the Heartbeat inputs (19 Nov 2026).** `subscription_scan.js` loaded 209 stores in a browser and
+  read 156; the rest refused it. A second research round (11 batches, 87 companies, ranked or not)
+  then settled recurring purchase program by program: 197 programs recorded, 46 counted and live, each with its
+  terms, the engine where one was seen, the page and the date it was read. 18 ranked companies now carry the bonus.
+  The round also filed 69 sourced corrections to the inputs, re-verified 54 dated events and added 19.
+  First-hand evidence overruled the exports in two ways: a rebuilt store whose security policy allows none of a
+  vendor's hosts, and a name sitting in a page's source while the store calls another tool for the same job.
+  18 of the 69 scores changed. The page gained the insight layer (8 findings, a one-line read on all 69 ranked
+  companies, the full set of lines and proof stories on 31) and a table of every program in rank order.
+- **Release QA.** `qa.py` on the released files: 27,109 checks passed, 0 failed. Its first run, on the
+  page as first published, found 2 email addresses inside research notes, "AE" in 4, em dashes in 7, and a firm
+  that builds for an account named at 7 companies. `assemble.py` now applies the house wording to every note, and
+  the list is labelled "the enterprise account list" (title "Enterprise Accounts Triangulation").
 
 ## Inputs
 

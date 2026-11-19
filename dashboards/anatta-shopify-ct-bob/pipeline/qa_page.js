@@ -36,12 +36,12 @@ const check = (ok, what, detail) => { if (ok) passes++; else fails.push(what + (
 
       // overview: the ranking first, in score order, with the scores the data holds
       check(await fits(), `${tag}: the overview fits the screen width`);
-      const rows = await pg.evaluate(() => [...document.querySelectorAll('#hb-top tbody tr, #hb-rest tbody tr')].map(r => [+r.querySelector('.hbrank').textContent, r.querySelector('strong').textContent, +r.querySelector('td.num b').textContent, r.dataset.focus]));
+      const rows = await pg.evaluate(() => [...document.querySelectorAll('#hb-top tbody tr.row:not(.readrow), #hb-rest tbody tr.row:not(.readrow)')].map(r => [+r.querySelector('.hbrank').textContent, r.querySelector('strong').textContent, +r.querySelector('td.num b').textContent, r.dataset.focus]));
       const want = ranked.slice().sort((a, b) => b.priority - a.priority || b.motion - a.motion || b.fit - a.fit);
       check(JSON.stringify(rows.map(r => r[1])) === JSON.stringify(want.map(r => r.display)), `${tag}: the ranking lists every company in score order`, rows.slice(0, 3));
       check(JSON.stringify(rows.map(r => r[2])) === JSON.stringify(want.map(r => r.priority)), `${tag}: the scores on the ranking match the data`);
       check(JSON.stringify(rows.map(r => r[0])) === JSON.stringify(want.map((r, i) => i + 1)), `${tag}: ranks run 1 to ${n}`);
-      check(await pg.locator('#hb-top tbody tr').count() === Math.min(10, n), `${tag}: the first ten lead the page`);
+      check(await pg.locator('#hb-top tbody tr.row:not(.readrow)').count() === Math.min(10, n), `${tag}: the first ten lead the page`);
       const eyebrow = (await pg.locator('#hb-eyebrow').innerText()).toLowerCase();
       check(eyebrow.includes('not for partners'), `${tag}: marked Not for partners`, eyebrow);
       check((await pg.locator('#ov-h1').innerText()).includes(String(data.accounts.length)), `${tag}: the headline counts every account`);
@@ -62,13 +62,14 @@ const check = (ok, what, detail) => { if (ok) passes++; else fails.push(what + (
       }
       if (SUBS && (SUBS.rows || []).length) {
         const shown = await pg.evaluate(() => [...document.querySelectorAll('#subs-list [data-sub]')].map(e => e.dataset.sub));
-        check(JSON.stringify(shown) === JSON.stringify(SUBS.rows.map(r => r.group)), `${tag}: the subscription view lists every program company, in order`, [shown.length, SUBS.rows.length]);
+        const expect = SUBS.rows.filter(r => r.section !== 'context').map(r => r.group);
+        check(JSON.stringify(shown) === JSON.stringify(expect), `${tag}: the subscription view lists every program company, in order`, [shown.length, expect.length]);
         await grab('the subscription view', true, '#subs-sec');
       }
 
       // the first row by a real click; every other ranked company through the same door the click uses
       await pg.evaluate(() => { location.hash = '#overview'; }); await pg.waitForTimeout(120);
-      await pg.locator('#hb-top tbody tr').first().click(); await pg.waitForTimeout(350);
+      await pg.locator('#hb-top tbody tr.row').first().click(); await pg.waitForTimeout(350);
       check((await pg.evaluate(() => location.hash)) === '#accounts', `${tag}: clicking a ranked row opens the account view`);
       for (const r of want) {
         await open(r.lead); await pg.waitForTimeout(90);

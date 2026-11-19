@@ -102,7 +102,7 @@ for g, rows in groups.items():
     for r in stores:
         for v in (facts.get(r["name"]) or {}).get("vendors", []):
             if v["state"] == "not confirmed": doubt[v["vendor"]].add(nm(r))
-            if v["state"] in ("live", "live (dns only)", "removed"): seen[v["vendor"]][nm(r)] = v    # a brief sighting, or a tool the browser scan could not confirm, is not a fact to build on
+            if v["state"] in ("live", "live (dns only)", "removed"): seen[v["vendor"]][v.get("at") or nm(r)] = v    # a brief sighting, or a tool the browser scan could not confirm, is not a fact to build on; "at" names a store of the company's that is not a row
     live_at = lambda vendor: {n: v for n, v in seen.get(vendor, {}).items() if v["state"] == "live"}
     rivals = collections.defaultdict(dict)      # displacement lane -> rival -> [row names]
     for vendor, at in seen.items():

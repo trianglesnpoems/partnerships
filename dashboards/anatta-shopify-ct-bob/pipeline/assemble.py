@@ -42,21 +42,40 @@ hubs_p, LIB = (argv[2], argv[3]) if len(argv) > 3 else (None, None)
 here = os.path.dirname(os.path.abspath(__file__))
 tpl = open(os.path.join(here, "dashboard.html"), encoding="utf-8").read()
 head, body = re.match(r"<!--HEAD-->\n(.*?)<!--/HEAD-->\n(.*)$", tpl, re.S).groups()
+TEMPLATE_AS_LIST = [("Two lists, one book", "Two lists, one set of accounts"), ("The whole book", "The whole list"), ("Read the book", "Read the list"), ("Our own book", "Our own list"), ("with this book", "with this list"),
+                    ("scored book", "scored list"), ("Book-specific handling.", "Handling specific to this list."), (" · book lists ", " · listed as "), ("Other storefronts the book lists", "Other storefronts on the list"),
+                    ("in the book", "on the list"), ("of the book", "of the list"), ("The book", "The list"), ("the book", "the list")]
 sc = json.load(open(scored_p))
 for k, v in (("title", TITLE_O), ("book_label", LABEL_O), ("slug", SLUG_O)):
     if v: sc["summary"][k] = v
 TITLE, SLUG = sc["summary"]["title"], sc["summary"]["slug"]
+if "book" not in sc["summary"]["book_label"].lower():
+    for a, b in TEMPLATE_AS_LIST: body = body.replace(a, b)
 
 # ---------- house wording, applied to every string a reader can see ----------
 HOUSE = [(r"[\w.+-]+@((?:[\w-]+\.)+[a-z]{2,})", r"an address at \1", "email address masked to its domain"),
          (r"\bShopify['’]s AEs?\b", "Shopify's seller", '"AE" written as seller'), (r"\bAEs\b", "sellers", '"AE" written as seller'), (r"\bAE\b", "seller", '"AE" written as seller'),
-         (r"\s*—\s*", ", ", "em dash written as a comma")]
+         (r"\s*—\s*", ", ", "em dash written as a comma"),
+         # other firms are left out of every note: the search for one is a partner search, and the platform in place is the current platform
+         (r"\bagency workers\b", "temporary workers", "other firms left out"), (r"\bAgency Search\b", "Partner Search", "other firms left out"), (r"\b([Aa])n agency[- ]search\b", r"\1 partner search", "other firms left out"), (r"\bagency[- ]search\b", "partner search", "other firms left out"),
+         (r"\boutside agencies\b", "outside firms", "other firms left out"), (r"\boutside agency\b", "outside firm", "other firms left out"), (r"\bbuild agency\b", "build firm", "other firms left out"), (r"\bagency detection\b", "builder detection", "other firms left out"),
+         (r"\bcommerce agency signal\b", "commerce partner signal", "other firms left out"), (r"\ban agency gap\b", "an opening for a build partner", "other firms left out"), (r"\bagency engagement\b", "outside engagement", "other firms left out"),
+         (r"\bagency (review|news)\b", r"partner \1", "other firms left out"), (r"\b([Aa])n agency\b", r"\1n outside firm", "other firms left out"), (r"\b([Nn])o agency\b", r"\1o outside firm", "other firms left out"),
+         (r"\bits agency\b", "its build firm", "other firms left out"), (r"\bagencies\b", "outside firms", "other firms left out"), (r"\bagency\b", "outside firm", "other firms left out"),
+         (r"\bdefended incumbent\b", "defended platform", "other firms left out"), (r"\bon its incumbent\b", "on its current platform", "other firms left out"), (r"\b([Tt])he incumbent platform\b", r"\1he current platform", "other firms left out"),
+         (r"\bthe incumbent most likely\b", "the stack most likely", "other firms left out"), (r"\bThe incumbent\b", "The current platform", "other firms left out"), (r"\bincumbents?\b", "current platform", "other firms left out")]
+# Where the owner calls the accounts a list, the page does too: in the notes, and in the template's own wording below.
+LISTWORDS = [(r"\bin (?:the|this) book\b", "on the list"), (r"\b([Tt])he book lists\b", r"\1he list gives"), (r"\bthe book rules\b", "the list's rules"), (r"\bthe book notes\b", "the list's notes"),
+             (r"\b([Tt])he book\b", r"\1he list"), (r"\b(?:your|this) book\b", "this list")]
+AS_LIST = "book" not in sc["summary"]["book_label"].lower()
+if AS_LIST: HOUSE += [(pat, to, "the account list called a list, not a book") for pat, to in LISTWORDS]
+RAW_KEYS = {"fire", "signals_raw", "builtwith", "storeleads"}       # shown exactly as exported
 SCRUB = [tuple(r) for r in json.load(open(SCRUB_P, encoding="utf-8"))] if SCRUB_P else []
 JOIN_KEYS = {"name", "display", "group", "family", "lead", "rows", "partner", "book_name", "domain", "book_domain", "website", "linkedin", "source", "final_url"}   # identifiers and links: never reworded
 HIDDEN_STACK_KEYS = {"Agency"}       # BuiltWith's guess at who built a site
 tidied = collections.Counter()
 def tidy(x, key=None):
-    if isinstance(x, dict): return {k: (v if k in JOIN_KEYS else tidy(v, k)) for k, v in x.items()}
+    if isinstance(x, dict): return {k: (v if k in JOIN_KEYS or k in RAW_KEYS else tidy(v, k)) for k, v in x.items()}
     if isinstance(x, list): return [tidy(v, key) for v in x]
     if not isinstance(x, str) or re.match(r"https?://", x): return x
     for pat, to, why in SCRUB + HOUSE:
@@ -139,17 +158,17 @@ if BEAT_P:
             for row in subs["rows"]:
                 r = rank_of.get(row["group"]); rs = rows_of.get(row["group"])
                 assert rs, f'{row["group"]}: the subscription view names a company that is not on the list'
-                counted_live = any(p.get("counts") and p.get("status") == "live" for p in row.get("programs", []))
+                context = bool(row.pop("context_only", False))       # only free loyalty or one-off plans recorded: shown on the record, not in the table
                 if r:
                     row.update({"rank": r["rank"], "priority": r["priority"], "display": r["display"], "lead": r["lead"]})
                     assert (row["state"] == "live") == bool(r["bonus"]), f'{row["group"]}: the subscription view and the bonus disagree'
-                    row["section"] = "live" if row["state"] == "live" else "ended" if row["state"] == "ended" else "noted"
+                    row["section"] = "live" if row["state"] == "live" else "ended" if row["state"] == "ended" else "context" if context else "noted"
                 else:
                     lead = max(rs, key=lambda a: a["triangle"] or 0); out_of_icp = any(o["group"] == row["group"] for o in beat["outside"])
                     row.update({"rank": None, "priority": None, "display": row["group"] if len(rs) > 1 else lead["display"], "lead": lead["name"],
                                 "why_not_ranked": "Outside the ICP" if out_of_icp else TIER_WHY.get(lead["tier"], "Not ranked")})
-                    row["section"] = "unranked" if row["state"] == "live" else "ended" if row["state"] == "ended" else "noted"
-            ORDER = {"live": 0, "unranked": 1, "ended": 2, "noted": 3}
+                    row["section"] = "unranked" if row["state"] == "live" else "ended" if row["state"] == "ended" else "context" if context else "noted"
+            ORDER = {"live": 0, "unranked": 1, "ended": 2, "noted": 3, "context": 4}
             subs["rows"].sort(key=lambda x: (ORDER[x["section"]], x["rank"] is None, x["rank"] or 0, x["group"]))
             beat["subscriptions"] = subs
     # The Heartbeat layer is held to the wording rules at the source: nothing here may need rewording.
