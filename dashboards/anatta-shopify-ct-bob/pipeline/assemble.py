@@ -25,7 +25,8 @@ builds for an account, which is never shown. Links are left alone, so a source s
 each rule changed. --title, --label and --slug replace the ones the scored book carries.
 
 Usage: assemble.py <scored.json> <out_dir> [<hubs.json> <libs_dir>] [--heartbeat rescored.json --potential potential.json
-                    --heartbeat-extras book_extras.json --heartbeat-notes notes.json --heartbeat-insights insights.json]
+                    --heartbeat-extras book_extras.json --heartbeat-notes notes.json --heartbeat-insights insights.json
+                    --proof <Heartbeat Source>/shared/anatta.json]
                     [--scrub scrub.json] [--title "..."] [--label "..."] [--slug ...]
   libs_dir holds node_modules/d3, node_modules/topojson-client, node_modules/us-atlas and na-countries-50m.json
   (see prune_countries.js)."""
@@ -35,7 +36,7 @@ def opt(flag):
     if flag in argv:
         i = argv.index(flag); v = argv[i + 1]; del argv[i:i + 2]; return v
 BEAT_P, POT_P, BEAT_NOTES_P, EXTRAS_P = opt("--heartbeat"), opt("--potential"), opt("--heartbeat-notes"), opt("--heartbeat-extras")
-INSIGHTS_P, SCRUB_P, TITLE_O, LABEL_O, SLUG_O = opt("--heartbeat-insights"), opt("--scrub"), opt("--title"), opt("--label"), opt("--slug")
+INSIGHTS_P, SCRUB_P, TITLE_O, LABEL_O, SLUG_O, PROOF_P = opt("--heartbeat-insights"), opt("--scrub"), opt("--title"), opt("--label"), opt("--slug"), opt("--proof")
 scored_p, OUT = argv[:2]
 hubs_p, LIB = (argv[2], argv[3]) if len(argv) > 3 else (None, None)
 here = os.path.dirname(os.path.abspath(__file__))
@@ -128,14 +129,28 @@ if BEAT_P:
     if INSIGHTS_P:      # what the ranking says, the subscription view and the lines written for each company (see README)
         ins = json.load(open(INSIGHTS_P, encoding="utf-8")); rank_of = {r["group"]: r for r in beat["ranked"]}
         assert all(g in rank_of for g in ins.get("accounts", {})), "an insight is written for a company that is not ranked"
-        beat["insights"] = {"findings": ins.get("findings", []), "accounts": ins.get("accounts", {})}
+        beat["insights"] = {k: ins[k] for k in ("headline", "intro", "findings", "accounts") if ins.get(k)}
+        beat["proof"] = json.load(open(PROOF_P, encoding="utf-8"))["proof"] if PROOF_P else {}    # the Proof Genome roll-up: totals are tokens in the text
+        used = set(re.findall(r"\{proof\.(\w+)\}", json.dumps(ins, ensure_ascii=False)))
+        assert used <= set(beat["proof"]), f"proof tokens with no value: {sorted(used - set(beat['proof']))}"
         subs = ins.get("subscriptions")
         if subs:
+            TIER_WHY = {"EXP": "Already on Shopify Plus", "X": "Gated out"}
             for row in subs["rows"]:
-                r = rank_of.get(row["group"])
-                row.update({"rank": r["rank"], "priority": r["priority"], "display": r["display"], "lead": r["lead"]} if r else {"rank": None, "priority": None})
-                assert not r or (row["state"] == "live") == bool(r["bonus"]), f'{row["group"]}: the subscription view and the bonus disagree'
-            subs["rows"].sort(key=lambda x: (x["rank"] is None, x["rank"] or 0, x["group"]))
+                r = rank_of.get(row["group"]); rs = rows_of.get(row["group"])
+                assert rs, f'{row["group"]}: the subscription view names a company that is not on the list'
+                counted_live = any(p.get("counts") and p.get("status") == "live" for p in row.get("programs", []))
+                if r:
+                    row.update({"rank": r["rank"], "priority": r["priority"], "display": r["display"], "lead": r["lead"]})
+                    assert (row["state"] == "live") == bool(r["bonus"]), f'{row["group"]}: the subscription view and the bonus disagree'
+                    row["section"] = "live" if row["state"] == "live" else "ended" if row["state"] == "ended" else "noted"
+                else:
+                    lead = max(rs, key=lambda a: a["triangle"] or 0); out_of_icp = any(o["group"] == row["group"] for o in beat["outside"])
+                    row.update({"rank": None, "priority": None, "display": row["group"] if len(rs) > 1 else lead["display"], "lead": lead["name"],
+                                "why_not_ranked": "Outside the ICP" if out_of_icp else TIER_WHY.get(lead["tier"], "Not ranked")})
+                    row["section"] = "unranked" if row["state"] == "live" else "ended" if row["state"] == "ended" else "noted"
+            ORDER = {"live": 0, "unranked": 1, "ended": 2, "noted": 3}
+            subs["rows"].sort(key=lambda x: (ORDER[x["section"]], x["rank"] is None, x["rank"] or 0, x["group"]))
             beat["subscriptions"] = subs
     # The Heartbeat layer is held to the wording rules at the source: nothing here may need rewording.
     before = json.dumps(beat, ensure_ascii=False, sort_keys=True); n0 = sum(tidied.values())
@@ -217,6 +232,10 @@ BEAT_COLS = {"heartbeat_rank": lambda r: r.get("rank", ""), "heartbeat_score": l
 CSV_COLS = ["name", "display", "group", "family", "domain", "book_domain", "tier", "triangle", "shopify_fit", "anatta_fit", "gate", "gate_reason", "category", "model",
             "plat", "platform", "size_est", "hq", "ownership", "confidence", "fire_score", "fire_intent", "fire_in_market", "fire_signals",
             "fire_last_signal", "story", "shopify_angle", "anatta_angle", "flags", "adjustments"]
+if beat and beat.get("insights"):     # with an insight layer the CSV carries the one-line read and the programs that count
+    _sub = {x["group"]: x for x in (beat.get("subscriptions") or {}).get("rows", [])}
+    BEAT_COLS["subscription_programs"] = lambda r: "; ".join(f'{p["name"]} ({p["store"]}; {p["engine"]})' for p in (_sub.get(r["group"]) or {}).get("programs", []) if p.get("counts") and p.get("status") == "live")
+    BEAT_COLS["heartbeat_read"] = lambda r: (beat["insights"].get("accounts", {}).get(r["group"]) or {}).get("read", "")
 def write_csv(path, internal):
     cols = (CSV_COLS + (["platform_read", "storeleads_sales"] if sc["summary"].get("sources") else []) + (["contacts"] if hb else [])
             + (["second_look_would_be"] if any(a.get("second_look") for a in sc["accounts"]) else []) + (list(BEAT_COLS) if beat else []) + (["in_salesforce"] if internal else []))

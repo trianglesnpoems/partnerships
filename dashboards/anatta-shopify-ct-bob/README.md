@@ -142,6 +142,40 @@ python3 pipeline/assemble.py <build>/scored.json <out> --heartbeat data/<seller>
 The Heartbeat score has no measure for how hard a platform is to leave, so the page shows the triangulation's
 "hard to move" mark beside a rank as context. It never changes the rank.
 
+### The second look, the insight layer and release QA
+
+A ranking is only as good as its weakest input, and the subscription bonus is the largest single input a company can
+carry (a flat 10). So before a ranking is released it gets a second round, subscription first:
+
+| Step | Script | What it does |
+|---|---|---|
+| H6 | `subscription_scan.js` | Looks for recurring purchase at every store in a real browser: links that read like a program, the addresses programs usually live at, the sitemap, the store's own search for "subscription", Shopify selling plans, the three most promising pages, and every subscription engine the store calls. It reports leads with the words found, not verdicts: "subscribe" is also what a newsletter box says. A blocked store is "not read", never "no program". |
+| H7 | research agents, with `read_page.js` | A second look per company: settle recurring purchase first-hand, program by program (store, terms, renewal, the engine that runs it, the page and date it was read), resolve the weak inputs the first round left (store-count floors, conflicting estimates, unverified events) from sources, and write the lines a seller reads. `read_page.js` reads one page in a real browser for stores that refuse a plain fetch. What counts as recurring purchase is the Heartbeat Source's rule; a rental, a free loyalty program and another company's subscription sold on the store are recorded and do not count. |
+| H8 | `assemble.py --heartbeat-insights insights.json --proof <Heartbeat Source>/shared/anatta.json` | Adds the insight layer: findings counted from the ranked list, the one-line read on every ranked row, the why, play, watch, fit, move and three proof stories on a record, and the subscription view (every program with its terms, engine and source, in rank order). Proof totals stay `{proof.x}` tokens in the data and are filled on the page, so a total cannot go stale. |
+| H9 | `qa.py` (with `qa_page.js`) | Release QA, after the Heartbeat Source's own `tools/qa.py`. Data: every Heartbeat number is recomputed from the inputs (fit from the ICP entry, potential from the research, timing with the Shop Pay lift, partner motion from the moves, the bonus, the score, the order); every partner a move calls live is live in the partner facts; every proof number traces to its client's Proof Genome entry and no unpublished client is named unless `naming.json` clears it; the two editions and the two CSVs agree; no email address, deal size, CRM record id or outside script is in a file. Page: both editions at 390x844 and 1440x900, no script errors, nothing wider than the screen, the ranking in score order, every ranked company opens with its score, links open safely, and the Heartbeat wording rules hold everywhere the Heartbeat layer shows. Exit code 1 on any failure. |
+
+`insights.json` is `{"intro": ..., "findings": [{"k", "unit", "title", "text", "accounts"}], "accounts": {company: {"read", "next", "why", "play",
+"watch", "q", "fitt", "leadt", "stories"}}, "subscriptions": {"intro", "note", "rows": [{"group", "state", "note", "programs": [...]}]}}`.
+The build joins each subscription row to its rank and stops if the view and the bonus disagree.
+
+**House wording.** `assemble.py` applies the Heartbeat wording rules to every research note a reader can see: an email
+address is masked to its domain, an em dash becomes a comma, "AE" becomes "seller", and BuiltWith's Agency field is
+left out. `--scrub scrub.json` adds a book's own list, for the name of a firm that builds for an account: it is never
+shown, and the source link stays. The Heartbeat inputs are held to the rules at the source: the build stops if any of
+them would need rewording. The triangulation template itself calls the account list "the book"; QA counts that phrase
+in the triangulation layer and fails it in the Heartbeat layer and the navigation.
+
+```bash
+node pipeline/subscription_scan.js <stores.json> <build>/sub_scan.json [concurrency]   # stores.json: [{"name", "domain", "groups": [company]}]
+node pipeline/read_page.js <url> --find "subscri|auto.?(ship|deliver|replen|renew)|member"   # one page, as a browser sees it
+python3 pipeline/assemble.py <build>/scored.json <out> --heartbeat ... --heartbeat-insights <insights.json> \
+    --proof <Heartbeat Source>/shared/anatta.json [--scrub <scrub.json>] [--title "..."] [--label "..."] [--slug ...]
+python3 pipeline/qa.py --internal <out>/<slug>-internal.html --shareable <out>/<slug>-shareable.html \
+    --source <Heartbeat Source> --seller <seller> --issue <Heartbeat Source>/issues/<issue>.json \
+    --facts <build>/partner_facts.json --csv-internal <out>/<slug>-accounts-internal.csv --csv-shareable <out>/<slug>-accounts-shareable.csv \
+    --ids-from <the CRM export>.csv [--scrub <scrub.json>]
+```
+
 ## Scoring in one paragraph
 
 Shopify fit = platform whitespace 25 + commerce scale 20 + business-model fit 20 + unified-commerce surface 15 +

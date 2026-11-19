@@ -246,8 +246,16 @@ for a in acc:
             v["sources"].append("Research"); v["research_note"] = confirmed[a["name"]][v["vendor"]]
             if v["state"] in ("not confirmed", "brief sighting", "live (dns only)"): v["state"] = "live"
             v["unseen_in_browser"] = False
+    # A tool research read first-hand at a store no scan listed it for (a cookie policy that names the vendor, the store's own
+    # page calling it): it is a fact about the store like any other, and it says where it came from.
+    for vendor, note in confirmed.get(a["name"], {}).items():
+        if vendor in LANE and not any(v["vendor"] == vendor for v in rows):
+            rows.append({"vendor": vendor, "lane": LANE[vendor], "partner": is_partner(vendor), "first": "", "last": "", "sources": ["Research"], "dns": False, "seen_as": [],
+                         "state": "live", "unseen_in_browser": False, "research_note": note})
+    rows.sort(key=lambda r: (not r["partner"], r["lane"], r["vendor"]))
     res.append({"name": a["name"], "domain": a["domain"], "vendors": rows, "side_hosts": side, "other_storefronts": extra,
                 "scans": {"builtwith": any(p in seen for p in parents(a["domain"])), "storeleads": bool((a.get("storeleads") or {}).get("Technologies")),
+                          "research": any("Research" in v["sources"] for v in rows),
                           "live": a["domain"] in live_read or bool((browser.get(a["domain"]) or {}).get("read")),
                           "search_page": bool((browser.get(a["domain"]) or {}).get("search_read"))}})
 # How far the export can be trusted, vendor by vendor: of its listings at stores where the browser ran a search, how many did the browser see?

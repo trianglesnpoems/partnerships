@@ -288,8 +288,14 @@ for row in SUBS.get('rows') or []:
     if g in onpage:
         check((row['state'] == 'live') == bool(onpage[g]['bonus']), f'subscription view: {g} is live exactly when it carries the bonus', (row['state'], onpage[g]['bonus']))
         check(row.get('rank') == onpage[g]['rank'] and row.get('priority') == onpage[g]['priority'], f'subscription view: {g} shows its rank and score')
+        check(row['state'] == POT[g].get('subscription', 'none'), f'subscription view: {g} state is the researched state', (row['state'], POT[g].get('subscription')))
+        counted = any(p.get('counts') and p.get('status') == 'live' for p in row.get('programs') or [])
+        check(not (row.get('programs') or []) or counted == (row['state'] == 'live'), f'subscription view: {g} is live exactly when a program that counts is live')
+    else:
+        check(row.get('rank') is None and bool(row.get('why_not_ranked')), f'subscription view: {g} is not ranked and says why')
     for p in row.get('programs') or []:
-        check(bool(p.get('evidence')) and bool(p.get('read')), f'subscription view: {g}, {p.get("name")}: names its evidence and the date it was read')
+        check(bool(p.get('evidence')) and bool(p.get('read')) and re.match(r'https?://', p.get('url') or ''), f'subscription view: {g}, {p.get("name")}: names its evidence, its page and the date it was read')
+        check(isinstance(p.get('counts'), bool) and (p['counts'] or bool(p.get('why_counts'))), f'subscription view: {g}, {p.get("name")}: a program that does not count says why')
 if SUBS:
     check(sum(1 for r in SUBS['rows'] if r['state'] == 'live' and r['group'] in onpage) == live_bonus, 'subscription view lists every ranked company with the bonus', (sum(1 for r in SUBS['rows'] if r['state'] == 'live' and r['group'] in onpage), live_bonus))
 
@@ -321,7 +327,7 @@ for path, html, data, edition in ((A.internal, html_i, D, 'internal'), (A.sharea
     check(not re.search(r'<script[^>]+src=', html) and not re.search(r'<link[^>]+href="https?:', html), f'{edition} file is standalone: no outside scripts or styles')
     leaked = [i for i in ids if i in html]
     check(not leaked, f'no CRM record id in the {edition} file', leaked[:3])
-    hb_text = '\n'.join(strings(data.get('heartbeat') or {}))
+    hb_text = re.sub(r'\{proof\.\w+\}', '0', '\n'.join(strings(data.get('heartbeat') or {})))     # totals are tokens in the data; the page checks see them filled
     scan(hb_text, f'the {edition} Heartbeat data', strict=True)
     scan('\n'.join(strings({k: v for k, v in data.items() if k != 'heartbeat'})), f'the {edition} triangulation data', strict=False)
     no_firms('\n'.join(strings(data)), f'the {edition} data')

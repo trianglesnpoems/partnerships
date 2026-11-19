@@ -115,6 +115,23 @@ tr.ten .hbrank{color:var(--ink);font-weight:700}
 .meter.m3{background:color-mix(in srgb,var(--s3) 22%,var(--surface))}.meter.m3>i{background:var(--s3)}
 .meter.m4{background:color-mix(in srgb,var(--s4) 22%,var(--surface))}.meter.m4>i{background:var(--s4)}
 .hbmove{margin:5px 0;font-size:12.6px;color:var(--ink-2);overflow-wrap:anywhere}.hbmove b{color:var(--ink)}
+.findings{display:block;border:1px solid var(--line);border-radius:13px;background:var(--surface);overflow:hidden}
+.finding{display:grid;grid-template-columns:104px minmax(0,1.7fr) minmax(0,1fr);gap:4px 22px;align-items:start;padding:15px 18px;border-top:1px solid var(--line);min-width:0}
+.finding:first-child{border-top:none}
+.finding .v{font-size:30px;font-weight:620;letter-spacing:-.03em;line-height:1;display:block}
+.finding .u{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin-top:6px;line-height:1.35}
+.finding h3{margin:0 0 4px;font-size:15px;line-height:1.3}.finding p{margin:0;font-size:13.2px;color:var(--ink-2);overflow-wrap:anywhere;max-width:74ch}
+.chips{display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding-top:2px}
+@media (max-width:820px){.finding{grid-template-columns:84px minmax(0,1fr)}.finding .chips{grid-column:1 / -1}}
+.chip{font:inherit;font-size:11.5px;padding:2px 9px;border-radius:100px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink-2);cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip:hover{border-color:var(--ink-3);color:var(--ink)}
+.hbread{font-size:12.4px;color:var(--ink-2);margin-top:4px;max-width:58ch;white-space:normal;overflow-wrap:anywhere}
+.ins ul{margin:3px 0 0;padding-left:17px}.ins li{font-size:12.8px;color:var(--ink-2);margin:2px 0;overflow-wrap:anywhere}
+.ins .story{margin:4px 0}.ins .story b{color:var(--ink)}
+.subt td{vertical-align:top;font-size:12.8px}.subt td.co{min-width:190px;max-width:260px}.subt td.pg{min-width:170px}.subt td.tm{min-width:230px;color:var(--ink-2)}.subt td.en{min-width:130px;color:var(--ink-2)}
+.subt tr.cont td{border-top:none;padding-top:2px}.subt tr.no td.pg,.subt tr.no td.tm,.subt tr.no td.en{opacity:.78}
+.subt .nm{font-weight:620;font-size:13.5px;color:var(--ink);background:none;border:none;padding:0;cursor:pointer;text-align:left;font-family:inherit}.subt .nm:hover{text-decoration:underline}
+.prog{margin:5px 0;font-size:12.6px;color:var(--ink-2);overflow-wrap:anywhere}.prog b{color:var(--ink)}.prog .meta{font-size:11.8px;color:var(--ink-3)}
 /* tier strips */
 .strip{border:1px solid var(--line);border-radius:11px;background:var(--surface);overflow:hidden}
 .strip summary{cursor:pointer;padding:11px 14px;display:flex;align-items:center;gap:10px;list-style:none;flex-wrap:wrap}
@@ -262,6 +279,10 @@ details.plain summary{cursor:pointer;color:var(--ink);font-weight:500;padding:10
   <p class="small" id="ov-note" style="max-width:80ch"></p>
   <div class="csvbox" id="csvbox" hidden><p class="small" style="margin:0 0 6px">Your browser blocked the copy. The CSV is selected below: copy it from here.</p><textarea id="csvta" readonly aria-label="Accounts CSV"></textarea></div>
 </div></section>
+<section class="sec" id="ins-sec" hidden><div class="wrap">
+  <header><p class="eyebrow" id="ins-eyebrow"></p><h2 id="ins-h2"></h2><p id="ins-intro"></p></header>
+  <div class="findings" id="ins-findings"></div>
+</div></section>
 <section class="sec" id="hb-sec" hidden><div class="wrap">
   <header><p class="eyebrow" id="hb-eyebrow"></p><h2 id="hb-h2"></h2><p id="hb-intro"></p></header>
   <div class="hbkey" id="hb-key"></div>
@@ -269,6 +290,11 @@ details.plain summary{cursor:pointer;color:var(--ink);font-weight:500;padding:10
   <div id="hb-rest" style="margin-top:10px"></div>
   <div id="hb-outside" style="margin-top:10px"></div>
   <p class="small" id="hb-note" style="max-width:86ch;margin:14px 0 0"></p>
+</div></section>
+<section class="sec" id="subs-sec" hidden><div class="wrap">
+  <header><p class="eyebrow" id="subs-eyebrow"></p><h2 id="subs-h2"></h2><p id="subs-intro"></p></header>
+  <div id="subs-list"></div>
+  <p class="small" id="subs-note" style="max-width:86ch;margin:14px 0 0"></p>
 </div></section>
 <section class="sec" id="hb-under" hidden><div class="wrap">
   <header style="margin-bottom:0"><p class="eyebrow">Underneath the ranking</p><h2>The triangulation the ranking is built on</h2>
@@ -475,6 +501,18 @@ const HB_MEAS = [['motion', 'Partner motion', 'hb-motion', ''], ['fit', 'Anatta 
 const hbOf = new Map();          // account name -> its company's Heartbeat row
 if (HB) { HB.ranked.forEach(r => r.rows.forEach(n => hbOf.set(n, r))); HB.outside.forEach(r => r.rows.forEach(n => hbOf.set(n, r))); }
 const hbPct = k => Math.round(HB.weights[k] * 100);
+// The insight layer, where the build has one: findings, the lines written for each company, the subscription view.
+const INS = HB && HB.insights || null, SUBV = HB && HB.subscriptions || null, PROOF = HB && HB.proof || {};
+const insOf = g => INS && INS.accounts && INS.accounts[g] || null;
+const subOf = g => SUBV && (SUBV.rows || []).find(r => r.group === g) || null;
+const fill = t => String(t ?? '').replace(/\{proof\.(\w+)\}/g, (m, k) => PROOF[k] ?? m);     // proof totals are tokens in the data, numbers on the page
+const KIND_WORD = {'product subscription': 'Product subscription', 'auto-replenishment': 'Auto-replenishment', 'recurring delivery': 'Recurring delivery', 'paid membership': 'Paid membership', 'club shipments': 'Club shipments',
+  'digital subscription': 'Digital subscription', 'rental': 'Rental', 'free loyalty': 'Free loyalty', 'resold subscription': 'Resold subscription', 'other': 'Other'};
+const progTags = p => `<span class="tag">${esc(KIND_WORD[p.kind] || p.kind)}</span>${p.status !== 'live' ? ` <span class="tag">${esc(p.status)}</span>` : ''}${p.counts ? '' : ' <span class="tag">does not count</span>'}`;
+const progSrc = p => `read ${esc(fmtDay(p.read))}${safeUrl(p.url) ? ` · <a href="${esc(p.url)}" target="_blank" rel="noopener">source ↗</a>` : ''}`;
+const progHtml = p => `<div class="prog"><div><b>${esc(p.name)}</b> · ${esc(p.store)} ${progTags(p)}</div><div>${esc(p.terms)}</div>
+  <div class="meta">Engine: ${esc(p.engine)}${p.engine_evidence ? ` (${esc(p.engine_evidence)})` : ''} · ${progSrc(p)}${p.counts ? '' : ` · ${esc(p.why_counts)}`}</div></div>`;
+const fmtDay = d => { const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(d || ''); return m ? `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m[2] - 1]} ${+m[3]}, ${m[1]}` : (d || ''); };
 const SHOPPAY = {yes: 'Can start now', partly: 'Partly', no: 'Not yet'};
 const hbBar = r => `<div class="hbbar" role="img" aria-label="Score ${r.priority} of 100">${HB_MEAS.map(([k, l, c]) => { const pts = HB.weights[k] * r[k]; return pts >= 0.5 ? `<i class="${c}" style="width:${pts}%" title="${l} ${r[k]} of 100, weighted ${hbPct(k)}%: ${Math.round(pts)} points"></i>` : ''; }).join('')}${r.bonus ? `<i class="hb-bonus" style="width:${r.bonus}%" title="Subscription live: a flat ${r.bonus} points"></i>` : ''}</div>`;
 // No store of its own was read by any scan (it blocked them, or an outside operator runs it): partner motion is unknown, not zero.
@@ -597,11 +635,39 @@ if (HB) {   // the ranking leads: its own headline, its own tiles, and the tier 
     [centres - n, 'Not ranked', `${O.length} outside the ICP · ${centres - n - O.length} gated out`],
   ]);
   $('hb-sec').hidden = false; $('hb-under').hidden = false;
+  const byGroup = new Map(R.map(r => [r.group, r]));
+  if (INS && (INS.findings || []).length) {
+    $('ins-sec').hidden = false;
+    $('ins-eyebrow').textContent = `What the ranking says · ${HB.month} · Not for partners`;
+    $('ins-h2').textContent = INS.headline || `${numWord(INS.findings.length)} things to know before the first call`;
+    $('ins-intro').textContent = INS.intro || 'Each one is counted from the ranked list below. Open a company to see the evidence behind it.';
+    const chip = g => { const r = byGroup.get(g); return r ? `<button class="chip" data-focus="${esc(r.lead)}" title="Rank ${r.rank}, score ${r.priority}">${esc(r.display)}</button>` : ''; };
+    $('ins-findings').innerHTML = INS.findings.map(f => { const A2 = (f.accounts || []).filter(g => byGroup.has(g)), show = A2.slice(0, 6);
+      return `<div class="finding"><div><span class="v">${esc(f.k)}</span>${f.unit ? `<span class="u">${esc(f.unit)}</span>` : ''}</div><div><h3>${esc(fill(f.title))}</h3><p>${esc(fill(f.text))}</p></div><div class="chips">${show.map(chip).join('')}${A2.length > show.length ? `<span class="small">and ${A2.length - show.length} more</span>` : ''}</div></div>`; }).join('');
+  }
+  if (SUBV && (SUBV.rows || []).length) {
+    $('subs-sec').hidden = false;
+    const rows = SUBV.rows, live = rows.filter(r => r.section === 'live');
+    $('subs-eyebrow').textContent = `Recurring purchase · ${HB.month} · Not for partners`;
+    $('subs-h2').textContent = `${numWord(live.length)} ranked ${live.length === 1 ? 'company runs' : 'companies run'} recurring purchase today`;
+    $('subs-intro').textContent = fill(SUBV.intro || '');
+    const MAXP = 3;        // programs shown per company here; the record lists every one
+    const subRows = r => { const P2 = r.programs || [], show = P2.slice(0, MAXP), more = P2.length - show.length;
+      const co = `<td class="hbrank">${r.rank ?? ''}</td><td class="co"><button class="nm" data-focus="${esc(r.lead)}">${esc(r.display)}</button>${r.take ? `<div class="hbread">${esc(fill(r.take))}</div>` : ''}<div style="margin-top:4px">${r.why_not_ranked ? `<span class="tag">${esc(r.why_not_ranked)}</span> ` : ''}${r.recharge_play ? '<span class="tag" title="A program runs and no subscription partner is live on the store">open to a subscription partner</span> ' : ''}${r.confidence === 'low' ? '<span class="tag">low confidence</span>' : ''}</div></td><td class="num">${r.priority != null ? `<b>${r.priority}</b>` : ''}</td>`;
+      if (!show.length) return `<tr data-sub="${esc(r.group)}">${co}<td class="tm" colspan="4">${esc(r.note)}</td></tr>`;
+      return show.map((p, i) => `<tr class="${i ? 'cont' : ''}${p.counts ? '' : ' no'}"${i ? '' : ` data-sub="${esc(r.group)}"`}>${i ? '<td></td><td></td><td></td>' : co}<td class="pg"><b>${esc(p.name)}</b><div class="small">${esc(p.store)}</div></td><td>${progTags(p)}</td><td class="tm">${esc(p.terms)}${p.counts ? '' : `<div class="small">${esc(p.why_counts)}</div>`}</td><td class="en">${esc(p.engine)}<div class="small">${progSrc(p)}</div></td></tr>`).join('')
+        + (more > 0 ? `<tr class="cont"><td></td><td></td><td></td><td class="small" colspan="4">and ${plural(more, 'more program')} on the record</td></tr>` : ''); };
+    const subTable = L => `<table class="wide subt"><thead><tr><th class="num">#</th><th>Company</th><th class="num">Score</th><th>Program</th><th>Kind</th><th>Terms</th><th>Engine and source</th></tr></thead><tbody>${L.map(subRows).join('')}</tbody></table>`;
+    const SEC = [['live', '', true], ['unranked', 'Not ranked, with a program running', false], ['ended', 'Ended', false], ['noted', 'Recorded, and not counted', false]];
+    $('subs-list').innerHTML = SEC.map(([k, title]) => { const L = rows.filter(r => r.section === k); if (!L.length) return '';
+      return title ? `<details class="strip" style="margin-top:10px"><summary><b style="font-size:13.5px">${title}</b><span class="small">${plural(L.length, 'company', 'companies')}</span></summary><div class="tblwrap" style="border:none;border-top:1px solid var(--line);border-radius:0">${subTable(L)}</div></details>` : `<div class="tblwrap">${subTable(L)}</div>`; }).join('');
+    $('subs-note').textContent = fill(SUBV.note || '');
+  }
   $('hb-eyebrow').textContent = `Heartbeat score · ${HB.month} · Not for partners`;
   $('hb-h2').textContent = n > 10 ? `The first ten of ${n} ranked companies` : `${n} ranked companies`;
   $('hb-intro').textContent = `Score = ${hbPct('motion')}% partner motion + ${hbPct('fit')}% Anatta fit + ${hbPct('timing')}% timing + ${hbPct('potential')}% potential, each measured 0 to 100, plus a flat 10 when a subscription is live. Partner motion counts most: a partner with a reason to move is a door someone will open. Open a row for what sits behind each measure.`;
   $('hb-key').innerHTML = HB_MEAS.map(([k, l, c]) => `<span><i class="${c}"></i>${l} ${hbPct(k)}%</span>`).join('') + '<span><i class="hb-bonus"></i>Subscription live +10</span>';
-  const hbRow = r => `<tr class="row${r.rank <= 10 ? ' ten' : ''}" data-focus="${esc(r.lead)}"><td class="hbrank">${r.rank}</td><td><strong>${esc(r.display)}</strong><div class="small">${esc(r.segment)} · ${esc(r.platform || '')}${r.rows.length > 1 ? ' · ' + plural(r.rows.length, 'row') : ''}</div><div style="margin-top:3px"><span class="tierpill ${r.book_tier}" title="Tier in the triangulation underneath">${r.book_tier}</span>${r.bonus ? ' <span class="tag" title="Recurring purchase is live: the evidence is on the record">subscription live</span>' : ''}${hbHard(r) ? ' <span class="tag" title="Platform whitespace is capped in the triangulation: the reason is on the record">hard to move</span>' : ''}</div></td><td style="min-width:170px">${hbBar(r)}</td><td class="num"><b>${r.priority}</b></td><td class="num">${r.motion}</td><td class="num">${r.fit}</td><td class="num">${r.timing}</td><td class="num">${r.potential}</td><td class="small" style="min-width:130px">${r.first ? `${esc(r.first[0])} <span class="mono">${r.first[1]} of 5</span>` : hbBlind(r) ? 'Not known: no store was read' : 'No partner with a reason yet'}</td><td class="small" style="white-space:nowrap">${SHOPPAY[r.shopPay] || ''}</td></tr>`;
+  const hbRow = r => `<tr class="row${r.rank <= 10 ? ' ten' : ''}" data-focus="${esc(r.lead)}"><td class="hbrank">${r.rank}</td><td><strong>${esc(r.display)}</strong><div class="small">${esc(r.segment)} · ${esc(r.platform || '')}${r.rows.length > 1 ? ' · ' + plural(r.rows.length, 'row') : ''}</div>${insOf(r.group) && insOf(r.group).read ? `<div class="hbread">${esc(insOf(r.group).read)}</div>` : ''}<div style="margin-top:3px"><span class="tierpill ${r.book_tier}" title="Tier in the triangulation underneath">${r.book_tier}</span>${r.bonus ? ' <span class="tag" title="Recurring purchase is live: the evidence is on the record">subscription live</span>' : ''}${hbHard(r) ? ' <span class="tag" title="Platform whitespace is capped in the triangulation: the reason is on the record">hard to move</span>' : ''}</div></td><td style="min-width:170px">${hbBar(r)}</td><td class="num"><b>${r.priority}</b></td><td class="num">${r.motion}</td><td class="num">${r.fit}</td><td class="num">${r.timing}</td><td class="num">${r.potential}</td><td class="small" style="min-width:130px">${r.first ? `${esc(r.first[0])} <span class="mono">${r.first[1]} of 5</span>` : hbBlind(r) ? 'Not known: no store was read' : 'No partner with a reason yet'}</td><td class="small" style="white-space:nowrap">${SHOPPAY[r.shopPay] || ''}</td></tr>`;
   const hbTable = L => `<table class="wide"><thead><tr><th class="num">#</th><th>Company</th><th>Where the score comes from</th><th class="num">Score</th><th class="num">Partner motion</th><th class="num">Anatta fit</th><th class="num">Timing</th><th class="num">Potential</th><th>Partner to move first</th><th>Shop Pay</th></tr></thead><tbody>${L.map(hbRow).join('')}</tbody></table>`;
   $('hb-top').innerHTML = hbTable(ten);
   $('hb-rest').innerHTML = rest.length ? `<details class="strip"><summary><b style="font-size:13.5px">Ranks 11 to ${n}</b><span class="small">${plural(rest.length, 'more company', 'more companies')} inside the ICP</span></summary><div class="tblwrap" style="border:none;border-top:1px solid var(--line);border-radius:0">${hbTable(rest)}</div></details>` : '';
@@ -809,7 +875,13 @@ function hbDetail(a){
   const pot = [['Online', r.onlineNote, pp.online, 40], ['Stores', r.storesNote || (r.stores ? `${r.stores} company-run stores` : 'No company-run stores'), pp.stores, 25],
                ['Store sites', `${plural(r.sites || 0, 'transactional store')}${r.sitesNote ? ': ' + r.sitesNote : ''}`, pp.sites, 15], ['Room to grow', r.headroomNote || 'From the share of sales made online and the store count', pp.headroom, 20]];
   const moves = r.moves.map(m => `<div class="hbmove"><b>${esc(m.partner)}</b> <span class="tag">${m.live ? 'live' : 'not live'}</span> ${m.motives.map(x => `<span class="tag">${esc(x)}</span>`).join(' ')}<div>${esc(m.evidence)}${m.gap ? ` Gap: ${esc(m.gap)}.` : ''}${m.trigger ? ` Trigger: ${esc(m.trigger)}` : ''}</div></div>`).join('');
-  return `<div class="hbrec"><h4>Heartbeat score · ${r.priority} · rank ${r.rank} of ${HB.ranked.length}</h4>
+  const ia = insOf(r.group), li = x => `<li>${esc(fill(x))}</li>`, ln = x => `<div class="tx">${esc(fill(x))}</div>`, sub = subOf(r.group);
+  const insHtml = !ia ? '' : `<div class="ins">${ia.why ? `<h4>Why now</h4><ul>${ia.why.map(li).join('')}</ul>` : ia.read ? `<h4>The read</h4>${ln(ia.read)}` : ''}
+    ${ia.play ? `<h4>The play</h4><ul>${ia.play.map(li).join('')}</ul>` : ia.next ? `<h4>First move</h4>${ln(ia.next)}` : ''}
+    ${ia.watch ? `<h4>Watch</h4>${ln(ia.watch)}` : ''}${ia.q ? `<h4>A question for the seller</h4>${ln(ia.q)}` : ''}
+    ${ia.fitt ? `<h4>Where Anatta fits</h4>${ia.fitt.map(ln).join('')}` : ''}${ia.leadt ? `<h4>The move</h4>${ia.leadt.map(ln).join('')}` : ''}
+    ${ia.stories ? `<h4>Proof</h4>${ia.stories.map(([role, client, line]) => `<div class="tx story"><span class="tag">${esc(role)}</span> <b>${esc(client)}</b>: ${esc(fill(line))}</div>`).join('')}` : ''}</div>`;
+  return `<div class="hbrec">${insHtml}<h4>Heartbeat score · ${r.priority} · rank ${r.rank} of ${HB.ranked.length}</h4>
     ${r.rows.length > 1 ? `<div class="small" style="margin-bottom:4px">Scored once for ${esc(r.display)}: ${plural(r.rows.length, 'row')}, one buying centre.</div>` : ''}
     ${HB_MEAS.map(meter).join('')}
     <div class="small" style="margin-top:6px">Score = round(${HB_MEAS.map(([k]) => `${HB.weights[k]} × ${r[k]}`).join(' + ')})${r.bonus ? ` + ${r.bonus} for a live subscription` : ''} = <b style="color:var(--ink)">${r.priority}</b></div>
@@ -817,7 +889,7 @@ function hbDetail(a){
     <h4>Anatta fit · ${r.fit} · ${esc(r.segment)}</h4><div class="tx">${esc(r.why)}</div><div class="small">Who they sell to ${P.audience} of 30 · platform move ${P.platform} of 25 · what makes it hard ${P.hard} of 30 · category proof ${P.category} of 15</div>
     <h4>Timing · ${r.timing}</h4><div class="tx">${r.timingBase} from research timing and FIRE intent${r.timing !== r.timingBase ? `, plus ${r.timing - r.timingBase} for the Shop Pay wedge` : ''}. Shop Pay: ${(SHOPPAY[r.shopPay] || '').toLowerCase()}${r.shopPayWhy ? ` (${esc(r.shopPayWhy)})` : ''}.</div>
     <h4>Potential · ${r.potential}</h4>${pot.map(([l, t, v, of]) => `<div class="tx" style="margin:2px 0"><span class="small">${l} · ${v} of ${of}:</span> ${esc(t || 'not found')}</div>`).join('')}
-    <h4>Subscription${r.bonus ? ' · +' + r.bonus : ''}</h4><div class="tx">${esc(r.subscriptionNote || 'No subscription, recurring delivery or paid membership found')}</div></div>`;
+    <h4>Subscription${r.bonus ? ' · +' + r.bonus : ''}</h4><div class="tx">${esc(r.subscriptionNote || 'No subscription, recurring delivery or paid membership found')}</div>${sub && (sub.programs || []).length ? sub.programs.map(progHtml).join('') : ''}${ia && ia.sub_looked ? `<div class="small" style="margin-top:4px">Looked: ${esc(ia.sub_looked.join('; '))}</div>` : ''}</div>`;
 }
 function detail(a){
   if (a.missing) return `<div class="det"><div><p class="small">No research record for this account.</p></div></div>`;
@@ -887,7 +959,7 @@ ${HB ? `<p><b>Heartbeat score.</b> The ranking at the top is the Heartbeat score
 <p style="margin:0"><b>What the numbers are not.</b> A prioritisation aid built from detected stack evidence, FIRE signals and desk research. It is not a substitute for a conversation with the account. Confidence is low where platform, scale or model could not all be sourced.</p>`;
 
 // ---------- CSV ----------
-function csvText(){ const cols = ['name','display','group','family','domain','tier','triangle','shopify_fit','anatta_fit','gate','gate_reason','category','model','plat','platform','size_est','hq','ownership','confidence','fire_score','fire_intent','fire_in_market','fire_signals','fire_last_signal','story','shopify_angle','anatta_angle','flags']; if (A.some(a => a.second_look)) cols.push('second_look_would_be'); const HBC = {heartbeat_rank: r => r.rank, heartbeat_score: r => r.priority, heartbeat_segment: r => r.segment, partner_motion: r => r.motion, anatta_icp_fit: r => r.fit, heartbeat_timing: r => r.timing, potential: r => r.potential, subscription: r => r.subscription, shop_pay: r => r.shopPay, partner_to_move_first: r => r.first ? r.first[0] : ''}; if (HB) cols.push(...Object.keys(HBC)); const val = (a, k) => k.startsWith('fire_') ? a.fire[k.slice(5)] : k === 'flags' ? (a.flags || []).join(' | ') : k === 'second_look_would_be' ? (split(a) ? a.second_look.reviewer.tier : '') : k in HBC ? (hbOf.get(a.name) && !a.gate ? HBC[k](hbOf.get(a.name)) : '') : a[k]; const qq = v => `"${String(v ?? '').replace(/"/g, '""')}"`; return [cols.join(','), ...A.map(a => cols.map(k => qq(val(a, k))).join(','))].join('\n'); }
+function csvText(){ const cols = ['name','display','group','family','domain','tier','triangle','shopify_fit','anatta_fit','gate','gate_reason','category','model','plat','platform','size_est','hq','ownership','confidence','fire_score','fire_intent','fire_in_market','fire_signals','fire_last_signal','story','shopify_angle','anatta_angle','flags']; if (A.some(a => a.second_look)) cols.push('second_look_would_be'); const HBC = {heartbeat_rank: r => r.rank, heartbeat_score: r => r.priority, heartbeat_segment: r => r.segment, partner_motion: r => r.motion, anatta_icp_fit: r => r.fit, heartbeat_timing: r => r.timing, potential: r => r.potential, subscription: r => r.subscription, shop_pay: r => r.shopPay, partner_to_move_first: r => r.first ? r.first[0] : ''}; if (INS) Object.assign(HBC, {subscription_programs: r => ((subOf(r.group) || {}).programs || []).filter(p => p.counts && p.status === 'live').map(p => `${p.name} (${p.store}; ${p.engine})`).join('; '), heartbeat_read: r => (insOf(r.group) || {}).read || ''}); if (HB) cols.push(...Object.keys(HBC)); const val = (a, k) => k.startsWith('fire_') ? a.fire[k.slice(5)] : k === 'flags' ? (a.flags || []).join(' | ') : k === 'second_look_would_be' ? (split(a) ? a.second_look.reviewer.tier : '') : k in HBC ? (hbOf.get(a.name) && !a.gate ? HBC[k](hbOf.get(a.name)) : '') : a[k]; const qq = v => `"${String(v ?? '').replace(/"/g, '""')}"`; return [cols.join(','), ...A.map(a => cols.map(k => qq(val(a, k))).join(','))].join('\n'); }
 const csvBtn = $('csvbtn');
 /*FILEONLY*/
 if (TARGET === 'file') {   // a standalone file can save the CSV; a published page cannot, so that build copies it instead
