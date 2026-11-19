@@ -151,7 +151,9 @@ def recency_window(rows):
         lo, hi = max(lo, d + datetime.timedelta(days=span[label][0])), min(hi, d + datetime.timedelta(days=span[label][1]))
     return [lo.strftime("%b %-d"), hi.strftime("%b %-d, %Y")] if datetime.date.min < lo <= hi < datetime.date.max else None
 
-CRM_PRESENCE = re.compile(r"\bin salesforce\b|\bSFDC\b", re.I)   # stated once, in the internal-only in_sfdc field
+# A note about OUR CRM ("Not in Salesforce", "already in Salesforce.") is stated once, in the internal-only in_sfdc field.
+# Salesforce is also a commerce vendor, so "investing in Salesforce now" or "quoted in Salesforce's story" must not match.
+CRM_PRESENCE = re.compile(r"\b(?:not|already|also|is|are) in salesforce\b(?! commerce|['’]s)|^in salesforce\b(?! commerce|['’]s)|\bin salesforce(?=[.;,)]|$)|\bSFDC\b", re.I)
 def plain(text):
     """Researchers sometimes name the input field `prior_review`; readers know it as the earlier review of this book."""
     t = re.sub(r"\bprior_review'?s?\b", "the earlier review", text or "")
@@ -256,7 +258,10 @@ for name, a in inputs.items():
         "shopify_fit": sf, "anatta_fit": af, "bonus": bon, "triangle": tri, "tier": tier,
         "gate": gate, "gate_reason": plain(gate_reason or GATE_TEXT.get(gate, "")) if gate else "",
         "story": plain(r["story"]), "shopify_angle": plain(r["shopify_angle"]), "anatta_angle": plain(r["anatta_angle"]),
-        "evidence": [{"claim": plain(e["claim"]), "source": e["source"]} for e in r["evidence"]], "flags": clean_flags(r["flags"]) + ([ACCOUNT_NOTES[name]] if name in ACCOUNT_NOTES else []), "confidence": r["confidence"],
+        "evidence": [{"claim": plain(e["claim"]), "source": e["source"]} for e in r["evidence"]],
+        # a cap that was applied is stated once, under Adjustments, so the researcher's flag that proposed it is not repeated
+        "flags": clean_flags([f for f in r["flags"] if not (sf_uncapped != sf_research and f.startswith("CAP CANDIDATE"))]) + ([ACCOUNT_NOTES[name]] if name in ACCOUNT_NOTES else []),
+        "confidence": r["confidence"],
         "verification": [{"lens": v["lens"], "verdict": v["verdict"], "reason": v["reason"], "evidence": v.get("evidence", [])} for v in vs],
         "adjustments": adj_notes, "signal_misattributed": name in SIGNAL_MISATTRIBUTED, "set_aside": set_aside,
         "storeleads": a["storeleads"], "builtwith": {k: v for k, v in bw.items() if k != "note"},

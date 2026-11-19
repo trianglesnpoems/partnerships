@@ -30,7 +30,10 @@ SFDC_ID = re.compile(r"\b00[13Q][A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?\b")   # accou
 INTERNAL_ONLY_ACCOUNT_KEYS = ["in_sfdc"]
 INTERNAL_ONLY_SUMMARY_KEYS = ["not_in_sfdc"]
 # notes about our own records, and corrections to our own earlier review of the book, stay inside
-INTERNAL_FLAG = re.compile(r"\bCRM\b|\bin salesforce\b|\bSFDC\b|\bearlier (?:review|read)\b|\bprior (?:read|note)\b", re.I)
+# ("CRM" and "in Salesforce" only count when they are about our own records: both are also products an account can run)
+INTERNAL_FLAG = re.compile(r"\b(?:our|anatta['’]s|the) CRM\b|\bCRM (?:notes?|records?|presence)\b"
+                           r"|\b(?:not|already|also|is|are) in salesforce\b(?! commerce|['’]s)|^in salesforce\b(?! commerce|['’]s)|\bin salesforce(?=[.;,)]|$)"
+                           r"|\bSFDC\b|\bearlier (?:review|read)\b|\bprior (?:read|note)\b", re.I)
 CDN = ('<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>\n'
        '<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>')
 

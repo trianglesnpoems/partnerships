@@ -15,6 +15,7 @@ jobs = {"platform": [], "model": []}
 for x in sc["accounts"]:
     if x["missing"] or x["name"] not in raw: continue
     prov = {"shopify_fit": x["shopify_fit"], "anatta_fit": x["anatta_fit"], "triangle": x["triangle"], "tier": x["tier"], "fire": x["fire"]}
+    if x.get("adjustments"): prov["already_applied"] = x["adjustments"]     # a documented cap, so the verifier does not apply it twice
     job = {"name": x["name"], "provisional": prov, "record": raw[x["name"]]}
     # what the exports and the live check say about the storefront, when the book was built with them: the verifier
     # checks the record against these reads, not only against the record's own evidence
