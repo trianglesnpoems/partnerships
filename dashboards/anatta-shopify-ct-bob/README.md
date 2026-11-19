@@ -29,11 +29,21 @@ account we no longer pursue), so the hub map opens filtered to the top two tiers
 
 ## The second book (19 Nov 2026)
 
-195 accounts, built from three inputs: the Apollo accounts export, a BuiltWith detect export (192 domains) and a
-Store Leads export of the 204 domains the book lists, plus a live check of 226 storefront hosts. The 9 listed rows
-with no Apollo account are a second storefront of an account that is in Apollo and are attached to it.
+195 accounts, built from three inputs and a live check: the Apollo accounts export, a BuiltWith detect export (192
+domains), a Store Leads export of the 204 rows the book lists, and 226 storefront hosts loaded on the day. The 9
+listed rows with no Apollo account are a second storefront of an account that is in Apollo and are attached to it.
 
-The result is added here when the run is complete.
+- **Platform read.** All three independent reads agree for 44 accounts and two agree for 12; 14 rest on one read,
+  1 has reads that disagree, and for 124 no source names a platform (owners, non-merchants, in-house builds).
+- **Research.** 12 accounts were gated by rule (3 universities, 9 owner or holding entities). The other 183 were
+  researched in 17 batches, 172 on a full pass and 11 on a one-source pass, with about 130 web searches.
+- **Second look.** 127 accounts got 186 verdicts from 14 verifiers, each with its own searches: 162 confirmed,
+  24 adjusted, none refuted.
+- **Result.** 51 golden-triangle rows across 36 companies (T1), 50 strong (T2), 26 develop (T3), 12 watch (T4),
+  11 already on Shopify Plus (EXP) and 45 set aside (X). 109 rows sit in 32 shared decisions and 99 rows under 19
+  owners.
+- **Can move, hard to move.** 70 records carry the documented whitespace cap. Of the 36 golden-triangle companies,
+  20 have an uncapped golden row and 16 do not: the page leads with the 20 and lists the 16 apart.
 
 ## Inputs
 
@@ -106,6 +116,26 @@ government, distress, no commerce surface (only when Shopify fit < 20), bad reco
 that share an owner but buy separately (a holding company's subsidiaries, a licensor's brands). Both are context:
 every row is scored on its own storefront. Where a sister row already runs Shopify, the record says so and the page
 lists it under "Where Shopify is already inside"; it is never part of the score.
+
+## What was specific to the second book
+
+- **Three reads on every storefront.** See "platform read" above. Store Leads' sales figure is a model estimate and
+  was used as an order of magnitude only; scale is scored from public revenue, store counts and headcount.
+- **Two lists, 22 domain differences.** Where several Apollo rows share one website and the book gives each its own,
+  `account_domain` in `book.json` maps them by account name. Apollo matched two rows to a different company from the
+  one the book lists; their FIRE fields are shown as exported and not scored.
+- **Owners.** Most of the book is holding companies, brand groups and the companies they own, so `families` carries
+  the ownership and `groups` only the rows that share one decision. Research corrected several of Apollo's parent
+  fields (ownership had changed during 2025 and 2026), and both lists were redrawn from what it sourced.
+- **Caps.** The cap from the October build (whitespace 15 of 25) is applied in two cases, each with the researcher's
+  sourced reason: an in-house platform at national scale, and a platform that went live within about two years.
+  A roll-out still in progress counts for every row that shares the decision.
+- **Hard to move.** On a book of national retailers an account can clear both bars on scale and signal alone, cap
+  included. The tiers are unchanged; the overview counts the companies with an uncapped golden row as the ones to
+  walk into, and lists the rest apart with the reason and the play that is left.
+- **Old signal.** The newest FIRE signal is 57 days older than the exports. Researchers and verifiers treated a FIRE
+  signal or an In-market flag as soft unless public evidence backed it.
+- **No contacts export**, so no hub map and no named people.
 
 ## What was specific to CT's book
 

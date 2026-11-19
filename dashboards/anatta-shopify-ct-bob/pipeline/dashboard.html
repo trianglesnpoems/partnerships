@@ -281,12 +281,12 @@ details.plain summary{cursor:pointer;color:var(--ink);font-weight:500;padding:10
 <section class="sec" id="ov-centres-sec"><div class="wrap">
   <header><p class="eyebrow">Read the book as decisions, not rows</p><h2 id="ov-centres-h2"></h2>
   <p>Several rows in the book belong to one company. One conversation covers all of them, so they are grouped here and marked on every record.</p></header>
-  <div class="grid cols q" id="ov-centres"></div>
+  <div class="grid cols q" id="ov-centres" style="align-items:start"></div>
 </div></section>
 <section class="sec" id="ov-families-sec"><div class="wrap">
   <header><p class="eyebrow">Read the book by owner</p><h2 id="ov-families-h2"></h2>
   <p>These rows share an owner but not a decision: each company buys on its own, so each is scored and tiered on its own. Where a sister company already runs Shopify, the reference is inside the same owner.</p></header>
-  <div class="grid cols q" id="ov-families"></div>
+  <div class="grid cols q" id="ov-families" style="align-items:start"></div>
 </div></section>
 <!--INTERNAL-->
 <section class="sec" id="ov-signal-sec"><div class="wrap">
@@ -565,14 +565,20 @@ $('ov-centres-sec').hidden = !gNames.length;
 $('ov-centres-h2').textContent = `${S.grouped_rows} rows, ${gNames.length} decisions`;
 const rowLine = a => `<li><button class="linkbtn" data-focus="${esc(a.name)}" style="font-size:13px;color:var(--ink);font-weight:600">${nm(a)}</button> <span class="tierpill ${a.tier}">${a.tier}</span> <span class="mono small">${a.missing ? '' : 'triangle ' + a.triangle}</span><div class="small">${esc(a.tier === 'X' ? a.gate_reason : a.plat_label || '')}</div></li>`;
 const byTri = (x, y) => (y.triangle ?? 0) - (x.triangle ?? 0);
-$('ov-centres').innerHTML = gNames.map(g => `<div class="card pad"><h3>${esc(g)}</h3>${foldList(groups[g].sort(byTri).map(rowLine))}</div>`).join('');
+const MANY = 8;   // above this many groups or owners, each one is a folded strip instead of an open card
+const tierCount = rows => ['T1','T2','T3','T4','EXP','X'].map(t => [t, rows.filter(a => a.tier === t).length]).filter(([, n]) => n).map(([t, n]) => `<span class="tierpill ${t}">${t}${n > 1 ? ' ×' + n : ''}</span>`).join(' ');
+const foldCard = (name, rows, note) => `<details class="strip"><summary><b style="font-size:13.5px">${esc(name)}</b><span class="small mono">${plural(rows.length, 'row')}</span><span class="spacer"></span><span style="display:inline-flex;gap:4px;flex-wrap:wrap">${tierCount(rows)}</span></summary><div style="padding:8px 14px 12px;border-top:1px solid var(--line)">${note ? `<p class="small" style="margin:0 0 4px">${note}</p>` : ''}<ul class="list2">${rows.map(rowLine).join('')}</ul></div></details>`;
+$('ov-centres').className = gNames.length > MANY ? 'grid cols w' : 'grid cols q';
+$('ov-centres').innerHTML = gNames.map(g => { const rows = groups[g].sort(byTri); return gNames.length > MANY ? foldCard(g, rows, '') : `<div class="card pad"><h3>${esc(g)}</h3>${foldList(rows.map(rowLine))}</div>`; }).join('');
 // owners: same owner, separate decisions
 const fams = {}; A.forEach(a => { if (a.family) (fams[a.family] = fams[a.family] || []).push(a); });
 const fNames = Object.keys(fams).sort((x, y) => Math.max(...fams[y].map(a => a.triangle ?? 0)) - Math.max(...fams[x].map(a => a.triangle ?? 0)));
 $('ov-families-sec').hidden = !fNames.length;
 $('ov-families-h2').textContent = `${S.family_rows || 0} rows, ${plural(fNames.length, 'owner')}`;
+$('ov-families').className = fNames.length > MANY ? 'grid cols w' : 'grid cols q';
 $('ov-families').innerHTML = fNames.map(f => { const rows = fams[f].sort(byTri), inside = rows.filter(a => !a.missing && ON_SHOPIFY.includes(a.plat)), open = rows.filter(a => ['T1','T2'].includes(a.tier));
-  return `<div class="card pad"><h3>${esc(f)}</h3><p class="small" style="margin:0 0 6px">${plural(rows.length, 'row')}${open.length ? ` · ${open.length} in the top two tiers` : ''}${inside.length ? ` · Shopify already runs ${inside.length}` : ''}</p>${foldList(rows.map(rowLine))}</div>`; }).join('');
+  const note = `${open.length ? `${open.length} in the top two tiers` : 'None in the top two tiers'}${inside.length ? ` · Shopify already runs ${inside.length}: ${inside.map(nm).join(', ')}` : ''}`;
+  return fNames.length > MANY ? foldCard(f, rows, note) : `<div class="card pad"><h3>${esc(f)}</h3><p class="small" style="margin:0 0 6px">${plural(rows.length, 'row')} · ${note}</p>${foldList(rows.map(rowLine))}</div>`; }).join('');
 $('ov-exp-sec').hidden = !EXP.length;
 $('ov-exp-eyebrow').textContent = `Reference · ${plural(EXP.length, 'account')}`;
 // sister rows of a Plus account that are not on Shopify and still score: the reference is already inside the owner
@@ -627,9 +633,10 @@ const plays = T1.concat(T2);
 $('ac-plays-eyebrow').textContent = `Tier 1 and Tier 2 · ${plural(plays.length, 'account')}`;
 const foldT2 = T2.length > CARDS, t1HardRows = T1.filter(hard), t1OpenRows = T1.filter(a => !hard(a));
 const foldOf = (pill, title, L) => `<details class="strip" style="margin-top:10px"><summary><span class="tierpill ${pill}">${pill}</span><b style="font-size:13.5px">${title}</b><span class="spacer"></span><span class="small">open to read them</span></summary><div class="grid cols w" style="align-items:start;padding:14px;border-top:1px solid var(--line)">${L.map(play).join('')}</div></details>`;
-$('ac-plays').innerHTML = plays.length ? (t1OpenRows.concat(foldT2 ? [] : T2)).map(play).join('') || '<p class="small" style="margin:0">No golden triangle that can move. The folded lists are below.</p>' : '<p class="small">No account reaches the top two tiers.</p>';
+const shown = foldT2 ? t1OpenRows.slice(0, CARDS) : t1OpenRows.concat(T2), restOpen = foldT2 ? t1OpenRows.slice(CARDS) : [];
+$('ac-plays').innerHTML = plays.length ? shown.map(play).join('') || '<p class="small" style="margin:0">No golden triangle that can move. The folded lists are below.</p>' : '<p class="small">No account reaches the top two tiers.</p>';
 $('ac-plays-more').hidden = !(foldT2 || t1HardRows.length);
-$('ac-plays-more').innerHTML = (t1HardRows.length ? foldOf('T1', `Plays for the ${plural(t1HardRows.length, 'golden triangle')} that ${t1HardRows.length === 1 ? 'is' : 'are'} hard to move`, t1HardRows) : '') + (foldT2 ? foldOf('T2', `Plays for the ${T2.length} strong candidates`, T2) : '');
+$('ac-plays-more').innerHTML = (restOpen.length ? foldOf('T1', `Plays for ${plural(restOpen.length, 'more golden triangle')} that can move`, restOpen) : '') + (t1HardRows.length ? foldOf('T1', `Plays for the ${plural(t1HardRows.length, 'golden triangle')} that ${t1HardRows.length === 1 ? 'is' : 'are'} hard to move`, t1HardRows) : '') + (foldT2 ? foldOf('T2', `Plays for the ${T2.length} strong candidates`, T2) : '');
 
 // ---------- scatter: Shopify fit × Anatta fit, coloured by tier (ordinal ramp) ----------
 const legendHtml = () => TIERS.filter(t => t !== 'NA' && byTier(t).length).map(t => `<span class="k"><span class="sw ${t}"></span>${TIER_LABEL[t]} <span class="mono small">${byTier(t).length}</span></span>`).join('');
@@ -683,7 +690,7 @@ function drawScatter(){
 }
 
 // ---------- tier strips ----------
-$('strips').innerHTML = TIERS.filter(t => byTier(t).length || t === 'T1').map(t => { const L = byTier(t); return `<details class="strip" ${t === 'T1' || (t === 'T2' && L.length <= FOLD) ? 'open' : ''}><summary><span class="tierpill ${t}">${t}</span><b style="font-size:13.5px">${TIER_NAME[t]}</b><span class="small mono">${plural(L.length, 'account')}</span><span class="spacer"></span><span class="small">${TIER_RULE[t]}</span></summary><div class="list">${L.map(a => `<button class="it" data-focus="${esc(a.name)}"><span style="min-width:0"><b>${nm(a)}</b> <span class="small">· ${esc(a.category)}${t === 'X' ? ' · ' + esc(a.gate_reason) : ''}${hard(a) && t !== 'X' ? ' · hard to move' : ''}</span></span><span class="small">${esc(a.plat_label)}</span><span class="mono small">${a.triangle} · S ${a.shopify_fit} / A ${a.anatta_fit}</span></button>`).join('') || '<div class="small" style="padding:8px 14px">none</div>'}</div></details>`; }).join('');
+$('strips').innerHTML = TIERS.filter(t => byTier(t).length || t === 'T1').map(t => { const L = byTier(t); return `<details class="strip" ${(t === 'T1' || t === 'T2') && L.length <= FOLD ? 'open' : ''}><summary><span class="tierpill ${t}">${t}</span><b style="font-size:13.5px">${TIER_NAME[t]}</b><span class="small mono">${plural(L.length, 'account')}</span><span class="spacer"></span><span class="small">${TIER_RULE[t]}</span></summary><div class="list">${L.map(a => `<button class="it" data-focus="${esc(a.name)}"><span style="min-width:0"><b>${nm(a)}</b> <span class="small">· ${esc(a.category)}${t === 'X' ? ' · ' + esc(a.gate_reason) : ''}${hard(a) && t !== 'X' ? ' · hard to move' : ''}</span></span><span class="small">${esc(a.plat_label)}</span><span class="mono small">${a.triangle} · S ${a.shopify_fit} / A ${a.anatta_fit}</span></button>`).join('') || '<div class="small" style="padding:8px 14px">none</div>'}</div></details>`; }).join('');
 
 // ---------- breakdowns ----------
 function breakdown(el, key){
