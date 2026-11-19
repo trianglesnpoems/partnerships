@@ -18,9 +18,11 @@ The rules follow the Heartbeat Source playbook ("Why a partner moves") and the r
                     Gorgias; search: Algolia; returns: Loop). A partner that was seen and then removed gets a
                     displacement row too, and the first question is why it left.
   Trigger           one dated event per row: the Salesforce and Braze deal where Salesforce Marketing Cloud is the
-                    rival; a FIRE intent signal for a row that carries Better together; a leadership or ownership
-                    change, a public platform search or a launch for a row that carries Displacement; the month a
-                    removed partner dropped off.
+                    rival; a FIRE intent signal, or a platform choice that is open (a public review, a search, an
+                    end-of-life date), for a row that carries Better together; a leadership or ownership change, or
+                    an open platform choice, for a row that carries Displacement; a new store launch for a row that
+                    carries Portfolio; the month a removed partner dropped off. A move that has just finished onto
+                    another vendor ("platform-done") is never a trigger: it closes doors.
 
 A company is one buying centre: the rows of the book that share its `group`. Its stores are the rows that sell on a
 storefront the company runs: a corporate or info site (`info_rows` in the research file), a row with no online store and
@@ -105,19 +107,25 @@ for g, rows in groups.items():
     fire = [(fire_date(r["fire"]["last_signal"]), r["fire"]["last_signal"], r["fire"]["signals"]) for r in rows if not r.get("gate") and r["fire"].get("signals")]
     intent = max(((d, when, [s.strip() for s in sig.split(",") if s.strip().startswith("Intent:")]) for d, when, sig in fire if "Intent:" in sig), default=None)
     leader = max(((d, when) for d, when, sig in fire if "Leadership Change" in sig), default=None)
-    events = sorted((e for e in res.get("events") or [] if in_window(e["date"])), key=lambda e: e["date"], reverse=True)
+    # Research events, by what they open. A platform event opens doors only while the choice is open (a public review, a
+    # search, an end-of-life date): a move that has just finished onto another vendor closes them, so "platform-done" is
+    # never a trigger. A launch counts only for a row that carries Portfolio (a new store the partner does not cover yet).
+    events = sorted((e for e in res.get("events") or [] if in_window(e["date"]) and e["kind"] != "platform-done"), key=lambda e: e["date"], reverse=True)
+    ev = lambda *kinds: next((e for e in events if e["kind"] in kinds), None)
     def trigger(m, gap_vendors=()):
         if any(x.startswith("Salesforce Marketing Cloud") for x in gap_vendors): return BRAZE
         if "Better together" in m["motives"] and intent and in_window(intent[0]): return (f"FIRE logged {', '.join(intent[2])} on {intent[1]}", intent[0])
-        if "Better together" in m["motives"]:
-            e = next((e for e in events if e["kind"] == "platform"), None)
-            if e: return (e["text"], e["date"])
+        if "Better together" in m["motives"] and ev("platform"): return (ev("platform")["text"], ev("platform")["date"])
         if "Displacement" in m["motives"]:
             if leader and in_window(leader[0]): return (f"FIRE logged a leadership change on {leader[1]}", leader[0])
-            if events: return (events[0]["text"], events[0]["date"])
+            e = ev("leadership", "ownership", "platform")
+            if e: return (e["text"], e["date"])
+        if "Portfolio" in m["motives"] and ev("launch"): return (ev("launch")["text"], ev("launch")["date"])
         return ("", "")
     since = lambda at: ", ".join(f"{n} since {mon(v['first'])}" if v["first"] else n for n, v in sorted(at.items(), key=lambda kv: kv[1]["first"] or "9999"))
-    scans = lambda at: ", ".join(x for x in ("BuiltWith", "Store Leads", "Live site") if any(x in v["sources"] for v in at.values())).replace("Live site", "the live site")
+    def scans(at):          # which scans saw it; a tool seen by one scan only says so, because it is the claim to confirm first
+        srcs = [x for x in ("BuiltWith", "Store Leads", "Live site") if any(x in v["sources"] for v in at.values())]
+        return ", ".join(srcs).replace("Live site", "the live site") + (", one scan only" if len(srcs) == 1 else "")
     stop = lambda t: t if t.endswith(".") else t + "."
     moves = {}
     # 1. every partner that is live somewhere in the group
@@ -175,11 +183,17 @@ for g, rows in groups.items():
         final.append({"partner": m["partner"], "motives": m["motives"], "live": m["live"], "evidence": m["evidence"], "gap": m["gap"], "trigger": t, "triggerDate": td, "gain": m["gain"], "ask": ""})
     score = lambda m: len(set(m["motives"])) + (1 if m["live"] else 0) + (1 if in_window(m["triggerDate"]) else 0)
     final.sort(key=lambda m: (-score(m), not m["live"], m["partner"]))
-    out[g] = {"moves": final}
+    # What the scans could see. With no store read, "no partner" means "not known", and the page has to say so.
+    was_read = lambda r: any(((facts.get(r["name"]) or {}).get("scans") or {}).values())
+    out[g] = {"moves": final,
+              "coverage": {"stores": len(stores), "read": sum(1 for r in stores if was_read(r)), "unread": [nm(r) for r in stores if not was_read(r)],
+                           "operator_run": [nm(r) for r in rows if not r.get("gate") and r.get("plat") == "Third-party storefront"]}}
     report.append((g, [(m["partner"], score(m)) for m in final]))
 
 json.dump(out, open(OUT, "w", encoding="utf-8"), indent=1, ensure_ascii=False)
 print(f"{len(out)} companies inside the ICP | {sum(len(v['moves']) for v in out.values())} partner moves | {sum(1 for v in out.values() if not v['moves'])} with none")
+blind = [g for g, v in out.items() if not v["coverage"]["read"]]
+print(f"no store read by any scan (partner motion unknown, scored 0): {len(blind)}: {', '.join(blind)}")
 c = collections.Counter(m["partner"] for v in out.values() for m in v["moves"])
 print("rows per partner:", ", ".join(f"{k} {n}" for k, n in c.most_common()))
 print("motives:", dict(collections.Counter(" + ".join(m["motives"]) for v in out.values() for m in v["moves"])))

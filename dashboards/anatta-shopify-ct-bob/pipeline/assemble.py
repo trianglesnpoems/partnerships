@@ -14,10 +14,12 @@ address is left.
 
 With a Heartbeat ranking (--heartbeat rescored.json, written by the Heartbeat Source's tools/rescore.py) the page leads
 with that ranking and keeps the triangulation underneath. --potential is the same run's potential.json, for the notes
-behind each measure; --heartbeat-notes is a JSON file {"month": ..., "notes": [...], "method_notes": [...]}.
+behind each measure; --heartbeat-extras is its book_extras.json, for what the scans could read at each company;
+--heartbeat-notes is a JSON file {"month": ..., "notes": [...], "method_notes": [...]}.
 Nothing is scored here: the build only joins the ranking to the book and asserts that every score recomputes.
 
-Usage: assemble.py <scored.json> <out_dir> [<hubs.json> <libs_dir>] [--heartbeat rescored.json --potential potential.json --heartbeat-notes notes.json]
+Usage: assemble.py <scored.json> <out_dir> [<hubs.json> <libs_dir>] [--heartbeat rescored.json --potential potential.json
+                    --heartbeat-extras book_extras.json --heartbeat-notes notes.json]
   libs_dir holds node_modules/d3, node_modules/topojson-client, node_modules/us-atlas and na-countries-50m.json
   (see prune_countries.js)."""
 import csv, json, sys, os, re, copy, collections, html as _html
@@ -25,7 +27,7 @@ argv = sys.argv[1:]
 def opt(flag):
     if flag in argv:
         i = argv.index(flag); v = argv[i + 1]; del argv[i:i + 2]; return v
-BEAT_P, POT_P, BEAT_NOTES_P = opt("--heartbeat"), opt("--potential"), opt("--heartbeat-notes")
+BEAT_P, POT_P, BEAT_NOTES_P, EXTRAS_P = opt("--heartbeat"), opt("--potential"), opt("--heartbeat-notes"), opt("--heartbeat-extras")
 scored_p, OUT = argv[:2]
 hubs_p, LIB = (argv[2], argv[3]) if len(argv) > 3 else (None, None)
 here = os.path.dirname(os.path.abspath(__file__))
@@ -68,6 +70,7 @@ beat = None
 if BEAT_P:
     R = json.load(open(BEAT_P, encoding="utf-8")); POT = json.load(open(POT_P, encoding="utf-8")) if POT_P else {}
     extra = json.load(open(BEAT_NOTES_P, encoding="utf-8")) if BEAT_NOTES_P else {}
+    EXTRAS = json.load(open(EXTRAS_P, encoding="utf-8")) if EXTRAS_P else {}     # book_extras.json: what the scans could read, per company
     W = R["weights"]
     rows_of = collections.OrderedDict()
     for a in sc["accounts"]: rows_of.setdefault(a.get("group") or a["name"], []).append(a)
@@ -83,6 +86,7 @@ if BEAT_P:
         d.update({k: r[k] for k in ("rank", "priority", "motion", "timing", "timingBase", "shopPay", "potential", "potentialParts", "subscription", "bonus", "first")})
         d["moves"] = [{k: m.get(k, "") for k in ("partner", "motives", "live", "evidence", "gap", "trigger", "triggerDate")} for m in r["moves"]]
         d.update({k: e[k] for k in ("online", "onlineNote", "stores", "storesNote", "sites", "sitesNote", "headroomNote", "shopPayWhy", "subscriptionNote") if e.get(k) not in (None, "")})
+        if (EXTRAS.get(r["group"]) or {}).get("coverage"): d["coverage"] = EXTRAS[r["group"]]["coverage"]
         return d
     beat = {"month": extra.get("month", ""), "weights": W, "ranked": [join(r, True) for r in R["ranked"]], "outside": [join(r, False) for r in R["outside"]],
             "notes": extra.get("notes", []), "method_notes": extra.get("method_notes", [])}
