@@ -129,7 +129,7 @@ tr.ten .hbrank{color:var(--ink);font-weight:700}
 .ins ul{margin:3px 0 0;padding-left:17px}.ins li{font-size:12.8px;color:var(--ink-2);margin:2px 0;overflow-wrap:anywhere}
 .ins .story{margin:4px 0}.ins .story b{color:var(--ink)}
 .subt td{vertical-align:top;font-size:12.8px}.subt td.co{min-width:190px;max-width:260px}.subt td.pg{min-width:170px}.subt td.tm{min-width:230px;color:var(--ink-2)}.subt td.en{min-width:130px;color:var(--ink-2)}
-.subt tr.cont td{border-top:none;padding-top:2px}.subt tr.no td.pg,.subt tr.no td.tm,.subt tr.no td.en{opacity:.78}
+.subt tr:has(+ tr.cont) td{border-bottom-color:transparent}.subt tr.cont td{padding-top:3px}.subt tr.no td.pg,.subt tr.no td.tm,.subt tr.no td.en{opacity:.78}
 .subt .nm{font-weight:620;font-size:13.5px;color:var(--ink);background:none;border:none;padding:0;cursor:pointer;text-align:left;font-family:inherit}.subt .nm:hover{text-decoration:underline}
 .prog{margin:5px 0;font-size:12.6px;color:var(--ink-2);overflow-wrap:anywhere}.prog b{color:var(--ink)}.prog .meta{font-size:11.8px;color:var(--ink-3)}
 /* tier strips */
