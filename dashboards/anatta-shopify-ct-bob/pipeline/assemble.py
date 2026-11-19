@@ -18,8 +18,15 @@ behind each measure; --heartbeat-extras is its book_extras.json, for what the sc
 --heartbeat-notes is a JSON file {"month": ..., "notes": [...], "method_notes": [...]}.
 Nothing is scored here: the build only joins the ranking to the book and asserts that every score recomputes.
 
+House wording is applied to everything a reader can see, whatever the research wrote: an email address in a note is
+masked to its domain, an em dash becomes a comma, "AE" becomes "seller", and BuiltWith's Agency field is not shown.
+--scrub scrub.json adds this book's own list, [[pattern, replacement, why], ...]: use it for the name of a firm that
+builds for an account, which is never shown. Links are left alone, so a source stays a source. The build prints what
+each rule changed. --title, --label and --slug replace the ones the scored book carries.
+
 Usage: assemble.py <scored.json> <out_dir> [<hubs.json> <libs_dir>] [--heartbeat rescored.json --potential potential.json
-                    --heartbeat-extras book_extras.json --heartbeat-notes notes.json]
+                    --heartbeat-extras book_extras.json --heartbeat-notes notes.json --heartbeat-insights insights.json]
+                    [--scrub scrub.json] [--title "..."] [--label "..."] [--slug ...]
   libs_dir holds node_modules/d3, node_modules/topojson-client, node_modules/us-atlas and na-countries-50m.json
   (see prune_countries.js)."""
 import csv, json, sys, os, re, copy, collections, html as _html
@@ -28,13 +35,37 @@ def opt(flag):
     if flag in argv:
         i = argv.index(flag); v = argv[i + 1]; del argv[i:i + 2]; return v
 BEAT_P, POT_P, BEAT_NOTES_P, EXTRAS_P = opt("--heartbeat"), opt("--potential"), opt("--heartbeat-notes"), opt("--heartbeat-extras")
+INSIGHTS_P, SCRUB_P, TITLE_O, LABEL_O, SLUG_O = opt("--heartbeat-insights"), opt("--scrub"), opt("--title"), opt("--label"), opt("--slug")
 scored_p, OUT = argv[:2]
 hubs_p, LIB = (argv[2], argv[3]) if len(argv) > 3 else (None, None)
 here = os.path.dirname(os.path.abspath(__file__))
 tpl = open(os.path.join(here, "dashboard.html"), encoding="utf-8").read()
 head, body = re.match(r"<!--HEAD-->\n(.*?)<!--/HEAD-->\n(.*)$", tpl, re.S).groups()
 sc = json.load(open(scored_p))
+for k, v in (("title", TITLE_O), ("book_label", LABEL_O), ("slug", SLUG_O)):
+    if v: sc["summary"][k] = v
 TITLE, SLUG = sc["summary"]["title"], sc["summary"]["slug"]
+
+# ---------- house wording, applied to every string a reader can see ----------
+HOUSE = [(r"[\w.+-]+@((?:[\w-]+\.)+[a-z]{2,})", r"an address at \1", "email address masked to its domain"),
+         (r"\bShopify['’]s AEs?\b", "Shopify's seller", '"AE" written as seller'), (r"\bAEs\b", "sellers", '"AE" written as seller'), (r"\bAE\b", "seller", '"AE" written as seller'),
+         (r"\s*—\s*", ", ", "em dash written as a comma")]
+SCRUB = [tuple(r) for r in json.load(open(SCRUB_P, encoding="utf-8"))] if SCRUB_P else []
+JOIN_KEYS = {"name", "display", "group", "family", "lead", "rows", "partner", "book_name", "domain", "book_domain", "website", "linkedin", "source", "final_url"}   # identifiers and links: never reworded
+HIDDEN_STACK_KEYS = {"Agency"}       # BuiltWith's guess at who built a site
+tidied = collections.Counter()
+def tidy(x, key=None):
+    if isinstance(x, dict): return {k: (v if k in JOIN_KEYS else tidy(v, k)) for k, v in x.items()}
+    if isinstance(x, list): return [tidy(v, key) for v in x]
+    if not isinstance(x, str) or re.match(r"https?://", x): return x
+    for pat, to, why in SCRUB + HOUSE:
+        x, n = re.subn(pat, to, x)
+        if n: tidied[why] += n
+    return x[:1].upper() + x[1:] if x[:4] in ("the ", "an o", "its ") and key in ("claim", "reason") else x
+for a in sc["accounts"]:
+    for k in HIDDEN_STACK_KEYS:
+        if (a.get("builtwith") or {}).pop(k, None) is not None: tidied["BuiltWith's Agency field left out"] += 1
+sc["accounts"] = [tidy(a) for a in sc["accounts"]]
 assert head.count("__TITLE__") == 1
 head = head.replace("__TITLE__", _html.escape(TITLE))
 ICON = "<link rel=\"icon\" href=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 2 L14.5 13.5 L1.5 13.5 Z' fill='none' stroke='%232a78d6' stroke-width='1.7' stroke-linejoin='round'/%3E%3C/svg%3E\">"
@@ -94,6 +125,22 @@ if BEAT_P:
     assert sorted(got) == sorted(open_groups), "the Heartbeat ranking and the book do not list the same companies"
     assert [r["rank"] for r in beat["ranked"]] == list(range(1, len(beat["ranked"]) + 1))
     beat_of = {n: r for r in beat["ranked"] + beat["outside"] for n in r["rows"]}
+    if INSIGHTS_P:      # what the ranking says, the subscription view and the lines written for each company (see README)
+        ins = json.load(open(INSIGHTS_P, encoding="utf-8")); rank_of = {r["group"]: r for r in beat["ranked"]}
+        assert all(g in rank_of for g in ins.get("accounts", {})), "an insight is written for a company that is not ranked"
+        beat["insights"] = {"findings": ins.get("findings", []), "accounts": ins.get("accounts", {})}
+        subs = ins.get("subscriptions")
+        if subs:
+            for row in subs["rows"]:
+                r = rank_of.get(row["group"])
+                row.update({"rank": r["rank"], "priority": r["priority"], "display": r["display"], "lead": r["lead"]} if r else {"rank": None, "priority": None})
+                assert not r or (row["state"] == "live") == bool(r["bonus"]), f'{row["group"]}: the subscription view and the bonus disagree'
+            subs["rows"].sort(key=lambda x: (x["rank"] is None, x["rank"] or 0, x["group"]))
+            beat["subscriptions"] = subs
+    # The Heartbeat layer is held to the wording rules at the source: nothing here may need rewording.
+    before = json.dumps(beat, ensure_ascii=False, sort_keys=True); n0 = sum(tidied.values())
+    assert json.dumps(tidy(beat), ensure_ascii=False, sort_keys=True) == before, "the Heartbeat inputs carry wording the house rules ban: fix it in the inputs (" + ", ".join(k for k in tidied) + ")"
+    assert sum(tidied.values()) == n0
 
 def mask(email):
     if not email: return ""
@@ -206,3 +253,4 @@ for internal in (True, False):
     write_csv(f"{OUT}/{SLUG}-accounts-{kind}.csv", internal)
 t = sc["summary"]["tiers"]
 print("accounts", sc["summary"]["accounts"], "| tiers", {k: t[k] for k in sorted(t)}, ("| contacts %d in %d hubs" % (hb["summary"]["kept"], hb["summary"]["hubs"])) if hb else "| no contacts layer")
+if tidied: print("house wording applied to the research notes:", "; ".join(f"{k} ({n})" for k, n in sorted(tidied.items())))

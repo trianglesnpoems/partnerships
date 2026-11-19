@@ -72,6 +72,13 @@ def is_rival(v):
     return not v["partner"] and r.get("doorTier") != "A" and v["vendor"] not in NOT_A_RIVAL and v["lane"] in LANE_OF
 BRAZE = ("Salesforce agreed to buy Braze on Oct 20, 2026, closing after Feb 1, 2027. Marketing Cloud’s future is open until then.", "2026-10")
 
+
+# FIRE names its intent signals "Intent: Agency Search" and so on. On the page they read as plain words, and the search
+# for a firm to build with is called a partner search: the page never speaks of other firms.
+FIRE_WORDS = {"Agency Search": "partner search", "Shopify": "Shopify"}
+def intent_words(sigs):
+    return ", ".join(FIRE_WORDS.get(w, w.lower()) for w in (s.split(":", 1)[1].strip() for s in sigs))
+
 def fire_date(s):
     m = re.match(r"([A-Za-z]{3})\w* (\d+)\w* (\d{4})$", s or "")
     return f"{m.group(3)}-{MON.index(m.group(1)) + 1:02d}" if m and m.group(1) in MON else ""
@@ -118,7 +125,7 @@ for g, rows in groups.items():
     ev = lambda *kinds: next((e for e in events if e["kind"] in kinds), None)
     def trigger(m, gap_vendors=()):
         if any(x.startswith("Salesforce Marketing Cloud") for x in gap_vendors): return BRAZE
-        if "Better together" in m["motives"] and intent and in_window(intent[0]): return (f"FIRE logged {', '.join(intent[2])} on {intent[1]}", intent[0])
+        if "Better together" in m["motives"] and intent and in_window(intent[0]): return (f"FIRE logged intent on {intent[1]}: {intent_words(intent[2])}", intent[0])
         if "Better together" in m["motives"] and ev("platform"): return (ev("platform")["text"], ev("platform")["date"])
         if "Displacement" in m["motives"]:
             if leader and in_window(leader[0]): return (f"FIRE logged a leadership change on {leader[1]}", leader[0])

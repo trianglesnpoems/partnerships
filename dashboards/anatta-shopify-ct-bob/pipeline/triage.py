@@ -28,7 +28,7 @@ for a in acc:
     if edu:
         out.append({**base, "category": "Higher education", "model": "Education",
                     "shopify": {"whitespace": 0, "scale": 0, "model_fit": 2, "unified": 0, "timing": 0, "ecosystem": 0, "penalties": -20, "penalty_reason": "education"},
-                    "gate_reason": "University — campus-store commerce is incidental and procured separately.",
+                    "gate_reason": "University: campus-store commerce is incidental and procured separately.",
                     "story": "Not a Shopify prospect: a university." + (f" Our signal here ({', '.join(noise)}) most likely resolved to a campus network, not a buyer." if noise else ""),
                     "flags": ["Triaged by rule, not researched"] + ([f"Carries {', '.join(noise)} in our data: treat as noise"] if noise else [])})
     else:
