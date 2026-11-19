@@ -24,12 +24,17 @@ Rules, each from a lesson in the Heartbeat Source:
     scan ran without the page calling it: an export can keep listing a tool after the store has stopped using it. For
     other lanes the same finding is only flagged ("unseen_in_browser"), because a tag can sit behind a consent banner or
     on a page the scan did not open.
+  - The export is checked against the browser, vendor by vendor. Where the browser could run a search on at least five
+    stores at which BuiltWith lists a vendor, and confirmed fewer than half of them, BuiltWith's word alone is not enough
+    for that vendor anywhere in the book: a listing that rests on BuiltWith only is "not confirmed", readable store or not.
+  - --confirmed names facts read first-hand in research ([{"name": account, "vendor": ..., "note": what was read and
+    where}]). Such a fact gains the source "Research", so it no longer rests on the export alone.
 
 A row is read at the domain the book lists for it, which is the storefront the book means. Where the book lists a
 corporate site and the store sits elsewhere, --store-domains names the store ({"Account Name As Exported": "store.com"}).
 
 Usage: partner_facts.py <builtwith zip|dir> <accounts_input.json> <partner_registry.json> <out.json> [--live live.json]
-                        [--browser browser.json] [--store-domains map.json] [--as-of YYYY-MM-DD]
+                        [--browser browser.json] [--confirmed confirmed.json] [--store-domains map.json] [--as-of YYYY-MM-DD]
 """
 import csv, io, json, os, re, sys, zipfile, datetime, collections
 
@@ -38,7 +43,7 @@ def opt(flag, default=None):
     if flag in args:
         i = args.index(flag); v = args[i + 1]; del args[i:i + 2]; return v
     return default
-LIVE_PATH, AS_OF_ARG, STORE_DOMAINS, BROWSER_PATH = opt("--live"), opt("--as-of"), opt("--store-domains"), opt("--browser")
+LIVE_PATH, AS_OF_ARG, STORE_DOMAINS, BROWSER_PATH, CONFIRMED_PATH = opt("--live"), opt("--as-of"), opt("--store-domains"), opt("--browser"), opt("--confirmed")
 BW, ACC, REG, OUT = args[:4]
 LIVE_DAYS, HISTORY_DAYS = 75, 60
 STORE_SUBS = ("shop.", "store.", "checkout.", "buy.")
@@ -216,7 +221,8 @@ def facts_for(domain, storeleads):
         else: state = "removed"
         if e["dns"] and state == "live" and not corroborated: state = "live (dns only)"
         # what the browser scan adds: a tool only the export lists, at a store the browser read without seeing it
-        unseen = e["sources"] == ["BuiltWith"] and bool(br.get("read"))
+        # (the browser has to have seen some other tool there: a page that loaded but called nothing may be a block page)
+        unseen = e["sources"] == ["BuiltWith"] and bool(br.get("read")) and bool(br.get("seen"))
         if unseen and state == "live" and e["lane"] == "search" and br.get("search_read"): state = "not confirmed"
         rows.append({k: v2 for k, v2 in {**e, "state": state, "unseen_in_browser": unseen}.items() if not k.startswith("_")})
     rows.sort(key=lambda r: (not r["partner"], r["lane"], r["vendor"]))
@@ -224,6 +230,9 @@ def facts_for(domain, storeleads):
 
 acc = json.load(open(ACC, encoding="utf-8"))
 store_domain = json.load(open(STORE_DOMAINS, encoding="utf-8")) if STORE_DOMAINS else {}
+confirmed = collections.defaultdict(dict)     # account name -> vendor -> what research read first-hand
+if CONFIRMED_PATH:
+    for c in json.load(open(CONFIRMED_PATH, encoding="utf-8")): confirmed[c["name"]][c["vendor"]] = c["note"]
 res = []
 for a in acc:
     a = {**a, "domain": dom(store_domain.get(a["name"]) or a.get("book_domain") or a["domain"])}
@@ -232,11 +241,29 @@ for a in acc:
     for o in a.get("other_storefronts") or []:
         r2, s2 = facts_for(dom(o["domain"]), o.get("storeleads") or {})
         extra.append({"label": o.get("label", ""), "domain": o["domain"], "vendors": r2})
+    for v in rows:
+        if v["vendor"] in confirmed.get(a["name"], {}):
+            v["sources"].append("Research"); v["research_note"] = confirmed[a["name"]][v["vendor"]]
+            if v["state"] in ("not confirmed", "brief sighting", "live (dns only)"): v["state"] = "live"
+            v["unseen_in_browser"] = False
     res.append({"name": a["name"], "domain": a["domain"], "vendors": rows, "side_hosts": side, "other_storefronts": extra,
                 "scans": {"builtwith": any(p in seen for p in parents(a["domain"])), "storeleads": bool((a.get("storeleads") or {}).get("Technologies")),
                           "live": a["domain"] in live_read or bool((browser.get(a["domain"]) or {}).get("read")),
                           "search_page": bool((browser.get(a["domain"]) or {}).get("search_read"))}})
+# How far the export can be trusted, vendor by vendor: of its listings at stores where the browser ran a search, how many did the browser see?
+check = collections.defaultdict(lambda: [0, 0])
+for x in res:
+    br = browser.get(x["domain"]) or {}
+    if not (br.get("search_read") and br.get("seen")): continue
+    for v in x["vendors"]:
+        if "BuiltWith" in v["sources"] and v["state"] in ("live", "not confirmed"):
+            check[v["vendor"]][0] += 1; check[v["vendor"]][1] += "Live site" in v["sources"]
+UNRELIABLE = {v: {"tested": t, "confirmed": c} for v, (t, c) in check.items() if t >= 5 and c * 2 < t}
+for x in res:
+    for v in x["vendors"]:
+        if v["vendor"] in UNRELIABLE and v["sources"] == ["BuiltWith"] and v["state"] == "live": v["state"] = "not confirmed"
 json.dump({"as_of": AS_OF.isoformat(), "rules": {"live_days": LIVE_DAYS, "history_days": HISTORY_DAYS, "store_subdomains": STORE_SUBS},
+           "export_checked": {v: {"tested": t, "confirmed": c} for v, (t, c) in sorted(check.items()) if t >= 5}, "export_not_trusted_alone": UNRELIABLE,
            "partners": sorted(v for v in LANE if is_partner(v)), "accounts": res}, open(OUT, "w", encoding="utf-8"), indent=0, ensure_ascii=False)
 
 c = collections.Counter(); r_ = collections.Counter()
@@ -247,3 +274,4 @@ print(f"as of {AS_OF} | {len(res)} accounts | {sum(1 for x in res if any(v['part
 print("partners live at:", ", ".join(f"{k} {n}" for k, n in c.most_common()))
 print("rivals live at:  ", ", ".join(f"{k} {n}" for k, n in r_.most_common(30)))
 print("states:", dict(collections.Counter(v["state"] for x in res for v in x["vendors"])))
+if browser: print("export against the browser (stores where a search ran):", ", ".join(f"{v} {c}/{t}" for v, (t, c) in sorted(check.items(), key=lambda kv: -kv[1][0]) if t >= 5), "| not trusted alone:", sorted(UNRELIABLE))

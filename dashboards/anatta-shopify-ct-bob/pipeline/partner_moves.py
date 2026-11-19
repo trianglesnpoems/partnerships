@@ -91,8 +91,10 @@ for g, rows in groups.items():
               and (r.get("plat") not in ("No online store", "Third-party storefront") or r["name"] in OWN_ROWS)]
     nm = lambda r: r.get("display") or r["name"]
     seen = collections.defaultdict(dict)        # vendor -> row name -> fact
+    doubt = collections.defaultdict(set)        # vendor -> rows where only the export lists it and it could not be confirmed
     for r in stores:
         for v in (facts.get(r["name"]) or {}).get("vendors", []):
+            if v["state"] == "not confirmed": doubt[v["vendor"]].add(nm(r))
             if v["state"] in ("live", "live (dns only)", "removed"): seen[v["vendor"]][nm(r)] = v    # a brief sighting, or a tool the browser scan could not confirm, is not a fact to build on
     live_at = lambda vendor: {n: v for n, v in seen.get(vendor, {}).items() if v["state"] == "live"}
     rivals = collections.defaultdict(dict)      # displacement lane -> rival -> [row names]
@@ -126,9 +128,11 @@ for g, rows in groups.items():
         return ("", "")
     since = lambda at: ", ".join(f"{n} since {mon(v['first'])}" if v["first"] else n for n, v in sorted(at.items(), key=lambda kv: kv[1]["first"] or "9999"))
     def scans(at):          # which scans saw it; a tool seen by one scan only says so, because it is the claim to confirm first
-        srcs = [x for x in ("BuiltWith", "Store Leads", "Live site") if any(x in v["sources"] for v in at.values())]
+        srcs = [x for x in ("BuiltWith", "Store Leads", "Live site", "Research") if any(x in v["sources"] for v in at.values())]
         unseen = all(v.get("unseen_in_browser") for v in at.values())
-        return ", ".join(srcs).replace("Live site", "the live site") + (", one scan only" if len(srcs) == 1 else "") + (", and not seen when a browser loaded the store" if unseen else "")
+        notes = sorted({v["research_note"] for v in at.values() if v.get("research_note")})
+        return (", ".join(srcs).replace("Live site", "the live site").replace("Research", "read first-hand: " + "; ".join(notes) if notes else ", ".join(srcs).replace("Live site", "the live site"))
+                + (", one scan only" if len(srcs) == 1 else "") + (", and not seen when a browser loaded the store" if unseen else ""))
     stop = lambda t: t if t.endswith(".") else t + "."
     moves = {}
     # 1. every partner that is live somewhere in the group
@@ -143,7 +147,7 @@ for g, rows in groups.items():
         # "Not seen at a sister store" only means something where that store was read by a scan that saw the partner elsewhere.
         saw = {src for v in live.values() for src in v["sources"]}
         covered = lambda r: any(((facts.get(r["name"]) or {}).get("scans") or {}).get(k) for k, src in (("builtwith", "BuiltWith"), ("storeleads", "Store Leads"), ("live", "Live site")) if src in saw)
-        missing = [nm(r) for r in stores if nm(r) not in live and covered(r)]
+        missing = [nm(r) for r in stores if nm(r) not in live and covered(r) and nm(r) not in doubt[vendor]]    # "not confirmed" is unknown, not absent
         if len(stores) > 1 and missing:
             m["motives"].insert(0, "Portfolio"); m["gap"] = "Not seen at " + ", ".join(missing[:6]) + (f" and {len(missing) - 6} more" if len(missing) > 6 else "")
             m["gain"] = "More stores in a group it already serves"

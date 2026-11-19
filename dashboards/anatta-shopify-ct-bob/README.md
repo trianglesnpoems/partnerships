@@ -45,6 +45,13 @@ listed rows with no Apollo account are a second storefront of an account that is
   owners.
 - **Can move, hard to move.** 70 records carry the documented whitespace cap. Of the 36 golden-triangle companies,
   20 have an uncapped golden row and 16 do not: the page leads with the 20 and lists the 16 apart.
+- **Heartbeat ranking (19 Nov 2026).** The page now leads with the Heartbeat score, run by the Heartbeat Source's
+  own `rescore.py`. Of 118 companies, 69 sit inside Anatta's ICP and are ranked (55 core, 14 adjacent), 10 are
+  outside it and 39 are gated out. 15 have recurring purchase live and 43 can add Shop Pay to the checkout they run.
+  The inputs came from a second research pass (10 batches) and three scans of each store. A browser scan read 118
+  of 159 store sites and ran a search on 85. It confirmed the export for most partners, and only 4 of 11 of its
+  listings of one search tool, so a listing of that tool resting on the export alone is not counted. For 5 ranked
+  companies no scan could read a store the company runs itself: their partner motion is unknown and counts as 0.
 
 ## Inputs
 
@@ -111,15 +118,17 @@ hands the book over, and shows the result.
 
 | Step | Script | What it does |
 |---|---|---|
-| H1 | `partner_facts.py` | For every storefront: which technology partners and which of their rivals run on it, from the BuiltWith detect export (first and last detected), Store Leads and the live check. Who is a partner is read from the partner registry (the Golden Triangle Console's export). A tool counts as live after 60 days of history and when seen in the last 75 days, or when a second scan shows it. Only the store's own site counts. |
+| H0 | `browser_scan.js` (optional, recommended) | Loads each store in a real browser, runs a search through the page's own search box, and records which vendors the page calls. A bot wall or a failed load is recorded as not read. An export can keep listing a tool after a store has stopped using it; this is the scan that says what a shopper's browser talks to today. |
+| H1 | `partner_facts.py` | For every storefront: which technology partners and which of their rivals run on it, from the BuiltWith detect export (first and last detected), Store Leads, the live check and the browser scan. Who is a partner is read from the partner registry (the Golden Triangle Console's export). A tool counts as live after 60 days of history and when seen in the last 75 days, or when a second scan shows it. Only the store's own site counts. The export is checked against the browser vendor by vendor: where the browser confirmed fewer than half of a vendor's listings (five or more tested), a listing of that vendor resting on the export alone is "not confirmed" and not counted. `--confirmed` adds facts research read first-hand. |
 | H2 | research agents | Per company (one buying centre): its entry in Anatta's ICP model, its potential (online sales, company-run stores, transactional stores, share), the Shop Pay fit, the subscription signal, and two judgment inputs for partner motion: dated events and whether a subscription tool has a play. Evidence rules are the Heartbeat Source's. |
 | H3 | `partner_moves.py` | Writes each company's partner moves from the facts, by the rules of the playbook's "Why a partner moves", in the shape the Heartbeat Source keeps (`book_extras.json`). A corporate site, a row with no store and a store someone else operates are not the company's stores. |
 | H4 | Heartbeat Source `tools/extract_book.py`, `tools/rescore.py` | Run unchanged: the first reads the book out of the triangulation page, the second scores and ranks it. |
 | H5 | `assemble.py --heartbeat` | Joins the ranking to the book. The page then leads with the Heartbeat ranking and keeps the triangulation underneath; the CSVs gain the Heartbeat columns. The build asserts that every score recomputes from its four measures and that the ranking and the book list the same companies. |
 
 ```bash
+node pipeline/browser_scan.js <stores.json> <build>/browser.json [concurrency]      # stores.json: [{"name": ..., "domain": ...}]
 python3 pipeline/partner_facts.py <detect.zip> <build>/accounts_input.json <partner_registry.json> <build>/partner_facts.json \
-    --live <build>/live.json [--store-domains <map.json>]
+    --live <build>/live.json --browser <build>/browser.json [--confirmed <confirmed.json>] [--store-domains <map.json>]
 # in a copy of the Heartbeat Source, with HB_SELLER=<seller>:
 python3 tools/extract_book.py <out>/<slug>-internal.html <seller>
 # research writes data/<seller>/icp.json, potential.json and research.json
@@ -127,7 +136,7 @@ python3 pipeline/partner_moves.py data/<seller>/book.json <build>/partner_facts.
     data/<seller>/book_extras.json --month "November 2026"
 python3 tools/rescore.py issues/<issue>.json
 python3 pipeline/assemble.py <build>/scored.json <out> --heartbeat data/<seller>/rescored.json --potential data/<seller>/potential.json \
-    --heartbeat-notes <notes.json>
+    --heartbeat-extras data/<seller>/book_extras.json --heartbeat-notes <notes.json>
 ```
 
 The Heartbeat score has no measure for how hard a platform is to leave, so the page shows the triangulation's
