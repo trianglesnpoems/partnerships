@@ -290,10 +290,17 @@ lists it under "Where Shopify is already inside"; it is never part of the score.
   signal or an In-market flag as soft unless public evidence backed it.
 - **No contacts export**, so no hub map and no named people.
 - **Reach first.** The list turned out to be internal, not one seller's, and the Heartbeat score alone put the
-  largest retailer on it first. With the reach test in front, 34 of the 69 companies inside the ICP are ranked; 24 are
-  out of reach, 10 chose or rebuilt a platform inside two years and 1 is listed apart at long odds. Seven of the
-  Heartbeat's first ten were among those set aside. Four companies have a decision said to be open, under two owners.
-  The same four come first with the opening weighted 20%, 30%, 40% or 50%: the weights were not the cause.
+  largest retailer on it first. With the reach test in front, 32 of the 69 companies inside the ICP are ranked; 26 are
+  out of reach, 10 chose a platform or began a rebuild inside two years and 1 is listed apart at long odds. Seven of
+  the Heartbeat's first ten were among those set aside. Three companies have a decision said to be open, all under one
+  owner. The same ten fill the first ten with the opening weighted 20%, 30%, 40% or 50%: the weights were not the cause.
+- **By rule, not by hand.** `reach_infer.py` decided 68 of the 69 reach calls and 61 of the 74 signals from the research
+  record. The one call set by hand is a store a licensee runs, which no scan can see. The 13 signals added by hand are
+  facts the research had not been asked for; 9 of them were found by the challenge.
+- **The challenge.** Three readers were given the first ten and the four below, 14 companies, and asked to knock each
+  out. Two held, ten came back weaker and two were overturned: one had a new front end live on its store, the other an
+  in-house team building one. Twelve of the 14 had evidence against a move on public record, most often a posting for
+  people to build on the platform the company already runs. None of it had been recorded.
 - **A deadline that had been withdrawn.** The research gave a vendor's removal date for an older storefront, from an
   integrator's article. Two later articles said the vendor had dropped the date four months before. The check that
   found this also found the same storefront, first-hand, at two more companies on the list. A dated claim about a
