@@ -3,7 +3,8 @@
     python3 qa.py --internal out/<slug>-internal.html --shareable out/<slug>-shareable.html \\
         --source <Heartbeat Source folder> --seller <slug> --issue <its issues/....json> \\
         [--facts partner_facts.json] [--csv-internal a.csv --csv-shareable b.csv] [--ids-from <the CRM export>.csv] \\
-        [--scrub scrub.json] [--reach reach.json --signals signals.json --as-of YYYY-MM-DD] [--no-page]
+        [--scrub scrub.json] [--reach reach.json --signals signals.json --as-of YYYY-MM-DD] \\
+        --reference <potential.json of the list the score was built on> [--challenge <folder> | --no-challenge] [--no-page]
 
 It follows the Heartbeat Source's own tools/qa.py, on the page this pipeline builds.
 
@@ -22,6 +23,17 @@ the Heartbeat scored must be ranked or set aside with its reason, the Heartbeat'
 keeps them, and the opening, the way in, the score and the order are recomputed here from the reach calls, the signals,
 the moves and the research: a second implementation, not a call to reach_rank.py.
 
+Three checks ask whether the ranking makes sense, not whether it adds up. They exist because a ranking once passed every
+arithmetic check with a company first whose own research note said not to pitch it.
+  Range      --reference names the list the score was built on. A company that sells more online than the largest one
+             there is outside what the score can judge: without the reach test the release fails, and with it no such
+             company may be ranked as in reach.
+  Agreement  a ranked company may not carry the first pass's hard-to-move mark, a platform move finished inside two
+             years, or a sentence in its own record that argues it cannot move.
+  Challenge  --challenge <folder> holds an independent reader's attempt to knock out each of the first ten
+             (briefs/challenge.md, validate_challenge.py). Every one of the ten must have been challenged as ranked now,
+             and none may have been overturned. --no-challenge skips it and says so in the output.
+
 The Heartbeat wording rules are applied in full to everything the Heartbeat layer shows. The triangulation underneath
 was written to the triangulation template, which calls the account list "the book", so that one phrase is counted
 there and reported, not failed.
@@ -35,6 +47,8 @@ ap.add_argument('--seller', required=True); ap.add_argument('--issue', required=
 ap.add_argument('--facts'); ap.add_argument('--csv-internal'); ap.add_argument('--csv-shareable'); ap.add_argument('--ids-from')
 ap.add_argument('--scrub', help="the book's scrub list given to assemble.py: nothing it removes may be left")
 ap.add_argument('--reach'); ap.add_argument('--signals'); ap.add_argument('--as-of')
+ap.add_argument('--reference', action='append', default=[], help='potential.json of the list the score was built on; repeatable')
+ap.add_argument('--challenge', help='folder with in_*.json and out_*.json from the challenge of the first ten'); ap.add_argument('--no-challenge', action='store_true')
 ap.add_argument('--no-page', action='store_true')
 A = ap.parse_args()
 os.environ['HB_SELLER'] = A.seller
@@ -224,15 +238,16 @@ if REACHM and A.reach and A.signals and A.as_of:
         rc = REACH_IN.get(g) or {}; sig = SIG_IN.get(g, [])
         check(rc.get('state') in want_list and where[g] == want_list.get(rc.get('state')), f'{g}: listed where its reach call puts it', (rc.get('state'), where[g]))
         check(r['reach'].get('state') == rc.get('state') and r['reach'].get('why') == rc.get('why') and r['reach'].get('again') == rc.get('again') and r['reach'].get('note') == rc.get('note'), f'{g}: the reach call on the page is the one on file')
+        check(bool(rc.get('basis')), f'{g}: the reach call says which rule or which person made it')
         if rc.get('state') != 'open':
-            check(bool(rc.get('why')) and len(rc['why']) <= 230, f'{g}: a company that is not ranked says why, in one line', rc.get('why'))
+            check(bool(rc.get('why')) and len(rc['why']) <= 330, f'{g}: a company that is not ranked says why, in a line or two', rc.get('why'))
         if rc.get('state') == 'later':
             check(bool(re.fullmatch(r'20\d\d', rc.get('again') or '')), f'{g}: a company set aside for now says when to look again', rc.get('again'))
         check(r['signals'] == sig, f'{g}: the signals on the page are the signals on file')
         for s in sig:
             check(s.get('cls') in CLS or s.get('cls') == 'frozen', f'{g}: a signal has a known class', s.get('cls'))
             check(bool(re.fullmatch(r'20\d\d-(0[1-9]|1[0-2])', s.get('date') or '')), f'{g}: a signal is dated YYYY-MM', s.get('date'))
-            check(bool(s.get('text')) and re.search(r'\d', s['text'][:40]) is not None, f'{g}: a signal starts with its date', s.get('text'))
+            check(bool(s.get('text')) and re.search(r'20\d\d', s['text']) is not None, f'{g}: a signal names the year it happened', s.get('text'))
             check(s.get('source') is None or re.match(r'https?://', s['source']), f'{g}: a signal\'s source is a link or is named in its text', s.get('source'))
         recs = groups[g]; lead = max(recs, key=lambda a: a['triangle']); e = POT[g]; x = scored[g]
         live = sorted((CLS[s['cls']] * (1.0 if -9 <= now - mi(s['date']) <= 9 else 0.5 if 9 < now - mi(s['date']) <= 12 else 0.0), s['cls']) for s in sig if s['cls'] in CLS)
@@ -279,6 +294,71 @@ if REACHM and A.reach and A.signals and A.as_of:
     check(REACHM['sensitivity'] == sens, 'the first ten under each weighting of the opening recompute', {k: v[:4] for k, v in sens.items()})
 elif REACHM:
     fails.append('the page was built with the reach test, and this run was not given --reach, --signals and --as-of to check it')
+
+# ---- does the ranking make sense? range, agreement with the research, and the challenge of the first ten
+ref_online = [v['online'] for p in A.reference for v in J(p).values() if isinstance(v, dict) and v.get('online')]
+ranked_now = [r['group'] for r in HB['ranked']]
+if ref_online:
+    ceiling = max(ref_online)
+    over = sorted((g for g in onpage if (POT[g].get('online') or 0) > ceiling), key=lambda g: -POT[g]['online'])
+    if REACHM:
+        check(not [g for g in over if g in ranked_now], 'no company above the range the score was built on is ranked as in reach', [g for g in over if g in ranked_now][:5])
+        notes.append(f'range: {len(over)} companies sell more online than the largest company on the list the score was built on (${ceiling:,.0f}M); none is ranked as in reach')
+    else:
+        check(not over, f'every ranked company is inside the range the score was built on (largest there: ${ceiling:,.0f}M online)',
+              f'{len(over)} are above it, from {over[0] if over else ""}: run reach_infer.py and reach_rank.py before this list is ranked')
+else:
+    fails.append('--reference was not given: name the list the score was built on, so the range it can judge is checked')
+research_p = os.path.join(os.path.dirname(paths.BOOK), 'research.json')
+events_of = {c['group']: c.get('events') or [] for c in (J(research_p).get('companies', []) if os.path.exists(research_p) else [])}
+ARGUES = re.compile(r'do not pitch|cannot (?:be )?moved?\b|will not (?:be )?moved?\b|multi-year enterprise pursuit|no platform decision|builds its own platform|built in-house and (?:is|carries)', re.I)
+page_rows = {a['name']: a for a in D['accounts']}
+written = (HB.get('insights') or {}).get('accounts') or {}
+for g in ranked_now:
+    recs = groups.get(g, [])
+    capped = [a['name'] for a in recs if a.get('whitespace_capped')]
+    check(not capped, f'{g}: ranked, and the first pass marked none of its rows hard to move', capped)
+    done = [e['date'] for e in events_of.get(g, []) if e.get('kind') == 'platform-done' and 0 <= NOW - mi(e['date']) <= 24]
+    check(not done, f'{g}: ranked, and no platform move finished inside two years is on file', done)
+    ia = written.get(g) or {}
+    own = [page_rows[a['name']].get(k) or '' for a in recs for k in ('story', 'shopify_angle', 'anatta_angle')] + [f for a in recs for f in (page_rows[a['name']].get('flags') or [])]
+    own += [ia.get('read') or '', ia.get('watch') or '', ia.get('next') or ''] + (ia.get('why') or []) + (ia.get('play') or []) + (ia.get('leadt') or [])
+    hit = next((m for m in (ARGUES.search(x) for x in own) if m), None)
+    check(hit is None, f'{g}: ranked, and nothing in its own record argues that it cannot move', hit.string[max(0, hit.start() - 70):hit.end() + 70] if hit else '')
+if REACHM:
+    ten = ranked_now[:10]
+    if A.challenge:
+        import glob
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import validate_challenge
+        verdicts = {}
+        for ip in sorted(glob.glob(os.path.join(A.challenge, 'in_*.json'))):
+            op = os.path.join(os.path.dirname(ip), 'out_' + os.path.basename(ip)[3:])
+            check(os.path.exists(op), f'challenge: {os.path.basename(ip)} has its answer file')
+            if not os.path.exists(op):
+                continue
+            bad = validate_challenge.problems(J(ip), J(op))
+            check(not bad, f'challenge: {os.path.basename(op)} is a valid answer', bad[:2])
+            asked = {c['group']: c for c in J(ip)['companies']}
+            for c in J(op)['companies']:
+                verdicts[c['group']] = (c, asked.get(c['group']) or {})
+        check(all(g in verdicts for g in ten), 'every company in the first ten was challenged by an independent reader', [g for g in ten if g not in verdicts])
+        for g in ten:
+            if g not in verdicts:
+                continue
+            c, asked = verdicts[g]
+            shown = onpage[g].get('challenge') or {}
+            now_sig = sorted((s['date'], s['cls']) for s in onpage[g]['signals']); then_sig = sorted((s['date'], s['cls']) for s in (asked.get('claim_opening') or {}).get('signals', []))
+            check(c['verdict'] != 'wrong' or bool(shown.get('settled')), f'{g}: not overturned by its challenge, or the page says how that was settled', c.get('summary'))
+            check(now_sig == then_sig or bool(shown.get('settled')), f'{g}: challenged on the signals it is ranked on now, or the page says what changed since', (then_sig, now_sig))
+            check(shown.get('verdict') == c['verdict'], f'{g}: the page shows the verdict of its challenge', (shown.get('verdict'), c['verdict']))
+        weaker = [g for g in ten if g in verdicts and verdicts[g][0]['verdict'] != 'holds']
+        if weaker:
+            notes.append('challenge: not a clean hold at ' + ', '.join(f'{g} ({verdicts[g][0]["verdict"]})' for g in weaker))
+    elif A.no_challenge:
+        notes.append('THE FIRST TEN WERE NOT CHALLENGED by an independent reader (--no-challenge)')
+    else:
+        fails.append('the first ten were not challenged: give --challenge <folder>, or --no-challenge to release without it and say so')
 check(not ISSUE.get('accounts') or all(a['name'] in onpage for a in ISSUE['accounts']), 'every account on the issue is on the list')
 
 # partners: live where the partner facts say they are

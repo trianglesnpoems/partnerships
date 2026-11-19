@@ -33,6 +33,11 @@ with the reason they are set aside. Each row keeps the Heartbeat's own score bes
                               {"account": name, "match": "regex", "unless": "text", "append": "..."}]}
 A correction that matches nothing stops the build.
 
+--challenge <folder> holds the challenge of the first ten (briefs/challenge.md): in_*.json as given to the readers and
+out_*.json as they answered. Each company's verdict, the reader's summary and the facts found for and against go on its
+record. --challenge-settled settled.json ({company: "what was done about it"}) is required reading for a company the
+challenge overturned, or one whose signals were changed after it was challenged: the line is shown beside the verdict.
+
 Usage: assemble.py <scored.json> <out_dir> [<hubs.json> <libs_dir>] [--heartbeat rescored.json --potential potential.json
                     --heartbeat-extras book_extras.json --heartbeat-notes notes.json --heartbeat-insights insights.json
                     --proof <Heartbeat Source>/shared/anatta.json]
@@ -46,7 +51,7 @@ def opt(flag):
         i = argv.index(flag); v = argv[i + 1]; del argv[i:i + 2]; return v
 BEAT_P, POT_P, BEAT_NOTES_P, EXTRAS_P = opt("--heartbeat"), opt("--potential"), opt("--heartbeat-notes"), opt("--heartbeat-extras")
 INSIGHTS_P, SCRUB_P, TITLE_O, LABEL_O, SLUG_O, PROOF_P = opt("--heartbeat-insights"), opt("--scrub"), opt("--title"), opt("--label"), opt("--slug"), opt("--proof")
-OPEN_P, FIXES_P = opt("--openings"), opt("--fixes")
+OPEN_P, FIXES_P, CHAL_P, SETTLED_P = opt("--openings"), opt("--fixes"), opt("--challenge"), opt("--challenge-settled")
 scored_p, OUT = argv[:2]
 hubs_p, LIB = (argv[2], argv[3]) if len(argv) > 3 else (None, None)
 here = os.path.dirname(os.path.abspath(__file__))
@@ -187,6 +192,19 @@ if BEAT_P:
         assert [r["rank"] for r in beat["ranked"]] == list(range(1, len(beat["ranked"]) + 1))
         beat["reach"] = {"as_of": O["as_of"], "classes": O["classes"], "groups": O["groups"], "shares": O["shares"], "frozen": O["frozen"], "family": O["family"],
                          "sensitivity": O["sensitivity"], "scored": len(hb_rows)}
+    if CHAL_P:       # what an independent reader found when asked to knock each of the first ten out
+        import glob
+        settled = json.load(open(SETTLED_P, encoding="utf-8")) if SETTLED_P else {}
+        answers = {c["group"]: c for p in sorted(glob.glob(os.path.join(CHAL_P, "out_*.json"))) for c in json.load(open(p, encoding="utf-8"))["companies"]}
+        by_g = {r["group"]: r for r in beat["ranked"] + beat.get("long", [])}
+        assert all(g in by_g for g in settled), f"a settled challenge names a company that is not ranked: {[g for g in settled if g not in by_g]}"
+        for g, c in answers.items():
+            if g not in by_g: continue
+            ch = {"verdict": c["verdict"], "summary": c["summary"], "against": c.get("against") or [], "for": c.get("for") or [],
+                  "signals": [{"status": s["status"], "note": s.get("note", ""), "source": s.get("source")} for s in c.get("signals") or []], "not_checked": c.get("not_checked") or []}
+            if settled.get(g): ch["settled"] = settled[g]
+            by_g[g]["challenge"] = tidy(ch)          # a reader's notes get the house wording like any other research note
+        beat["challenged"] = sum(1 for r in beat["ranked"][:10] if r.get("challenge"))
     aside = beat.get("long", []) + beat.get("later", []) + beat.get("out", [])
     beat_of = {n: r for r in beat["ranked"] + aside + beat["outside"] for n in r["rows"]}
     if INSIGHTS_P:      # what the ranking says, the subscription view and the lines written for each company (see README)

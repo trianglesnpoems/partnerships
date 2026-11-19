@@ -89,6 +89,7 @@ const check = (ok, what, detail) => { if (ok) passes++; else fails.push(what + (
         check(has(REACH ? `Way in · ${r.motion}` : `Why a partner moves · ${r.motion}`) && has(`Anatta fit · ${r.fit}`) && has(REACH ? `Opening · ${r.timing}` : `Timing · ${r.timing}`) && has(`Potential · ${r.potential}`), `${tag}: ${r.display} shows four measures`);
         if (REACH) check(has(`The Heartbeat score alone gave ${r.hb.priority}, rank ${r.hb.rank} of ${REACH.scored}`), `${tag}: ${r.display} keeps the score the Heartbeat alone gave it`);
         if (REACH) check((r.signals || []).every(s => has(s.text)), `${tag}: ${r.display} lists the dated signals its opening rests on`);
+        if (REACH && r.challenge) check(has(`Challenged · ${r.challenge.verdict}`) && has(r.challenge.summary), `${tag}: ${r.display} shows what its challenge found`);
         check(has('Shop Pay:'), `${tag}: ${r.display} has the Shop Pay wedge`);
         check(has('Subscription · +10') === !!r.bonus, `${tag}: ${r.display} subscription bonus line`);
         check(!got.wide && await fits(), `${tag}: ${r.display} record fits the screen width`);

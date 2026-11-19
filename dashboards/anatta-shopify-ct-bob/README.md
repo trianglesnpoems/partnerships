@@ -198,22 +198,50 @@ cannot be moved. Nothing in the score asks whether a store can be won, and in a 
 most. Three smaller faults ride along: a FIRE reading counted twice (in timing, and again as the trigger on partner
 moves), a reading that means less the larger the company is, and a finished rebuild that lowers timing and nothing else.
 
-`reach_rank.py` puts one question in front of the score and rebuilds timing from first-hand evidence:
+**Why the research and the score came apart.** The research knew. The first pass wrote "do not pitch" on the record and
+capped one subscore by 10 points. The brief for the next pass then told researchers not to let "hard to win" touch a
+key, because "other parts of the score and the page handle that". No other part did. The same in-house platform that
+earned the cap in one pass earned 23 of 25 for "platform move" in the next. The contradiction was noticed and written
+up as a footnote under the ranking. QA recomputed every number and passed. Each step did its own job, and no step owned
+the question.
+
+So the steps below are built on seven rules:
+
+1. **A conclusion lives in a field the ranking reads.** Prose may explain it. Prose may not be the only place it lives.
+2. **A brief never says another step handles a judgment** unless that step exists and its output is checked.
+3. **One fact, one key.** The same evidence is not scored up in one pass and down in another.
+4. **A score is used inside the range it was built on.** Outside it, the build stops and asks for the reach test.
+5. **A signal is the company's own dated word**, or it is marked third-party. An intent reading is counted once.
+   A third party's claim about a date is re-read against the newest source before it is used.
+6. **A contradiction between the research and the rank stops the release.** It is never a footnote.
+7. **The first ten are challenged by a reader who did not build them**, before anyone else sees them.
 
 | Step | Script | What it does |
 |---|---|---|
-| H10 | `reach_rank.py` | Reads `reach.json` (one call per company inside the ICP, with its reason: open, long odds, not now, out of reach) and `signals.json` (the company's own dated actions, each in a class: a decision said to be open, a new owner or chief, a technology or e-commerce chief changing, another senior change, growth, software its vendor has frozen). Only the companies that can move are ranked. The score keeps the Heartbeat's weights and its fit, potential, Shop Pay lift and subscription rule. The opening keeps the Heartbeat's split of timing (60% research, 40% FIRE), but the research share counts classified first-hand signals only. The way in is partner motion with one change: a FIRE reading is not a trigger. It also writes the first ten under four weightings of the opening, to show how much the order depends on the weights. |
-| H11 | `assemble.py --openings openings.json [--fixes fixes.json]` | Leads the page with that ranking, lists the companies set aside with the reason for each, and keeps the score the Heartbeat alone gave every company on its record. `--fixes` applies corrections found after the research was written; one that matches nothing stops the build. |
-| H12 | `qa.py --reach reach.json --signals signals.json --as-of YYYY-MM-DD` | Recomputes the opening, the way in, the score and the order in a second implementation, and checks that every company the Heartbeat scored is ranked or set aside once. |
+| H10 | research, to `briefs/reach_and_signals.md` | Each company's record carries a `reach` call (can the store move in 18 months: open, later or out, with the fact and its source), a `signal` class on every dated event, whether each source is first-hand, and what argues against. |
+| H11 | `reach_infer.py` | Derives the same calls by rule from the rest of the record: the first pass's hard-to-move mark, a finished platform move, a store an operator runs, online sales above the largest company on the list the score was built on (`--reference`). Where the research made the call itself, this is the second opinion: every difference is listed and stops the run until a person settles it in the overrides file, with a reason. The report says which rule or which person made each call. On research written before H10 existed, the rules alone reproduced 66 of 69 calls made by hand, and two of the three differences were the hand being inconsistent. |
+| H12 | `reach_rank.py` | Ranks only the companies that can move. The score keeps the Heartbeat's weights and its fit, potential, Shop Pay lift and subscription rule. The opening keeps the Heartbeat's split of timing (60% research, 40% FIRE), with the research share built from classed first-hand signals. The way in is partner motion with one change: a FIRE reading is not a trigger. It also writes the first ten under four weightings of the opening. |
+| H13 | readers, to `briefs/challenge.md`; `validate_challenge.py` | An independent reader is given the first ten and asked to knock each one out: open every cited source, then look for first-hand evidence that the store cannot move or that the signal is stale. Verdict per company: holds, weaker or wrong, with what was found for and against. |
+| H14 | `assemble.py --openings openings.json --challenge <folder> [--challenge-settled settled.json] [--fixes fixes.json]` | Leads the page with the ranking, lists the companies set aside with the reason for each, keeps the score the Heartbeat alone gave every company, and puts each challenge on its record. `--fixes` applies corrections found after the research was written; one that matches nothing stops the build. |
+| H15 | `qa.py --reach ... --signals ... --as-of ... --reference ... --challenge <folder>` | Arithmetic, in a second implementation: the opening, the way in, the score, the order. Then three checks of sense. Range: no company above the reference list's largest is ranked as in reach, and without the reach test such a list fails outright. Agreement: no ranked company carries the hard-to-move mark, a platform move finished inside two years, or a sentence in its own record that argues it cannot move. Challenge: each of the first ten was challenged on the signals it is ranked on now, and none was overturned without the page saying how that was settled. |
+
+Run on the version that ranked the largest retailer first, H15 fails 58 times: once on range, 28 on the hard-to-move
+mark, 13 on a finished platform move and 16 on a record that argues against its own rank.
 
 The reach calls and the signal classes are judgments, so each is written down with its reason and its source, and the
 page shows them. Scores round halves up on exact arithmetic, so the number on the page is the one a reader gets by hand.
 
 ```bash
-python3 pipeline/reach_rank.py --rescored <Heartbeat Source>/data/<seller>/rescored.json --book <Heartbeat Source>/data/<seller>/book.json \
+python3 pipeline/reach_infer.py --book <Heartbeat Source>/data/<seller>/book.json --research <...>/research.json \
+    --extras <...>/book_extras.json --potential <...>/potential.json --reference <Heartbeat Source>/data/<reference seller>/potential.json \
+    --as-of 2026-11-19 [--overrides <overrides.json>] --out-reach <reach.json> --out-signals <signals.json> --report <reach_report.md>
+python3 pipeline/reach_rank.py --rescored <Heartbeat Source>/data/<seller>/rescored.json --book <...>/book.json \
     --reach <reach.json> --signals <signals.json> --as-of 2026-11-19 --out <build>/openings.json
-python3 pipeline/assemble.py <build>/scored.json <out> --heartbeat ... --heartbeat-insights <insights.json> --openings <build>/openings.json [--fixes <fixes.json>]
-python3 pipeline/qa.py ... --reach <reach.json> --signals <signals.json> --as-of 2026-11-19
+python3 pipeline/validate_challenge.py <challenge>/in_A.json <challenge>/out_A.json
+python3 pipeline/assemble.py <build>/scored.json <out> --heartbeat ... --heartbeat-insights <insights.json> --openings <build>/openings.json \
+    --challenge <challenge> [--challenge-settled <settled.json>] [--fixes <fixes.json>]
+python3 pipeline/qa.py ... --reach <reach.json> --signals <signals.json> --as-of 2026-11-19 \
+    --reference <Heartbeat Source>/data/<reference seller>/potential.json --challenge <challenge>
 ```
 
 ## Scoring in one paragraph
