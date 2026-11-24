@@ -214,7 +214,7 @@ def detect(domain):
         hint = ""
         for pat, name in [(r"salesforce|demandware|dwstatic", "Salesforce Commerce Cloud"),
                           (r"bigcommerce", "BigCommerce"), (r"woocommerce|wp-content", "WooCommerce/WordPress"),
-                          (r"magento|mage-", "Magento/Adobe Commerce"), (r"squarespace", "Squarespace"),
+                          (r"magento|\bmage-|/static/version\d+/", "Magento/Adobe Commerce"), (r"squarespace", "Squarespace"),
                           (r"wixstatic|wix\.com", "Wix"), (r"__next|_next/static", "Next.js (custom/headless)"),
                           (r"sfcc|scene7", "Salesforce Commerce Cloud")]:
             if re.search(pat, html, re.I):
