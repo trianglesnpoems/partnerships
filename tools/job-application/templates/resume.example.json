@@ -1,0 +1,52 @@
+{
+  "name": "Alex Rivera",
+  "headline": "Partnerships and GTM lead for ecommerce platforms",
+  "contact": {
+    "email": "alex@example.com",
+    "phone": "+1 555 010 0199",
+    "location": "Austin, TX",
+    "links": ["linkedin.com/in/example", "example.com"]
+  },
+  "summary": "Partnerships lead with 8 years building agency and technology partner programs for Shopify-ecosystem companies. Sourced and closed co-sell pipeline, built partner scoring models, and ran joint events.",
+  "skills": [
+    {"group": "Partnerships", "items": ["Co-selling", "Partner programs", "Account mapping", "Joint events"]},
+    {"group": "Tools", "items": ["Apollo", "HubSpot", "Crossbeam", "SQL", "Python"]}
+  ],
+  "experience": [
+    {
+      "company": "Northwind Commerce",
+      "title": "Head of Partnerships",
+      "location": "Remote",
+      "start": "Mar 2022",
+      "end": "Present",
+      "bullets": [
+        "Built the agency partner program from 0 to 45 active partners, sourcing 38% of new revenue in 2024.",
+        "Designed an account-mapping model that scored 1,900 accounts against two ICPs and surfaced 210 shared-fit targets.",
+        "Ran 6 co-hosted events with technology partners, generating 120 qualified meetings.",
+        "Wrote a Python pipeline to enrich account lists with storefront technology data, replacing a manual 3-day process."
+      ]
+    },
+    {
+      "company": "Contoso Apps",
+      "title": "Partner Manager",
+      "location": "Austin, TX",
+      "start": "Jun 2018",
+      "end": "Feb 2022",
+      "bullets": [
+        "Managed 25 technology partner relationships and launched 9 integrations.",
+        "Grew partner-sourced pipeline from $1.2M to $4.5M in two years.",
+        "Created partner enablement content used by 60 partner sellers."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Storefront theme detection tool",
+      "link": "github.com/example/theme-detect",
+      "bullets": ["Open-source script that identifies the live theme on a storefront from first-party page data."]
+    }
+  ],
+  "education": [
+    {"school": "University of Texas at Austin", "degree": "BBA, Marketing", "year": "2016"}
+  ]
+}

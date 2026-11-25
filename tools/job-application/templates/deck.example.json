@@ -1,0 +1,56 @@
+{
+  "author": "Alex Rivera",
+  "footer": "Alex Rivera  |  Proof of work for Fabrikam",
+  "theme": {"accent": "#E07A1F", "ink": "#14213D"},
+  "slides": [
+    {
+      "type": "title",
+      "title": "How I would grow Fabrikam's agency channel",
+      "subtitle": "Proof of work for the Senior Partnerships Manager role",
+      "contact": "Alex Rivera  |  alex@example.com",
+      "notes": "Speaker notes go here. They are saved into the .pptx notes pane."
+    },
+    {
+      "type": "bullets",
+      "title": "What the role needs, as I read it",
+      "bullets": [
+        "Agency partners that actually co-sell, not a logo wall",
+        "A repeatable way to pick which accounts to go after together",
+        "Partner-sourced pipeline the sales team trusts"
+      ],
+      "note": "Source: the job posting and Fabrikam's public partner page."
+    },
+    {
+      "type": "case",
+      "title": "I have built this channel before",
+      "problem": "Northwind had no agency program and no partner-sourced revenue.",
+      "action": "Recruited and enabled agencies one segment at a time, with a shared account list for each.",
+      "result": "45 active partners sourcing 38% of new revenue in 2024.",
+      "proof": "Reference available: VP Sales, Northwind Commerce"
+    },
+    {
+      "type": "metrics",
+      "title": "Results I can point to",
+      "metrics": [
+        {"value": "45", "label": "active agency partners, built from zero"},
+        {"value": "38%", "label": "of new revenue sourced by partners in 2024"},
+        {"value": "$4.5M", "label": "partner-sourced pipeline, up from $1.2M"}
+      ]
+    },
+    {
+      "type": "plan",
+      "title": "My first 90 days",
+      "columns": [
+        {"heading": "Days 1-30", "bullets": ["Interview the top 10 partners", "Audit sourced vs influenced pipeline"]},
+        {"heading": "Days 31-60", "bullets": ["Account-map the top 5 agencies", "Launch one joint play"]},
+        {"heading": "Days 61-90", "bullets": ["Publish the partner scorecard", "Set the next two quarters' targets"]}
+      ]
+    },
+    {
+      "type": "closing",
+      "title": "I would like to walk you through this in person",
+      "body": "30 minutes is enough to cover the plan and the work behind it.",
+      "contact": "alex@example.com  |  +1 555 010 0199"
+    }
+  ]
+}

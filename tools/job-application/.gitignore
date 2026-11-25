@@ -1,0 +1,4 @@
+# Personal data: your resume, applications and tracker. This repository is
+# public, so the workspace stays out of git.
+workspace/
+__pycache__/
